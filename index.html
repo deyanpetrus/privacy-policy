@@ -3,98 +3,165 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Privacy Policy — Balkan Vibes</title>
+<title>Privacy Policy — Petrushevski Apps</title>
 <style>
-  body {
-    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-    max-width: 760px;
-    margin: 40px auto;
-    padding: 0 20px;
-    line-height: 1.6;
-    color: #1a1a1a;
+  :root {
+    --blue: #215CED;
+    --text: #1a1d29;
+    --muted: #5b6270;
+    --bg: #ffffff;
+    --card: #f7f9fc;
+    --border: #e6e9f0;
   }
-  h1 { font-size: 1.8em; margin-bottom: 4px; color: #1a5fb4; }
-  .updated { color: #666; font-size: 0.9em; margin-bottom: 30px; font-style: italic; }
-  h2 { margin-top: 34px; font-size: 1.25em; color: #1a5fb4; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.65;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 48px 24px 80px; }
+  header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 {
+    font-size: 1.9rem;
+    margin: 0 0 8px;
+    color: var(--blue);
+  }
+  header .subtitle {
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin: 4px 0;
+  }
+  section h2 {
+    font-size: 1.15rem;
+    color: var(--blue);
+    margin: 36px 0 12px;
+  }
+  section p, section li {
+    color: var(--text);
+    font-size: 0.98rem;
+  }
   ul { padding-left: 22px; }
   li { margin-bottom: 6px; }
-  a { color: #1a5fb4; }
-  hr { margin-top: 50px; border: none; border-top: 1px solid #ccc; }
-  footer { margin-top: 16px; font-size: 0.85em; color: #888; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+  .card p { margin: 6px 0; }
+  a { color: var(--blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  footer {
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  .updated { color: var(--muted); font-size: 0.85rem; }
 </style>
 </head>
 <body>
+<div class="wrap">
 
-<h1>Privacy Policy — Balkan Vibes</h1>
-<p class="updated">Last updated: July 30, 2026</p>
+  <header>
+    <h1>Privacy Policy</h1>
+    <p class="subtitle">Applies to all applications published by the developer <strong>Petrushevski</strong></p>
+    <p class="updated">Last updated: August 2026</p>
+  </header>
 
-<p>
-This Privacy Policy applies to the mobile application Balkan Vibes (the "App"),
-available for Android through Google Play, developed and maintained by
-Petrushevski ("we", "us", "our"). By downloading and using the App, you agree
-to the terms described in this Privacy Policy.
-</p>
+  <div class="card">
+    <p><strong>Developer:</strong> Petrushevski</p>
+    <p><strong>Contact email:</strong> <a href="mailto:monsiai.apps@gmail.com">monsiai.apps@gmail.com</a></p>
+  </div>
 
-<h2>1. Information We Collect</h2>
-<p>The App is designed to work without requiring registration or login. Specifically:</p>
-<ul>
-  <li>We do not collect your name, email address, phone number, or any other personally identifiable information.</li>
-  <li>We do not require you to create a user account.</li>
-  <li>We do not collect location data.</li>
-  <li>We do not store news content or audio streams on our own servers — the App only displays or plays content directly from the sources listed below.</li>
-</ul>
+  <section>
+    <h2>1. Scope of this policy</h2>
+    <p>This Privacy Policy applies to all mobile applications developed and published by the developer Petrushevski ("we", "us", or "the applications"), including radio/audio streaming apps, note-taking and productivity apps with invoicing/document features, personal management apps, and any future application we publish. By downloading and using any of our applications, you agree to the terms described below.</p>
+  </section>
 
-<h2>2. Internet Access and Third-Party Sources</h2>
-<p>To function, the App connects to the internet and communicates directly with:</p>
-<ul>
-  <li>Radio streaming servers of the radio stations featured in the App, in order to play live audio.</li>
-  <li>RSS feeds (news websites) from which article titles and content are retrieved for display in the "News" section.</li>
-</ul>
-<p>
-These third parties (radio stations and news websites) may have their own privacy
-policies and may log technical information on their servers (such as your IP
-address when connecting to a stream), which is outside of our control. We
-recommend reviewing their respective privacy policies if you have concerns.
-</p>
+  <section>
+    <h2>2. Information we collect</h2>
+    <p>Depending on the specific app and the features you use, we may collect:</p>
+    <ul>
+      <li><strong>Registration data</strong> — email address and password (encrypted), when the app offers account registration or sign-in.</li>
+      <li><strong>User-generated content</strong> — notes, invoices, documents, and similar content you enter into the app. This content is stored encrypted and is accessible only to you.</li>
+      <li><strong>Push notification tokens</strong> — for apps offering notifications (e.g. reminders, severe weather alerts), a unique device token is generated to deliver notifications.</li>
+      <li><strong>Location data</strong> — only for weather-related features, and only if you explicitly grant location access via your device's system permissions.</li>
+      <li><strong>Technical device data</strong> — device type, OS version, and app identifiers, used for functionality and troubleshooting purposes.</li>
+      <li><strong>Payment data</strong> — should any app or feature become paid in the future, payments are processed exclusively through Google Play Billing. We do not collect or store payment card data.</li>
+    </ul>
+  </section>
 
-<h2>3. Permissions Used by the App</h2>
-<ul>
-  <li><strong>Internet access (INTERNET)</strong> — required for radio streaming and loading news content.</li>
-  <li><strong>Network state (ACCESS_NETWORK_STATE)</strong> — used to check for an active internet connection.</li>
-  <li><strong>Notifications (POST_NOTIFICATIONS)</strong> — used to display playback controls (play/pause) while the radio is playing in the background.</li>
-  <li><strong>Foreground Service</strong> — allows radio playback to continue when the App is running in the background.</li>
-</ul>
+  <section>
+    <h2>3. How we use your data</h2>
+    <ul>
+      <li>To provide core app functionality (saving notes, streaming radio, syncing invoices, etc.)</li>
+      <li>To authenticate and protect your account, where registration is supported</li>
+      <li>To deliver push notifications you have enabled (reminders, weather alerts)</li>
+      <li>To retrieve data from third-party weather API services, where such a feature is offered</li>
+      <li>To improve and maintain our applications</li>
+    </ul>
+  </section>
 
-<h2>4. Analytics and Third-Party Services</h2>
-<p>
-The App does not use analytics tools, advertising SDKs, or any third-party
-tracking services. We do not track user behavior within the App.
-</p>
+  <section>
+    <h2>4. Data storage and security</h2>
+    <p>All user content (notes, invoices, documents) is stored using <strong>encryption</strong>. Only you can access your content, through your user account. We take reasonable technical and organizational measures to protect your data from unauthorized access, loss, or misuse.</p>
+  </section>
 
-<h2>5. Children's Privacy</h2>
-<p>
-The App is not directed at children under the age of 13, and we do not
-knowingly collect any information from children.
-</p>
+  <section>
+    <h2>5. Third-party services</h2>
+    <p>Some apps rely on external (third-party) services to provide certain features:</p>
+    <ul>
+      <li><strong>Weather API services</strong> — for displaying forecasts and severe weather alerts.</li>
+      <li><strong>Google Play Billing</strong> — for processing future in-app payments, should paid features become available.</li>
+      <li><strong>Firebase / push notification services</strong> — for delivering notifications to your device.</li>
+    </ul>
+    <p>These third parties maintain their own privacy policies governing their processing of data.</p>
+  </section>
 
-<h2>6. Data Security</h2>
-<p>
-Because we do not collect or store personal data on our own servers, the risk
-of personal data being compromised through our App is minimal.
-</p>
+  <section>
+    <h2>6. Data sharing</h2>
+    <p>We do not sell or rent your personal data to third parties. Data is only shared with the services listed in Section 5, to the extent necessary for their operation, or where required by law.</p>
+  </section>
 
-<h2>7. Changes to This Policy</h2>
-<p>
-We may update this Privacy Policy from time to time. Any changes will be
-posted on this page, along with an updated "Last updated" date.
-</p>
+  <section>
+    <h2>7. Your rights</h2>
+    <p>You have the right to request access to, correction of, or deletion of your personal data and content at any time. Requests to delete your account and data can be sent to our contact email and will be processed within a reasonable timeframe.</p>
+  </section>
 
-<h2>8. Contact Us</h2>
-<p>If you have any questions about this Privacy Policy, please contact us at:</p>
-<p><a href="mailto:monsiai.apps@gmail.com">monsiai.apps@gmail.com</a></p>
+  <section>
+    <h2>8. Children's privacy</h2>
+    <p>Our applications are not directed at children under 13, and we do not knowingly collect data from children under that age. If we learn that we have collected data from a child without appropriate parental consent, we will delete it promptly upon becoming aware.</p>
+  </section>
 
-<hr>
-<footer>&copy; 2026 Balkan Vibes — Petrushevski. All rights reserved.</footer>
+  <section>
+    <h2>9. Changes to this policy</h2>
+    <p>This policy may be updated periodically to reflect new features or applications. The "last updated" date at the top of this page will be revised accordingly for significant changes.</p>
+  </section>
+
+  <section>
+    <h2>10. Contact</h2>
+    <p>For privacy-related questions, contact us at: <a href="mailto:monsiai.apps@gmail.com">monsiai.apps@gmail.com</a></p>
+  </section>
+
+  <footer>
+    &copy; <span id="year"></span> Petrushevski. All rights reserved.
+  </footer>
+</div>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+</script>
 
 </body>
 </html>
