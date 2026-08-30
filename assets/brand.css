@@ -1,0 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+:root{
+  --bg:#0b1026;
+  --bg-soft:#101735;
+  --card:#111a3a;
+  --card-2:#17214a;
+  --text:#ffffff;
+  --muted:#b6bfd4;
+  --muted-2:#8994ae;
+  --line:#29365f;
+  --blue:#2563eb;
+  --violet:#6a38f5;
+  --cyan:#00d4ff;
+  --green:#5ed7a3;
+  --gold:#ffd166;
+  --brand-gradient:linear-gradient(135deg,#00d4ff,#2563eb 46%,#6a38f5);
+  --font:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+
+body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at 12% 0%,rgba(0,212,255,.10),transparent 30%),radial-gradient(circle at 82% 6%,rgba(106,56,245,.16),transparent 30%),#0b1026}
+h1,h2,h3,.brand,.btn,.badge,.kicker,.stat-card b,.showcase-badge strong{font-family:"Space Grotesk",Inter,ui-sans-serif,system-ui,sans-serif}
+.nav{background:rgba(11,16,38,.80)}
+.brand-mark{background:#1a1f5c;box-shadow:0 12px 32px rgba(37,99,235,.24)}
+h1 span,.gradient-text{background:linear-gradient(118deg,#ffffff 10%,#8dc9ff 48%,#8b61ff 78%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.btn-primary{background:linear-gradient(135deg,#2563eb,#6a38f5);box-shadow:0 14px 36px rgba(70,74,235,.28)}
+.btn-primary:hover{background:linear-gradient(135deg,#3472f6,#7848ff)}
+.eyebrow{border-color:rgba(37,99,235,.35);background:rgba(37,99,235,.10);color:#dbe8ff}
+.kicker{color:#78a9ff}
