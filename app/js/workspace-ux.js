@@ -3,6 +3,7 @@
 const params=new URLSearchParams(location.search);
 if(params.get('workspace')!=='desktop')return;
 if(!document.querySelector('link[data-workspace-ux-v4]')){const link=document.createElement('link');link.rel='stylesheet';link.href='assets/workspace-ux.css?v=4';link.dataset.workspaceUxV4='1';document.head.appendChild(link)}
+if(!document.querySelector('script[data-window-themes-v1]')){const s=document.createElement('script');s.src='js/window-themes.js?v=1';s.defer=true;s.dataset.windowThemesV1='1';document.head.appendChild(s)}
 const EDIT_SELECTOR='[data-edit-note],[data-edit-tx],[data-edit-bill],[data-edit-invoice],[data-edit-doc],[data-edit-family-member],[data-edit-family-task],[data-edit-vehicle]';
 const RECORD_SELECTOR='#page .data-table tbody tr,#page .list-item,#page .card.ux-click-edit';
 const INTERACTIVE='button,a,input,select,textarea,label,[role="button"],[contenteditable="true"],[data-go],[data-toggle-task],[data-toggle-shop]';
