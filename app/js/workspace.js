@@ -94,6 +94,7 @@ function bind(){
  document.getElementById('launcherAddExpense').onclick=()=>{W.launcher.classList.add('hidden');openRoute('finance');setTimeout(()=>document.querySelector('[data-add-tx]')?.click(),350)};
  document.getElementById('launcherSync').onclick=async()=>{W.launcher.classList.add('hidden');try{if(typeof loadAll==='function')await loadAll();toast?.('Workspace synced')}catch(e){toast?.(e.message||'Sync failed',true)}};
  document.getElementById('desktopAddShortcut').onclick=toggleLauncher;
+ document.querySelectorAll('#launcherApps [data-workspace-route]').forEach(b=>b.addEventListener('click',()=>W.launcher.classList.add('hidden')));
  const s=document.getElementById('launcherSearch');s.oninput=()=>{const q=s.value.trim().toLowerCase();document.querySelectorAll('#launcherApps [data-app-name]').forEach(b=>b.classList.toggle('hidden',q&&!b.dataset.appName.includes(q)))};
  window.addEventListener('hashchange',syncRoute);document.addEventListener('click',e=>{if(!W.launcher||W.launcher.classList.contains('hidden'))return;if(e.target.closest('#desktopLauncher')||e.target.closest('#desktopStart'))return;W.launcher.classList.add('hidden')});
  setupDockMagnify();
