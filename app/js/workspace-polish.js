@@ -1,1 +1,26 @@
-placeholder
+(()=>{
+'use strict';
+if(new URLSearchParams(location.search).get('workspace')!=='desktop')return;
+const ICONS={
+ dashboard:'<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/>',
+ today:'<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M7.5 3v4M16.5 3v4M3.5 9.5h17"/><path d="M8 13h3M13 13h3M8 16.5h3"/>',
+ notes:'<path d="M6 3.5h8.5L18 7v13.5H6z"/><path d="M14.5 3.5V7H18"/><path d="M9 11.5h6M9 15h6"/>',
+ finance:'<circle cx="12" cy="12" r="8.5"/><path d="M15.2 8.5c-.7-.8-1.7-1.2-3-1.2-1.8 0-3 .8-3 2.1 0 3.2 6.2 1.4 6.2 4.8 0 1.5-1.4 2.5-3.4 2.5-1.5 0-2.8-.5-3.6-1.4M12 5.5v13"/>',
+ documents:'<path d="M6 3.5h8.2L18 7.3v13.2H6z"/><path d="M14.2 3.5v4H18"/><path d="M9 11h6M9 14.5h6M9 18h4"/>',
+ family:'<circle cx="9" cy="9" r="2.8"/><circle cx="16.8" cy="10" r="2.2"/><path d="M3.8 19.5c.5-3.5 2.3-5.2 5.2-5.2s4.7 1.7 5.2 5.2M14 15.3c3.2-.5 5.4 1 6 4.2"/>',
+ vehicles:'<path d="M4 14.8l1.8-4.8h12.4l1.8 4.8v4.1H4z"/><path d="M7 10l1.3-3h7.4l1.3 3"/><circle cx="7.2" cy="17" r="1.2"/><circle cx="16.8" cy="17" r="1.2"/>',
+ route:'<circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="6" r="2.2"/><path d="M7.8 16.4c1.8-2.3 2.4-4.9 5-5.7 2.8-.8 3.5-1.6 3.7-2.9"/>',
+ explore:'<circle cx="12" cy="12" r="8.7"/><path d="M15.8 8.2l-2.5 5.1-5.1 2.5 2.5-5.1z"/>',
+ air:'<path d="M21 4L10.5 14.5"/><path d="M14.4 4.5L19 3l-1.5 4.6M3 11l7.5 2.2-2.2 7.3 3.1-3.1 3 3 1.2-6.8 5.8-2.3"/>',
+ radio:'<rect x="3.5" y="7" width="17" height="13" rx="3"/><path d="M7 7l9-3.5M7 12h5"/><circle cx="16" cy="14.5" r="2.5"/><path d="M7 16.5h3"/>',
+ profile:'<circle cx="12" cy="8.2" r="3.7"/><path d="M4.8 20.5c.8-4.2 3.1-6.2 7.2-6.2s6.4 2 7.2 6.2"/>'
+};
+const COLORS={dashboard:['#2677ff','#6840ff'],today:['#7a4cff','#b347ff'],notes:['#ffbf48','#e57d22'],finance:['#49cf79','#208a50'],documents:['#3eaeff','#3159e6'],family:['#ff4fc5','#8b42f4'],vehicles:['#39caff','#355fe9'],route:['#b04cff','#6b37e7'],explore:['#ff953f','#e34a72'],air:['#39ddd1','#287ebd'],radio:['#ff4a9b','#c92869'],profile:['#8a69ff','#633cc8']};
+function routeOf(el){const btn=el.closest('[data-workspace-route]');return btn?.dataset.workspaceRoute||'dashboard'}
+function art(route,small=false){const c=COLORS[route]||COLORS.dashboard,p=ICONS[route]||ICONS.dashboard;return `<span class="v3-art v3-${route}${small?' v3-small':''}" style="--i1:${c[0]};--i2:${c[1]}"><i></i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">${p}</svg></span>`}
+function polishIcons(root){root.querySelectorAll('.dock-app').forEach(btn=>{const icon=btn.querySelector('.dock-icon');if(icon)icon.outerHTML=art(routeOf(btn));});root.querySelectorAll('.desktop-shortcut-card').forEach(btn=>{const icon=btn.querySelector('.shortcut-icon');if(icon)icon.outerHTML=art(routeOf(btn),true);});root.querySelectorAll('#launcherApps [data-workspace-route]').forEach(btn=>{const span=btn.querySelector('span');if(span)span.outerHTML=art(routeOf(btn));});const start=root.querySelector('#desktopStart');if(start)start.innerHTML=art('dashboard',true)}
+function addDecor(root){if(!root.querySelector('.v3-wall-grid'))root.insertAdjacentHTML('afterbegin','<div class="v3-wall-grid"></div><div class="v3-nebula n1"></div><div class="v3-nebula n2"></div>');const dock=root.querySelector('#desktopDock');if(dock&&!dock.querySelector('.v3-dock-reflection'))dock.insertAdjacentHTML('afterbegin','<div class="v3-dock-reflection"></div>');const radio=root.querySelector('.widget-radio');if(radio&&!radio.querySelector('.v3-eq'))radio.insertAdjacentHTML('beforeend','<div class="v3-eq">'+Array.from({length:22},(_,i)=>`<i style="--n:${i}"></i>`).join('')+'</div>');const explore=root.querySelector('.widget-explore');if(explore&&!explore.querySelector('.v3-globe'))explore.insertAdjacentHTML('beforeend','<div class="v3-globe"><i></i><b></b></div>');const finance=root.querySelector('.widget-finance');if(finance&&!finance.querySelector('.v3-spark'))finance.insertAdjacentHTML('beforeend','<div class="v3-spark"><i></i><i></i><i></i><i></i><i></i><i></i></div>')}
+function repaintWindowIcon(root){const target=root.querySelector('#windowAppIcon');if(!target)return;const r=(location.hash||'#dashboard').slice(1)||'dashboard';target.innerHTML=art(r,true)}
+function init(){const link=document.createElement('link');link.rel='stylesheet';link.href='assets/workspace-polish.css?v=3';document.head.appendChild(link);const wait=()=>{const root=document.getElementById('lifeDashDesktop');if(!root){setTimeout(wait,40);return}document.body.classList.add('workspace-polish-v3');root.classList.add('workspace-polish-v3');polishIcons(root);addDecor(root);repaintWindowIcon(root);window.addEventListener('hashchange',()=>setTimeout(()=>repaintWindowIcon(root),30));new MutationObserver(()=>{addDecor(root)}).observe(root,{subtree:true,childList:true})};wait()}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
