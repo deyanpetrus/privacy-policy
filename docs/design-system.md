@@ -2,21 +2,22 @@
 
 ## Brand direction
 
-MONSI AI should feel practical, modern and product-focused rather than like a generic agency template. The site uses a dark interface with cool blue/violet accents shared visually with LifeDashPro.
+MONSI AI should feel practical, modern and product-focused rather than like a generic agency template. The public website uses the final brand identity from the MONSI AI brand guide while keeping the product showcase readable on dark backgrounds.
 
 ## Logo
 
-Primary web mark: compact gradient `M` mark paired with the `MONSI AI` wordmark and the line `SMART TOOLS FOR EVERYDAY LIFE`.
+Primary web mark: the MONSI ribbon-style `M` with the cyan accent dot, paired with the `MONSI AI` wordmark and the tagline `Smart tools for everyday life`.
 
-The mark is provided as `assets/monsi-mark.svg` for scalable browser use. Product icons remain product-specific.
+The scalable browser mark is stored as `assets/monsi-mark.svg`.
 
 ## Typography
 
-Primary stack:
+The final brand guide defines:
 
-`Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`
+- Headings: **Space Grotesk**
+- Body/UI: **Inter**
 
-No external font request is required for rendering; Inter is used when available and the system stack is the fallback.
+Public product pages load those fonts through `assets/brand.css`, with system fallbacks if the remote font service is unavailable.
 
 ### Type scale
 
@@ -27,20 +28,19 @@ No external font request is required for rendering; Inter is used when available
 - Standard body: `14–16px`
 - Metadata / labels: `11–13px`
 
-## Core colors
+## Core brand colors
 
-- Background: `#070B14`
-- Elevated background: `#0B1220`
-- Card: `#101A2D`
-- Card elevated: `#142139`
-- Primary text: `#F6F8FF`
-- Muted text: `#A9B5C9`
-- Border: `#263650`
-- Brand blue: `#6FA8FF`
-- Brand violet: `#8C78FF`
-- Cyan accent: `#55D9FF`
-- Positive: `#5ED7A3`
-- Warning: `#FFD166`
+From the final identity guide:
+
+- Indigo: `#1A1F5C`
+- Purple: `#6A38F5`
+- Blue: `#2563EB`
+- Cyan: `#00D4FF`
+- Deep Navy: `#0B1026`
+- Light Gray: `#F2F4F8`
+- White: `#FFFFFF`
+
+Supporting UI colors may be used for status states, but the main marketing identity stays inside this palette.
 
 ## Radius
 
@@ -68,7 +68,7 @@ Navigation collapses non-essential links on tablet/mobile while retaining the ma
 
 ## Components
 
-Shared components are defined in `assets/styles.css`:
+Shared structural components are defined in `assets/styles.css`, while final MONSI brand overrides live in `assets/brand.css`:
 
 - sticky navigation
 - brand lockup
@@ -90,3 +90,4 @@ Shared components are defined in `assets/styles.css`:
 - Hero imagery may use `fetchpriority="high"`.
 - CSS reserves stable aspect ratios to reduce layout shift.
 - Every image gets descriptive alt text.
+- Marketing artwork that still contains the old `Lite` label is not used on the long-term Balkan Vibes product page until the visible artwork is updated.
