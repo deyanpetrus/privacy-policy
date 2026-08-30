@@ -3,63 +3,85 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#070b14" />
   <meta name="robots" content="index,follow" />
-  <title>MONSI AI | Smart tools for everyday life</title>
-  <meta name="description" content="MONSI AI creates practical Android apps including LifeDashPro, Balkan Vibes and Notes Pro." />
+  <title>MONSI AI | Practical apps for everyday life</title>
+  <meta name="description" content="MONSI AI builds practical apps for organization, finance, travel, live information and Balkan radio. Explore LifeDashPro, Balkan Vibes and more." />
+  <link rel="icon" href="assets/monsi-mark.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="assets/styles.css" />
 </head>
 <body>
-  <nav class="nav">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <nav class="nav" aria-label="Main navigation">
     <div class="wrap nav-inner">
-      <a class="brand" href="./"><span class="brand-mark">M</span><span>MONSI AI<small>SMART TOOLS FOR EVERYDAY LIFE</small></span></a>
-      <div class="nav-links"><a href="#apps">Apps</a><a href="#studio">Studio</a><a href="support/">Support</a><a href="privacy-policy/">Privacy</a><a class="nav-cta" href="mailto:monsiai.apps@gmail.com">Contact</a></div>
+      <a class="brand" href="./" aria-label="MONSI AI home">
+        <span class="brand-mark"><img src="assets/monsi-mark.svg" alt="" aria-hidden="true"></span>
+        <span>MONSI AI<small>SMART TOOLS FOR EVERYDAY LIFE</small></span>
+      </a>
+      <div class="nav-links">
+        <a href="#apps">Apps</a>
+        <a href="#studio">Studio</a>
+        <a href="support/">Support</a>
+        <a href="privacy-policy/">Privacy</a>
+        <a class="nav-cta" href="mailto:monsiai.apps@gmail.com">Contact</a>
+      </div>
     </div>
   </nav>
 
-  <main>
-    <section class="hero hero-v2">
+  <main id="main">
+    <section class="hero">
       <div class="wrap hero-grid">
         <div>
-          <span class="eyebrow"><span class="dot"></span> Independent mobile app studio</span>
+          <span class="eyebrow"><span class="dot"></span> Independent app studio</span>
           <h1><span>Useful apps. One growing ecosystem.</span></h1>
-          <p class="lead">MONSI AI builds practical Android products for organization, travel, radio, finance, everyday planning and useful live information.</p>
-          <div class="actions"><a class="btn btn-primary" href="#apps">Explore our apps</a><a class="btn" href="lifedashpro/demo/">Open LifeDashPro web pilot</a></div>
-          <div class="hero-meta"><span>Android first</span><span>•</span><span>Built by petrushevski</span><span>•</span><span>mkdigital.app</span></div>
+          <p class="lead">MONSI AI creates practical digital tools for everyday life — from one connected personal dashboard to a fast Balkan radio experience designed for the road.</p>
+          <div class="actions">
+            <a class="btn btn-primary" href="#apps">Explore our apps</a>
+            <a class="btn" href="lifedashpro/">Discover LifeDashPro</a>
+          </div>
+          <div class="hero-meta"><b>Android first</b><span>•</span><span>Web experiences in development</span><span>•</span><span>mkdigital.app</span></div>
         </div>
-        <div class="showcase-stack" aria-label="MONSI AI app previews">
-          <div class="showcase-card showcase-main"><img src="assets/lifedash-dashboard.webp" alt="LifeDashPro dashboard screenshot"></div>
-          <div class="showcase-card showcase-side"><img src="assets/balkanvibes-player-current.webp" alt="Balkan Vibes radio player screenshot"></div>
-          <div class="showcase-label"><b>MONSI AI</b><span>Mobile products in active development</span></div>
+
+        <div class="showcase" aria-label="MONSI AI product previews">
+          <div class="showcase-card showcase-main"><img src="assets/lifedash-dashboard.webp" alt="LifeDashPro dashboard preview" decoding="async" fetchpriority="high"></div>
+          <div class="showcase-card showcase-side"><img src="assets/balkanvibes-player-current.webp" alt="Balkan Vibes radio player preview" decoding="async"></div>
+          <div class="showcase-badge"><strong>MONSI AI</strong><span>Focused products built around real everyday tasks.</span></div>
         </div>
       </div>
     </section>
 
     <section id="apps" class="section section-soft">
       <div class="wrap">
-        <div class="section-head"><div class="kicker">Our apps</div><h2>Products already taking shape</h2><p>Each app has its own focused purpose, while LifeDashPro acts as the larger all-in-one ecosystem.</p></div>
+        <div class="section-head">
+          <div class="kicker">Our apps</div>
+          <h2>Two products, two clear jobs.</h2>
+          <p>LifeDashPro brings important parts of daily life into one connected workspace. Balkan Vibes keeps Balkan radio simple, fast and ready for everyday listening.</p>
+        </div>
+
         <div class="app-grid">
           <article class="app-tile app-tile-featured">
-            <div class="app-tile-top"><img class="app-logo-img" src="assets/lifedash-icon.webp" alt="LifeDashPro icon"><div><span class="badge">Flagship</span><h3>LifeDashPro</h3><p>All-in-one personal dashboard</p></div></div>
-            <div class="app-preview-strip"><img src="assets/lifedash-finance.webp" alt="LifeDashPro finance screenshot"><img src="assets/lifedash-vehicles.webp" alt="LifeDashPro vehicle screenshot"></div>
-            <p>Notes, finance, documents, family, vehicles, route planning, VIN lookup, Explore & Live, radio and more — connected through one dashboard.</p>
-            <div class="chips"><span>Dashboard</span><span>Route Planner</span><span>VIN</span><span>Finance</span><span>Explore</span></div>
-            <div class="tile-actions"><a class="btn btn-primary" href="lifedashpro/">Explore LifeDashPro</a><a class="btn" href="lifedashpro/demo/">Web pilot</a></div>
+            <div class="app-tile-top">
+              <img class="app-logo-img" src="assets/lifedash-icon.webp" alt="LifeDashPro app icon" width="76" height="76" decoding="async">
+              <div><span class="badge">Flagship</span><h3>LifeDashPro</h3><p>Your life. One dashboard.</p></div>
+            </div>
+            <div class="app-preview-strip">
+              <img src="assets/lifedash-finance.webp" alt="LifeDashPro finance screen" loading="lazy" decoding="async">
+              <img src="assets/lifedash-vehicles.webp" alt="LifeDashPro vehicles screen" loading="lazy" decoding="async">
+            </div>
+            <p>Organize notes, finances, documents, family tasks, vehicles and travel while keeping useful live information close to the same personal dashboard.</p>
+            <div class="chips"><span>Dashboard</span><span>Notes Pro</span><span>Finance</span><span>Vehicles & VIN</span><span>Route Planner</span><span>Explore & Live</span></div>
+            <div class="tile-actions"><a class="btn btn-primary" href="lifedashpro/">Explore LifeDashPro</a></div>
           </article>
 
           <article class="app-tile">
-            <div class="app-tile-top"><div class="app-logo-css bv-logo">BV</div><div><span class="badge badge-purple">Radio</span><h3>Balkan Vibes</h3><p>Balkan radio & driving companion</p></div></div>
-            <div class="single-preview"><img src="assets/balkanvibes-browser-current.webp" alt="Balkan Vibes radio browser screenshot"></div>
-            <p>Browse stations by country, save favorites, use a distraction-reduced player and keep audio available while you drive.</p>
-            <div class="chips"><span>Radio</span><span>Favorites</span><span>Car Mode</span><span>Bluetooth</span></div>
-            <div class="tile-actions"><a class="btn btn-primary" href="balkanvibes/">View Balkan Vibes</a></div>
-          </article>
-
-          <article class="app-tile">
-            <div class="app-tile-top"><div class="app-logo-css notes-logo">N</div><div><span class="badge badge-gold">Productivity</span><h3>Белешки Pro</h3><p>Notes, reminders & attachments</p></div></div>
-            <div class="notes-visual" aria-hidden="true"><div class="note-line long"></div><div class="note-line"></div><div class="note-line short"></div><div class="note-pill">Reminder</div><div class="note-pill second">Attachment</div></div>
-            <p>A focused notes app with reminders, reusable contacts, budgets, attachments, archive and encrypted cloud-ready data.</p>
-            <div class="chips"><span>Notes</span><span>Reminders</span><span>Attachments</span><span>Archive</span></div>
-            <div class="tile-actions"><a class="btn btn-primary" href="beleskipro/">View Notes Pro</a></div>
+            <div class="app-tile-top">
+              <div class="app-logo-css bv-logo" aria-hidden="true">BV</div>
+              <div><span class="badge badge-purple">Radio</span><h3>Balkan Vibes</h3><p>Balkan radio, simplified.</p></div>
+            </div>
+            <div class="single-preview"><img src="assets/balkanvibes-browser-current.webp" alt="Balkan Vibes station browser" loading="lazy" decoding="async"></div>
+            <p>A lightweight Balkan-focused radio experience today, designed to grow into a richer listening companion with fast station access and driving-friendly controls.</p>
+            <div class="chips"><span>Radio</span><span>Countries</span><span>Favorites</span><span>Car Mode</span><span>Background audio</span></div>
+            <div class="tile-actions"><a class="btn btn-primary" href="balkanvibes/">Explore Balkan Vibes</a></div>
           </article>
         </div>
       </div>
@@ -67,16 +89,49 @@
 
     <section id="studio" class="section">
       <div class="wrap">
-        <div class="section-head"><div class="kicker">MONSI AI Studio</div><h2>Built around practical daily use</h2></div>
-        <div class="grid-3"><div class="feature"><div class="feature-icon">◫</div><h3>Clear product focus</h3><p>Each app is built around a specific everyday task instead of adding features without a purpose.</p></div><div class="feature"><div class="feature-icon">◎</div><h3>Connected experiences</h3><p>LifeDashPro can bring information from multiple tools back into one central personal dashboard.</p></div><div class="feature"><div class="feature-icon">◇</div><h3>Privacy & control</h3><p>Support, privacy, terms and account-deletion information are published in one consistent place.</p></div></div>
+        <div class="section-head"><div class="kicker">MONSI AI Studio</div><h2>Products built around practical daily use.</h2><p>The goal is simple: each app should solve a real task clearly, then connect to a broader ecosystem only where that connection is genuinely useful.</p></div>
+        <div class="grid-3">
+          <div class="feature"><div class="feature-icon">◫</div><h3>Focused products</h3><p>Each app starts with a clear purpose rather than a long list of disconnected features.</p></div>
+          <div class="feature"><div class="feature-icon">◎</div><h3>Connected ecosystem</h3><p>LifeDashPro is designed to bring multiple everyday tools and their most important information into one dashboard.</p></div>
+          <div class="feature"><div class="feature-icon">◇</div><h3>Privacy & control</h3><p>Support, privacy, terms and account-deletion information stay available from one consistent public home.</p></div>
+        </div>
+        <div class="stats-strip">
+          <div class="stat-card"><b>LifeDashPro</b><span>Flagship personal dashboard</span></div>
+          <div class="stat-card"><b>Balkan Vibes</b><span>Balkan radio platform</span></div>
+          <div class="stat-card"><b>Android first</b><span>Native mobile products</span></div>
+          <div class="stat-card"><b>Web next</b><span>Connected browser experience</span></div>
+        </div>
       </div>
     </section>
 
     <section class="section section-soft">
-      <div class="wrap"><div class="section-head"><div class="kicker">Trust & support</div><h2>App-store ready support pages</h2></div><div class="legal-grid"><a class="legal-link" href="privacy-policy/"><strong>Privacy Policy</strong><span>How MONSI AI apps process data.</span></a><a class="legal-link" href="terms/"><strong>Terms of Use</strong><span>Rules and service information.</span></a><a class="legal-link" href="support/"><strong>Support</strong><span>Contact and troubleshooting help.</span></a><a class="legal-link" href="delete-account/"><strong>Delete Account</strong><span>LifeDashPro account deletion instructions.</span></a></div></div>
+      <div class="wrap">
+        <div class="section-head"><div class="kicker">More from the studio</div><h2>Focused tools can stand on their own too.</h2><p>Smaller products and experiments can remain independent while useful ideas also feed the larger LifeDashPro ecosystem.</p></div>
+        <div class="product-card">
+          <div><span class="badge badge-gold">Productivity</span><h3>Белешки Pro</h3><p>A dedicated notes workspace for reminders, attachments, reusable contacts and organized personal records.</p></div>
+          <a class="btn" href="beleskipro/">View Notes Pro</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap">
+        <div class="section-head"><div class="kicker">Support & trust</div><h2>Clear information in one place.</h2></div>
+        <div class="legal-grid">
+          <a class="legal-link" href="privacy-policy/"><strong>Privacy Policy</strong><span>How MONSI AI apps handle data.</span></a>
+          <a class="legal-link" href="terms/"><strong>Terms of Use</strong><span>Service rules and product information.</span></a>
+          <a class="legal-link" href="support/"><strong>Support</strong><span>Contact and troubleshooting help.</span></a>
+          <a class="legal-link" href="delete-account/"><strong>Delete Account</strong><span>LifeDashPro account deletion information.</span></a>
+        </div>
+      </div>
     </section>
   </main>
 
-  <footer class="footer"><div class="wrap footer-row"><div><strong>MONSI AI</strong><br><span>Developer: petrushevski</span><br><a href="mailto:monsiai.apps@gmail.com">monsiai.apps@gmail.com</a><br><span>mkdigital.app</span></div><div class="footer-links"><a href="lifedashpro/">LifeDashPro</a><a href="balkanvibes/">Balkan Vibes</a><a href="beleskipro/">Notes Pro</a><a href="privacy-policy/">Privacy</a><a href="support/">Support</a></div></div></footer>
+  <footer class="footer">
+    <div class="wrap footer-row">
+      <div><strong>MONSI AI</strong><br><span>Independent app studio</span><br><a href="mailto:monsiai.apps@gmail.com">monsiai.apps@gmail.com</a><br><span>mkdigital.app</span></div>
+      <div class="footer-links"><a href="lifedashpro/">LifeDashPro</a><a href="balkanvibes/">Balkan Vibes</a><a href="beleskipro/">Notes Pro</a><a href="privacy-policy/">Privacy</a><a href="support/">Support</a></div>
+    </div>
+  </footer>
 </body>
 </html>
