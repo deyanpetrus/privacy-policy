@@ -1,6 +1,6 @@
 'use strict';
-const CACHE='lifedashpro-web-v4-desktop-polish';
-const APP_SHELL=['./','./index.html','./config.js','./assets/app.css','./assets/themes.css','./assets/workspace.css','./assets/workspace-polish.css','./js/data.js','./js/live.js','./js/core.js','./js/pages.js','./js/modules.js','./js/live-ui.js','./js/boot.js','./js/enhancements.js','./js/workspace.js','./js/workspace-polish.js','../assets/lifedash-icon.webp'];
+const CACHE='lifedashpro-web-v5-desktop-ux';
+const APP_SHELL=['./','./index.html','./config.js','./assets/app.css','./assets/themes.css','./assets/workspace.css','./assets/workspace-polish.css','./assets/workspace-ux.css','./js/data.js','./js/live.js','./js/core.js','./js/pages.js','./js/modules.js','./js/live-ui.js','./js/boot.js','./js/enhancements.js','./js/workspace.js','./js/workspace-polish.js','./js/workspace-ux.js','../assets/lifedash-icon.webp'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(APP_SHELL)).catch(()=>{}));self.skipWaiting()});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim()});
 self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;const url=new URL(event.request.url);if(url.origin!==location.origin)return;event.respondWith(fetch(event.request).then(response=>{if(response&&response.ok){const clone=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,clone)).catch(()=>{})}return response}).catch(()=>caches.match(event.request).then(r=>r||caches.match('./index.html'))))});
