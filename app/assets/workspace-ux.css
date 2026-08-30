@@ -1,0 +1,62 @@
+/* LifeDashPro Desktop v4 UX — density, fullscreen work area, clickable records */
+body.workspace-desktop.workspace-ux-v4{--ux-top:76px;--ux-dock-space:98px}
+.workspace-ux-v4 .desktop-canvas{inset:var(--ux-top) 0 0}
+.workspace-ux-v4 .desktop-home{bottom:var(--ux-dock-space);scrollbar-gutter:stable;padding-bottom:22px}
+.workspace-ux-v4 .desktop-shortcuts{bottom:var(--ux-dock-space)}
+.workspace-ux-v4 .desktop-window{bottom:var(--ux-dock-space)}
+
+/* Compact application header: the window titlebar already names the app. */
+.workspace-ux-v4 .desktop-window-titlebar{height:46px}
+.workspace-ux-v4 .desktop-window-body{inset:46px 0 0}
+.workspace-ux-v4 .desktop-window .page{padding:14px 16px 74px!important}
+.workspace-ux-v4 .desktop-window .page-head{top:-14px;margin:-14px -16px 12px;padding:9px 16px 8px;min-height:48px;gap:12px;align-items:center;background:linear-gradient(to bottom,rgba(var(--desk-panel),.985),rgba(var(--desk-panel),.91))}
+.workspace-ux-v4 .desktop-window .page-head>div:first-child{min-width:0;flex:1}
+.workspace-ux-v4 .desktop-window .page-head h1{font-size:18px!important;line-height:1.08!important;letter-spacing:-.025em!important;margin:0!important}
+.workspace-ux-v4 .desktop-window .page-head p{font-size:8.5px!important;line-height:1.2!important;margin:3px 0 0!important;color:var(--desk-muted)!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:72ch}
+.workspace-ux-v4 .desktop-window .page-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:nowrap}
+.workspace-ux-v4 .desktop-window .page-actions button,.workspace-ux-v4 .desktop-window .page-head button{min-height:31px!important;padding:6px 9px!important;font-size:8.5px!important;border-radius:9px!important;white-space:nowrap}
+.workspace-ux-v4 .desktop-window .toolbar{gap:7px;margin-bottom:10px}
+.workspace-ux-v4 .desktop-window .toolbar .field,.workspace-ux-v4 .desktop-window .toolbar button{min-height:34px}
+.workspace-ux-v4 .desktop-window .card{padding:14px}
+.workspace-ux-v4 .desktop-window .card h3{font-size:12px;margin:0 0 7px}
+.workspace-ux-v4 .desktop-window .metric{font-size:26px}
+.workspace-ux-v4 .desktop-window .data-table th{font-size:8px;padding:8px 9px}
+.workspace-ux-v4 .desktop-window .data-table td{font-size:9px;padding:9px}
+.workspace-ux-v4 .desktop-window .list-item{min-height:42px;padding:8px 9px}
+
+/* Entire records are editable when they already expose an Edit action. */
+.workspace-ux-v4 #page .ux-click-edit{cursor:pointer;transition:background .16s ease,border-color .16s ease,transform .16s ease,box-shadow .16s ease}
+.workspace-ux-v4 #page tr.ux-click-edit:hover td{background:color-mix(in srgb,var(--desk-accent) 7%,transparent)}
+.workspace-ux-v4 #page .list-item.ux-click-edit:hover{background:color-mix(in srgb,var(--desk-accent) 8%,transparent);box-shadow:inset 2px 0 0 color-mix(in srgb,var(--desk-accent) 72%,transparent)}
+.workspace-ux-v4 #page .card.ux-click-edit:hover{border-color:color-mix(in srgb,var(--desk-accent) 45%,transparent);box-shadow:0 16px 38px rgba(0,0,0,.18),0 0 22px color-mix(in srgb,var(--desk-accent) 9%,transparent);transform:translateY(-1px)}
+.workspace-ux-v4 #page .ux-click-edit .mini-btn{cursor:pointer}
+
+/* Real work fullscreen: covers the desktop chrome while the desktop keeps running behind it. */
+.workspace-ux-v4 .desktop-window.maximized{position:fixed!important;inset:7px!important;left:7px!important;right:7px!important;top:7px!important;bottom:7px!important;z-index:160!important;width:auto!important;height:auto!important;border-radius:18px!important;box-shadow:0 40px 150px rgba(0,0,0,.62),0 0 80px color-mix(in srgb,var(--desk-accent2) 16%,transparent)!important}
+.workspace-ux-v4 .desktop-window.maximized .desktop-window-titlebar{height:45px;background:linear-gradient(90deg,rgba(var(--desk-panel),.99),rgba(var(--desk-panel-2),.96))}
+.workspace-ux-v4 .desktop-window.maximized .desktop-window-body{inset:45px 0 0}
+.workspace-ux-v4 .desktop-window.maximized .page{padding:12px 18px 34px!important}
+.workspace-ux-v4 .desktop-window.maximized .page-head{top:-12px;margin:-12px -18px 11px;padding:8px 18px 7px}
+.workspace-ux-v4 .desktop-window.maximized .page-head h1{font-size:16px!important}
+.workspace-ux-v4 .desktop-window.maximized .page-head p{font-size:8px!important}
+body.workspace-focus-v4 .desktop-topbar,body.workspace-focus-v4 .desktop-dock,body.workspace-focus-v4 .desktop-start,body.workspace-focus-v4 .desktop-theme-panel,body.workspace-focus-v4 .desktop-status,body.workspace-focus-v4 .desktop-shortcuts,body.workspace-focus-v4 .desktop-home{pointer-events:none;filter:saturate(.55) brightness(.62)}
+
+/* 100% browser zoom / typical laptop heights: fit the complete home workspace without losing widgets. */
+@media (min-width:1081px) and (max-height:950px){
+ body.workspace-desktop.workspace-ux-v4{--ux-top:69px;--ux-dock-space:88px}
+ .workspace-ux-v4 .desktop-topbar{top:9px;height:55px;left:12px;right:12px;border-radius:18px;padding:0 13px}
+ .workspace-ux-v4 .desktop-brand img{width:35px;height:35px;border-radius:11px}.workspace-ux-v4 .desktop-brand b{font-size:14px}.workspace-ux-v4 .desktop-brand small{font-size:8px}
+ .workspace-ux-v4 .desktop-top-actions button{width:34px;height:34px;border-radius:11px}.workspace-ux-v4 .desktop-live{gap:10px}.workspace-ux-v4 .desktop-live>b{font-size:11px}
+ .workspace-ux-v4 .desktop-home{padding-top:0;padding-bottom:12px}.workspace-ux-v4 .home-hero{min-height:108px;padding:16px 21px;border-radius:20px}.workspace-ux-v4 .home-hero h1{font-size:25px;margin:5px 0 3px}.workspace-ux-v4 .home-hero p{font-size:10px}.workspace-ux-v4 .eyebrow{font-size:6.5px}.workspace-ux-v4 .hero-weather{min-width:350px;padding:7px 0 7px 18px;grid-template-columns:45px auto auto}.workspace-ux-v4 .weather-icon{font-size:31px}.workspace-ux-v4 .hero-weather>div:nth-child(2) b{font-size:22px}
+ .workspace-ux-v4 .home-widgets{gap:9px;margin-top:9px}.workspace-ux-v4 .glass-widget{min-height:146px;padding:12px;border-radius:16px}.workspace-ux-v4 .widget-radio,.workspace-ux-v4 .widget-explore{min-height:140px}.workspace-ux-v4 .glass-widget header{margin-bottom:9px}.workspace-ux-v4 .glass-widget>strong{font-size:17px}.workspace-ux-v4 .glass-widget>p{font-size:8px;min-height:20px;margin:4px 0 8px}.workspace-ux-v4 .glass-widget>button{bottom:10px;left:11px;right:11px;padding:6px;font-size:8px}.workspace-ux-v4 .mini-list{gap:3px;margin:5px 0 28px}.workspace-ux-v4 .mini-list span{font-size:7px}
+ .workspace-ux-v4 .home-quick{margin-top:9px;padding:9px 11px;border-radius:14px}.workspace-ux-v4 .home-quick button{padding:7px 9px}
+ .workspace-ux-v4 .desktop-shortcuts{gap:6px;padding-top:0}.workspace-ux-v4 .desktop-shortcut-card{min-height:62px;padding:7px;border-radius:14px;grid-template-columns:34px 1fr auto}.workspace-ux-v4 .desktop-shortcut-card .v3-art{width:34px;height:34px;border-radius:11px}.workspace-ux-v4 .shortcut-copy b{font-size:8.5px}.workspace-ux-v4 .shortcut-copy small{font-size:6.5px}
+ .workspace-ux-v4 .desktop-dock{height:78px;bottom:7px;padding:8px 12px 7px;border-radius:24px}.workspace-ux-v4 .dock-app{width:61px;height:63px;gap:3px}.workspace-ux-v4 .dock-app>.v3-art{width:41px;height:41px;border-radius:14px}.workspace-ux-v4 .dock-app small{font-size:6.5px}.workspace-ux-v4 .desktop-start{bottom:20px;width:43px;height:43px;border-radius:14px}.workspace-ux-v4 .desktop-start>.v3-art{width:33px;height:33px}
+ .workspace-ux-v4 .v3-eq{top:48px;height:46px}.workspace-ux-v4 .v3-globe{width:80px;height:80px;top:34px;right:27px}
+}
+@media (min-width:1081px) and (max-height:760px){
+ body.workspace-desktop.workspace-ux-v4{--ux-top:64px;--ux-dock-space:80px}
+ .workspace-ux-v4 .desktop-topbar{top:6px;height:51px}.workspace-ux-v4 .home-hero{min-height:94px;padding:12px 18px}.workspace-ux-v4 .home-hero h1{font-size:22px}.workspace-ux-v4 .hero-weather{padding-block:3px}.workspace-ux-v4 .glass-widget{min-height:132px}.workspace-ux-v4 .widget-radio,.workspace-ux-v4 .widget-explore{min-height:126px}.workspace-ux-v4 .desktop-shortcut-card{min-height:56px}.workspace-ux-v4 .desktop-dock{height:72px}.workspace-ux-v4 .dock-app{height:58px}.workspace-ux-v4 .dock-app>.v3-art{width:38px;height:38px}.workspace-ux-v4 .home-quick{padding:7px 10px}
+}
+@media(max-width:1080px){body.workspace-desktop.workspace-ux-v4{--ux-top:74px;--ux-dock-space:88px}.workspace-ux-v4 .desktop-window.maximized{inset:4px!important;left:4px!important;right:4px!important;top:4px!important;bottom:4px!important;border-radius:14px!important}}
+@media(max-width:760px){.workspace-ux-v4 .desktop-window .page-head p{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.workspace-ux-v4 .desktop-window.maximized{inset:2px!important;border-radius:10px!important}.workspace-ux-v4 .desktop-window.maximized .page{padding:10px 8px 24px!important}}
