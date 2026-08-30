@@ -4,13 +4,15 @@ const params=new URLSearchParams(location.search);
 if(params.get('workspace')!=='desktop')return;
 if(!document.querySelector('link[data-workspace-ux-v4]')){const link=document.createElement('link');link.rel='stylesheet';link.href='assets/workspace-ux.css?v=4';link.dataset.workspaceUxV4='1';document.head.appendChild(link)}
 const EDIT_SELECTOR='[data-edit-note],[data-edit-tx],[data-edit-bill],[data-edit-invoice],[data-edit-doc],[data-edit-family-member],[data-edit-family-task],[data-edit-vehicle]';
-const RECORD_SELECTOR='#page .data-table tbody tr,#page .list-item,#page .card.span-6';
+const RECORD_SELECTOR='#page .data-table tbody tr,#page .list-item,#page .card.ux-click-edit';
 const INTERACTIVE='button,a,input,select,textarea,label,[role="button"],[contenteditable="true"],[data-go],[data-toggle-task],[data-toggle-shop]';
 let pageObserver=null,windowObserver=null;
+function recordEdit(record){if(!record)return null;if(record.matches('.card'))return record.querySelector(':scope > .page-actions [data-edit-vehicle]');return record.querySelector(EDIT_SELECTOR)}
 function markEditable(){
  const page=document.getElementById('page');if(!page)return;
- page.querySelectorAll('.ux-click-edit').forEach(x=>x.classList.remove('ux-click-edit'));
- page.querySelectorAll('tbody tr,.list-item,.card.span-6').forEach(row=>{if(row.querySelector(EDIT_SELECTOR)){row.classList.add('ux-click-edit');row.setAttribute('title','Open / edit')}});
+ page.querySelectorAll('.ux-click-edit').forEach(x=>{x.classList.remove('ux-click-edit');x.removeAttribute('title')});
+ page.querySelectorAll('tbody tr,.list-item').forEach(row=>{if(row.querySelector(EDIT_SELECTOR)){row.classList.add('ux-click-edit');row.setAttribute('title','Open / edit')}});
+ page.querySelectorAll('.card.span-6').forEach(card=>{if(card.querySelector(':scope > .page-actions [data-edit-vehicle]')){card.classList.add('ux-click-edit');card.setAttribute('title','Open / edit')}});
 }
 function syncFullscreenClass(){
  const win=document.getElementById('desktopWindow');
@@ -22,7 +24,7 @@ function bindClickAnywhere(){
   if(!document.body.classList.contains('workspace-ux-v4'))return;
   if(e.target.closest(INTERACTIVE))return;
   const record=e.target.closest(RECORD_SELECTOR);if(!record)return;
-  const edit=record.querySelector(EDIT_SELECTOR);if(!edit)return;
+  const edit=recordEdit(record);if(!edit)return;
   e.preventDefault();e.stopPropagation();edit.click();
  });
 }
