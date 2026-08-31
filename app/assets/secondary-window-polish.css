@@ -1,0 +1,116 @@
+/* LifeDashPro Desktop — secondary window cleanup.
+   Dashboard visual language stays intact; side shortcut rails are removed because the dock already exposes the apps. */
+
+/* Dashboard: remove duplicate left/right shortcut rails and let the actual dashboard breathe. */
+body.workspace-desktop .desktop-shortcuts{display:none!important}
+@media (min-width:1081px){
+ body.workspace-desktop .desktop-home{left:24px!important;right:24px!important}
+ body.workspace-desktop .desktop-window:not(.maximized){left:30px!important;right:30px!important}
+}
+
+/* One coherent light productivity surface inside every app window. */
+body.workspace-desktop .clean-app-window{color-scheme:light!important;background:#f5f7fa!important;border-color:#d7dde6!important}
+body.workspace-desktop .clean-app-window .desktop-window-titlebar{height:48px!important;background:#fbfcfd!important;border-bottom:1px solid #e2e6ec!important;color:#1d232b!important}
+body.workspace-desktop .clean-app-window .desktop-window-body{inset:48px 0 0!important;overflow:hidden!important;background:#f5f7fa!important;color:#20252c!important}
+body.workspace-desktop .clean-app-window .clean-app-page{position:absolute!important;inset:0!important;width:100%!important;max-width:1500px!important;margin:0 auto!important;overflow:auto!important;overscroll-behavior:contain;scrollbar-gutter:stable;color-scheme:light!important;background:#f5f7fa!important;padding:22px 26px 52px!important}
+
+/* Light native/browser controls, including the scrollbar that was previously inherited from dark mode. */
+body.workspace-desktop .clean-app-window .clean-app-page,
+body.workspace-desktop .clean-app-window .clean-table-card,
+body.clean-workspace-active .modal-card{scrollbar-width:thin;scrollbar-color:#b9c1cc #eef1f5}
+body.workspace-desktop .clean-app-window .clean-app-page::-webkit-scrollbar,
+body.workspace-desktop .clean-app-window .clean-table-card::-webkit-scrollbar,
+body.clean-workspace-active .modal-card::-webkit-scrollbar{width:10px;height:10px}
+body.workspace-desktop .clean-app-window .clean-app-page::-webkit-scrollbar-track,
+body.workspace-desktop .clean-app-window .clean-table-card::-webkit-scrollbar-track,
+body.clean-workspace-active .modal-card::-webkit-scrollbar-track{background:#eef1f5;border-radius:99px}
+body.workspace-desktop .clean-app-window .clean-app-page::-webkit-scrollbar-thumb,
+body.workspace-desktop .clean-app-window .clean-table-card::-webkit-scrollbar-thumb,
+body.clean-workspace-active .modal-card::-webkit-scrollbar-thumb{background:#b9c1cc;border:2px solid #eef1f5;border-radius:99px}
+body.workspace-desktop .clean-app-window .clean-app-page::-webkit-scrollbar-thumb:hover,
+body.workspace-desktop .clean-app-window .clean-table-card::-webkit-scrollbar-thumb:hover,
+body.clean-workspace-active .modal-card::-webkit-scrollbar-thumb:hover{background:#9ea8b5}
+
+/* Window chrome is compact and readable. */
+.clean-app-window .window-theme-switch{background:#f5f7fa!important;border-color:#dfe4eb!important;color:#66717f!important}
+.clean-app-window .window-theme-switch span{color:#7b8490!important}
+.clean-app-window .window-theme-switch button{color:#6a7380!important}
+.clean-app-window .window-controls button{width:30px!important;height:28px!important;background:#fff!important;border:1px solid #e0e5eb!important;color:#5b6470!important}
+.clean-app-window .window-controls button:hover{background:#eef2f6!important;color:#171b20!important}
+.clean-app-window .window-controls button:last-child:hover{background:#fff0f1!important;border-color:#ffd3d7!important;color:#b12d39!important}
+
+/* Headers and metrics: compact, balanced, no giant blank bands. */
+body.workspace-desktop .clean-app-page .page-head{margin:0 0 18px!important;min-height:50px!important;align-items:center!important;gap:14px!important}
+.clean-app-page .page-head>div:first-child{padding-left:56px!important;min-height:48px!important}
+.clean-app-page .clean-head-icon{width:44px!important;height:44px!important;border-radius:13px!important}
+.clean-app-page .clean-head-icon svg{width:21px!important;height:21px!important}
+.clean-app-page .page-head h1{font-size:23px!important;margin:0 0 3px!important}
+.clean-app-page .page-head p{font-size:10.5px!important;line-height:1.35!important;max-width:76ch!important}
+.clean-app-page .page-actions{gap:7px!important;align-items:center!important;flex-wrap:wrap!important}
+.clean-app-page .page-actions .primary,.clean-app-page .page-actions .quiet{min-height:38px!important;padding:8px 13px!important;border-radius:10px!important;font-size:9.5px!important}
+.clean-metrics-strip{gap:18px!important;margin:0 0 20px!important;padding:0 5px!important}
+.clean-metric{padding:3px 0!important}.clean-metric span{font-size:10px!important;margin-bottom:4px!important}.clean-metric strong{font-size:26px!important}.clean-metric small{font-size:8px!important}
+
+/* Prevent CSS-grid stretching from creating large empty cards beside taller content. */
+body.workspace-desktop .clean-app-page .grid{align-items:start!important;grid-auto-rows:max-content!important}
+body.workspace-desktop .clean-app-page .card,
+body.workspace-desktop .clean-app-page .settings-card{align-self:start!important;height:auto!important;min-height:0!important}
+body.workspace-desktop .clean-app-page[data-clean-route="family"] .card{min-height:0!important}
+body.workspace-desktop .clean-app-page .empty{padding:26px 14px!important;min-height:0!important}
+body.workspace-desktop .clean-app-page .empty strong{margin-bottom:4px!important}
+
+/* Tables/lists: reference-style clean rows with light, consistent horizontal scrolling where needed. */
+body.workspace-desktop .clean-app-page .clean-table-card{overflow-x:auto!important;overflow-y:visible!important;background:#fff!important;color-scheme:light!important}
+body.workspace-desktop .clean-app-page .data-table{width:100%!important;min-width:720px;border-collapse:separate!important;border-spacing:0!important;background:#fff!important}
+body.workspace-desktop .clean-app-page .data-table th{height:44px!important;padding:0 16px!important;background:#fafbfc!important;color:#7e8792!important}
+body.workspace-desktop .clean-app-page .data-table td{padding:13px 16px!important;line-height:1.3!important;background:#fff!important}
+body.workspace-desktop .clean-app-page .data-table tbody tr{transition:background .14s ease}
+body.workspace-desktop .clean-app-page .data-table tbody tr:hover td{background:#f7f9fb!important}
+body.workspace-desktop .clean-app-page .actions-cell{width:1%;white-space:nowrap!important;gap:5px!important}
+body.workspace-desktop .clean-app-page .list{margin-top:8px!important}
+body.workspace-desktop .clean-app-page .list-item{min-height:46px!important;padding:11px 8px!important;background:#fff!important}
+
+/* Form/modal cleanup: stop checkboxes and empty controls from inheriting full text-field height. */
+body.clean-workspace-active .modal{padding:16px!important;background:rgba(4,10,22,.48)!important}
+body.clean-workspace-active .modal-card{color-scheme:light!important;width:min(760px,calc(100vw - 32px))!important;max-height:min(880px,92dvh)!important;background:#fff!important;border:1px solid #dfe4ea!important;border-radius:18px!important;box-shadow:0 32px 100px rgba(4,12,28,.28)!important}
+body.clean-workspace-active .modal-head{min-height:54px!important;padding:12px 16px!important;background:#fbfcfd!important;border-bottom:1px solid #e5e8ed!important;color:#1e2329!important}
+body.clean-workspace-active #modalClose{width:34px!important;height:34px!important;background:#fff!important;border:1px solid #e0e4e9!important;color:#555e69!important}
+body.clean-workspace-active .modal-form{padding:18px!important;gap:12px!important;grid-auto-rows:max-content!important}
+body.clean-workspace-active .modal-form .form-grid{align-items:start!important;gap:12px!important}
+body.clean-workspace-active .modal-form label{align-self:start!important;gap:6px!important;color:#363c44!important}
+body.clean-workspace-active .modal-form input,
+body.clean-workspace-active .modal-form select,
+body.clean-workspace-active .modal-form textarea{color-scheme:light!important;width:100%!important;min-height:42px!important;background:#fff!important;color:#20252b!important;border:1px solid #d9dfe6!important;border-radius:10px!important;padding:9px 11px!important;box-shadow:0 1px 2px rgba(20,30,45,.025)!important}
+body.clean-workspace-active .modal-form textarea{min-height:92px!important;max-height:240px!important;resize:vertical!important}
+body.clean-workspace-active .modal-form input[type="checkbox"],
+body.clean-workspace-active .modal-form input[type="radio"]{width:16px!important;height:16px!important;min-height:16px!important;padding:0!important;margin:0 7px 0 0!important;display:inline-block!important;vertical-align:-3px!important;box-shadow:none!important;accent-color:#246fd0!important}
+body.clean-workspace-active .modal-form input[type="file"]{padding:6px 8px!important;min-height:42px!important}
+body.clean-workspace-active .modal-form input[type="file"]::file-selector-button{border:1px solid #d9dfe6;border-radius:8px;background:#f3f6f9;color:#333b45;padding:6px 9px;margin-right:9px;cursor:pointer}
+body.clean-workspace-active .modal-form input:focus,
+body.clean-workspace-active .modal-form select:focus,
+body.clean-workspace-active .modal-form textarea:focus{outline:none!important;border-color:#8eb8e7!important;box-shadow:0 0 0 3px rgba(36,116,216,.09)!important}
+body.clean-workspace-active .modal-form .form-actions{margin-top:3px!important;padding-top:12px!important;border-top:1px solid #edf0f3!important}
+body.clean-workspace-active .modal-form .primary{background:#111317!important;color:#fff!important;border:1px solid #111317!important;box-shadow:none!important}
+body.clean-workspace-active .modal-form .quiet{background:#fff!important;color:#3f4751!important;border:1px solid #dce1e7!important}
+
+/* Clean native details in the actual pages too. */
+.clean-app-page input,.clean-app-page select,.clean-app-page textarea{color-scheme:light!important}
+.clean-app-page input[type="checkbox"],.clean-app-page input[type="radio"]{accent-color:#246fd0!important}
+
+/* Fullscreen remains edge-to-edge but still uses the same clean surface. */
+body.workspace-desktop .clean-app-window.maximized{background:#fff!important;color-scheme:light!important}
+body.workspace-desktop .clean-app-window.maximized .desktop-window-body{background:#f5f7fa!important}
+body.workspace-desktop .clean-app-window.maximized .clean-app-page{max-width:1600px!important;padding:20px 30px 38px!important}
+
+/* At 100% browser zoom, the center now owns the space that the removed rails used to consume. */
+@media (min-width:1081px) and (max-width:1680px){
+ body.workspace-desktop .desktop-home{left:18px!important;right:18px!important}
+ body.workspace-desktop .desktop-window:not(.maximized){left:22px!important;right:22px!important}
+ body.workspace-desktop .clean-app-page{padding-left:20px!important;padding-right:20px!important}
+}
+@media (max-width:900px){
+ body.workspace-desktop .clean-app-page{padding:16px 12px 36px!important}
+ .clean-app-page .page-head{align-items:flex-start!important}.clean-app-page .page-actions{width:100%!important}
+ .clean-metrics-strip{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ body.clean-workspace-active .modal-form .form-grid{grid-template-columns:1fr!important}
+}
