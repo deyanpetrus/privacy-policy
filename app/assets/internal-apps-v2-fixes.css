@@ -1,0 +1,6 @@
+/* Final hierarchy/readability fixes for Internal Apps UI v2. */
+body.workspace-desktop .desktop-theme-panel,body.workspace-desktop .desktop-status{z-index:30!important}
+.app2-section-title{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin:-2px 0 12px;padding:0 2px}.app2-section-title b{color:var(--app2-text)!important;font-size:12px!important;letter-spacing:-.01em}.app2-section-title span{color:var(--app2-muted)!important;font-size:8.5px!important;text-align:right}
+.app2-page>.card.full:has(.app2-table-wrap){padding:14px!important}.app2-page>.card.full:has(.app2-table-wrap)>.app2-table-wrap{margin:0!important}
+body.workspace-desktop.workspace-focus-v4 .desktop-theme-panel,body.workspace-desktop.workspace-focus-v4 .desktop-status{filter:saturate(.55) brightness(.62);pointer-events:none}
+@media(max-width:1180px){.app2-section-title{align-items:flex-start;flex-direction:column;gap:3px}.app2-section-title span{text-align:left}}
