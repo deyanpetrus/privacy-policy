@@ -1,0 +1,12 @@
+/* LifeDashPro Desktop v37.17 parity additions — functionality only; dashboard shell stays unchanged. */
+body.workspace-desktop .desktop-start{display:none!important}
+.parity-file-actions{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}.parity-file-actions .mini-btn{white-space:nowrap}
+.attachment-list{display:grid;gap:6px;margin-top:8px}.attachment{display:flex;align-items:center;gap:8px;padding:8px 9px;border:1px solid var(--app2-line,#e2e7ee);border-radius:10px;background:var(--app2-surface-2,#fafbfc)}.attachment .grow{min-width:0}.attachment b,.attachment span{display:block}.attachment span{font-size:8px;color:var(--app2-muted,#697386)}
+.parity-location-card{grid-column:1/-1}.parity-location-status{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0;padding:12px 13px;border:1px solid var(--app2-line,#e2e7ee);border-radius:12px;background:var(--app2-surface-2,#fafbfc)}.parity-location-status b{font-size:11px;color:var(--app2-text,#121722)}.parity-location-status span{font-size:8.5px;color:var(--app2-muted,#697386);text-align:right}
+.parity-route-poi{margin-top:10px!important;padding-top:10px;border-top:1px solid var(--app2-line,#e2e7ee)}#routePoiResults{margin-top:10px}.parity-poi-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}.parity-poi-head b{font-size:10px}.parity-poi-head span{font-size:8px;color:var(--app2-muted,#697386)}
+.parity-radio-last{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px;padding:10px 12px;border:1px solid var(--app2-line,#e2e7ee);border-radius:12px;background:var(--app2-surface,#fff)}.parity-radio-last span{font-size:9px;color:var(--app2-muted,#697386)}
+.parity-card-files{margin-top:10px;padding-top:10px;border-top:1px solid var(--app2-line,#e2e7ee)}.parity-vehicle-history{margin-top:10px!important}
+.invoice-preview .page-head{margin-bottom:12px!important}.invoice-preview .data-table{margin:12px 0}.invoice-preview h3{text-align:right;margin-top:14px!important}
+.app2-page[data-app2-route="finance"] .page-actions>.pill{min-height:36px;display:inline-flex;align-items:center;padding:0 11px!important}
+.app2-page[data-app2-route="finance"] .page-actions button:disabled{opacity:.35;cursor:not-allowed}
+@media(max-width:900px){.parity-location-status{align-items:flex-start;flex-direction:column}.parity-location-status span{text-align:left}.parity-file-actions{gap:3px}.parity-file-actions .mini-btn{padding:4px 6px!important}}
