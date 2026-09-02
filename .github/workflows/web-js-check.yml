@@ -1,0 +1,30 @@
+name: LifeDashPro Web JS Check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**/*.js'
+      - 'app/index.html'
+      - '.github/workflows/web-js-check.yml'
+  pull_request:
+    paths:
+      - 'app/**/*.js'
+      - 'app/index.html'
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Check browser JavaScript syntax
+        shell: bash
+        run: |
+          set -e
+          for file in app/js/*.js app/sw.js app/config.js; do
+            echo "Checking $file"
+            node --check "$file"
+          done
