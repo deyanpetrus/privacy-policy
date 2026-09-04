@@ -12,9 +12,11 @@ body:after{content:"";position:fixed;inset:auto -14vw -22vw auto;width:56vw;heig
 .stage-phone,.stage-mini,.stage-label{transition:transform .35s ease,border-color .35s ease,box-shadow .35s ease}.stage-phone:hover,.stage-mini:hover{border-color:rgba(126,154,255,.38);box-shadow:0 34px 100px rgba(0,0,0,.42),0 0 42px rgba(100,101,255,.09)}
 .product-v2{backdrop-filter:blur(10px);box-shadow:0 22px 80px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.025);transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}.product-v2:hover{transform:translateY(-3px);border-color:rgba(120,151,255,.24);box-shadow:0 28px 88px rgba(0,0,0,.26),0 0 50px rgba(104,93,255,.055),inset 0 1px 0 rgba(255,255,255,.04)}
 .product-v2-lifedash:after{content:"LIVE WEB WORKSPACE";position:absolute;right:28px;top:26px;padding:7px 10px;border:1px solid rgba(94,215,163,.22);border-radius:999px;background:rgba(94,215,163,.06);color:#bdebd4;font-size:9px;font-weight:900;letter-spacing:.12em}
+.status-line>span:last-child{width:auto;height:auto;border-radius:0;background:none;box-shadow:none}
 .studio-panel{backdrop-filter:blur(10px);transition:transform .22s ease,border-color .22s ease}.studio-panel:hover{transform:translateX(4px);border-color:rgba(111,168,255,.25)}
 .legal-link{backdrop-filter:blur(10px)}
 .footer{background:linear-gradient(180deg,rgba(8,13,24,.55),rgba(5,9,17,.92))}
 @media(max-width:960px){.nav-links{gap:9px}.lang-switcher{padding-inline:8px}}
 @media(max-width:820px){.lang-switcher{margin-left:auto}.nav-links{gap:8px}.nav-links .lang-switcher{display:flex}.home-hero{min-height:auto}}
 @media(max-width:560px){.nav-inner{gap:8px}.brand{gap:8px}.brand-mark{width:36px;height:36px;border-radius:11px}.web-login-link{white-space:nowrap}.lang-switcher{height:38px;padding:0 8px}.lang-switcher select{max-width:78px}.product-v2-lifedash:after{display:none}.ecosystem-stage:before{inset:40px 10px 34px;border-radius:34px}}
+@media(max-width:430px){.brand>span:last-child{display:none}.nav-inner{gap:6px}.web-login-link{font-size:11px;padding:8px 9px}.lang-switcher select{max-width:70px}}
