@@ -1,0 +1,13 @@
+{
+  "name": "LifeDashPro",
+  "short_name": "LifeDashPro",
+  "description": "Your life. One dashboard.",
+  "start_url": "/lifedashpro/",
+  "scope": "/lifedashpro/",
+  "display": "standalone",
+  "background_color": "#07111f",
+  "theme_color": "#1a1f5c",
+  "icons": [
+    {"src":"../assets/lifedash-icon.webp","sizes":"512x512","type":"image/webp","purpose":"any maskable"}
+  ]
+}
