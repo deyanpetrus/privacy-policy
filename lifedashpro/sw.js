@@ -1,0 +1,13 @@
+'use strict';
+const CACHE='lifedashpro-web-canonical-v13';
+const APP_SHELL=[
+  './','./index.html','./entry.js','./manifest.webmanifest',
+  '../app/config.js',
+  '../app/assets/app.css','../app/assets/themes.css','../app/assets/workspace.css','../app/assets/workspace-polish.css','../app/assets/workspace-ux.css','../app/assets/today-v2.css','../app/assets/internal-apps-v2.css','../app/assets/internal-apps-v2-fixes.css','../app/assets/desktop-controls-today-v11.css','../app/assets/parity-v37-17.css',
+  '../app/js/data.js','../app/js/live.js','../app/js/core.js','../app/js/pages.js','../app/js/modules.js','../app/js/live-ui.js','../app/js/boot.js','../app/js/enhancements.js','../app/js/workspace.js','../app/js/workspace-polish.js','../app/js/workspace-ux.js','../app/js/today-v2.js','../app/js/internal-apps-v2.js','../app/js/desktop-controls-v11.js','../app/js/parity-location-v37-17.js','../app/js/parity-files-v37-17.js','../app/js/parity-finance-v37-17.js','../app/js/parity-family-vehicles-v37-17.js','../app/js/parity-live-v37-17.js','../assets/lifedash-icon.webp'
+];
+self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(APP_SHELL)).catch(()=>{}));self.skipWaiting()});
+self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('lifedashpro-web-')&&k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim()});
+self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;const url=new URL(event.request.url);if(url.origin!==location.origin)return;event.respondWith(fetch(event.request).then(response=>{if(response&&response.ok){const clone=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,clone)).catch(()=>{})}return response}).catch(()=>caches.match(event.request).then(r=>r||caches.match('./index.html'))))});
+self.addEventListener('message',event=>{const d=event.data||{};if(d.type==='SHOW_NOTIFICATION')self.registration.showNotification(d.title||'LifeDashPro',{body:d.body||'',tag:d.tag||'lifedashpro',icon:'../assets/lifedash-icon.webp',badge:'../assets/lifedash-icon.webp',data:{url:'./#today'}})});
+self.addEventListener('notificationclick',event=>{event.notification.close();const url=new URL(event.notification.data?.url||'./',self.location).href;event.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>{for(const c of list){if('focus'in c){c.navigate(url).catch(()=>{});return c.focus()}}return clients.openWindow(url)}))});
