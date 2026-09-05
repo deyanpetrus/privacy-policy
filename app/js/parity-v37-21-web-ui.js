@@ -5,6 +5,10 @@ const parity=window.LifeDashWebParity;if(!parity)return;
 const baseFinance=financePage;
 const isNotesTx=t=>t?.sourceModule==='notes'||t?.sourceModule==='invoice'||(Array.isArray(t?.tags)&&t.tags.includes('notes-pro'));
 const notesEnabled=()=>localStorage.getItem('lifedash_finance_notes_mode_v1')==='active'||localStorage.getItem('lifedash_finance_notes_mode_v1')==='all';
+const prefs=()=>collection('app_preferences').find(x=>x.id==='main')||collection('app_preferences')[0]||{id:'main'};
+async function saveFinancePrefs(patch){try{const row={...prefs(),id:'main',...patch,updatedAt:new Date().toISOString()};await D.upsert('app_preferences',row);await reload('app_preferences')}catch{}}
+const baseLoadAll=loadAll;
+loadAll=async function(){const r=await baseLoadAll.apply(this,arguments);try{const p=prefs(),cloud=String(p.financeBaseCurrency||'').toUpperCase();if(!localStorage.getItem(parity.baseKey)&&parity.supported.includes(cloud))localStorage.setItem(parity.baseKey,cloud);const cloudNotes=p.financeIncludeNotes;if(localStorage.getItem('lifedash_finance_notes_mode_v1')==null&&typeof cloudNotes==='boolean')localStorage.setItem('lifedash_finance_notes_mode_v1',cloudNotes?'active':'off')}catch{}return r};
 financePage=function(){
  let html=baseFinance();
  const goals=collection('finance_goals'),utils=collection('finance_utilities'),base=parity.baseCurrency?.()||'EUR';
@@ -24,7 +28,7 @@ const status={
  explore:['limited','Live provider integration','Nearby, safety, road and maritime data depend on external providers. Missing mobile-only live layers are being upgraded rather than shown as working.'],
  air:['limited','Air Traffic provider','Air Traffic depends on OpenSky and browser network availability. If unavailable, synced account data is unaffected.'],
  radio:['limited','Radio core available · native controls differ','Catalog, favorites and last station can sync. Car Mode, audio-output controls and some background/HTTP streams remain browser-limited or are being upgraded.'],
- profile:['upgrade','Account synced · cross-device settings upgrading','Profile/account data sync. Avatar, backup and some device-local settings — including mobile base-currency preference — are not yet fully cloud-shared.']
+ profile:['upgrade','Account synced · cross-device settings upgrading','Profile/account data sync. Web now stores Finance display preference in cloud-ready app preferences; Android v37.21 still keeps some settings such as base currency device-local until the next mobile parity build.']
 };
 function parityBadge(kind){const label=kind==='synced'?'SYNCED':kind==='limited'?'WEB / PROVIDER':'UPGRADING';const cls=kind==='synced'?'good':kind==='limited'?'info':'warn';return`<span class="web-parity-pill ${cls}">${label}</span>`}
 function authoritativeBanner(){for(const host of [document.getElementById('page'),document.getElementById('desktopWindowBody')]){if(!host)continue;host.querySelectorAll('.web-parity-banner[data-auto="1"],.web-parity-banner[data-v3721-status="1"]').forEach(x=>x.remove());const head=host.querySelector('.page-head');if(!head)continue;const [kind,title,body]=status[state?.route]||['upgrade','Web module upgrading','This module is being upgraded for mobile parity.'];const b=document.createElement('div');b.className=`web-parity-banner ${kind}`;b.dataset.v3721Status='1';b.innerHTML=`<div><b>${esc(title)}</b><span>${esc(body)}</span></div><div>${parityBadge(kind)}</div>`;head.insertAdjacentElement('afterend',b)}}
@@ -34,4 +38,5 @@ try{const f=loadExplore;loadExplore=async function(){const r=await f.apply(this,
 try{const f=loadAir;loadAir=async function(){const r=await f.apply(this,arguments);soften('airList','Air Traffic');return r}}catch{}
 try{const f=loadRadio;loadRadio=async function(){const r=await f.apply(this,arguments);soften('radioGrid','Radio catalog');return r}}catch{}
 const baseRender=render;render=async function(){const r=await baseRender.apply(this,arguments);setTimeout(()=>{authoritativeBanner();filterFinanceView()},280);return r};
+document.addEventListener('change',e=>{const b=e.target.closest('[data-v3721-base]');if(b){void saveFinancePrefs({financeBaseCurrency:String(b.value||'EUR').toUpperCase()});return}const n=e.target.closest('[data-v3721-notes]');if(n)void saveFinancePrefs({financeIncludeNotes:!!n.checked})},true);
 })();
