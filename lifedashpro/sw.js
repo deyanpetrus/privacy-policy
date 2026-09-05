@@ -1,10 +1,10 @@
 'use strict';
-const CACHE='lifedashpro-web-canonical-v37-21-1';
+const CACHE='lifedashpro-web-canonical-v37-21-2';
 const APP_SHELL=[
   './','./index.html','./entry.js','./manifest.webmanifest',
   '../app/config.js',
   '../app/assets/app.css','../app/assets/themes.css','../app/assets/workspace.css','../app/assets/workspace-polish.css','../app/assets/workspace-ux.css','../app/assets/today-v2.css','../app/assets/internal-apps-v2.css','../app/assets/internal-apps-v2-fixes.css','../app/assets/desktop-controls-today-v11.css','../app/assets/parity-v37-17.css','../app/assets/parity-v37-21-web.css',
-  '../app/js/data.js','../app/js/live.js','../app/js/core.js','../app/js/pages.js','../app/js/modules.js','../app/js/live-ui.js','../app/js/boot.js','../app/js/enhancements.js','../app/js/workspace.js','../app/js/workspace-polish.js','../app/js/workspace-ux.js','../app/js/today-v2.js','../app/js/internal-apps-v2.js','../app/js/desktop-controls-v11.js','../app/js/parity-location-v37-17.js','../app/js/parity-files-v37-17.js','../app/js/parity-finance-v37-17.js','../app/js/parity-family-vehicles-v37-17.js','../app/js/parity-live-v37-17.js','../app/js/parity-v37-21-web.js','../assets/lifedash-icon.webp'
+  '../app/js/data.js','../app/js/live.js','../app/js/core.js','../app/js/pages.js','../app/js/modules.js','../app/js/live-ui.js','../app/js/boot.js','../app/js/enhancements.js','../app/js/workspace.js','../app/js/workspace-polish.js','../app/js/workspace-ux.js','../app/js/today-v2.js','../app/js/internal-apps-v2.js','../app/js/desktop-controls-v11.js','../app/js/parity-location-v37-17.js','../app/js/parity-files-v37-17.js','../app/js/parity-finance-v37-17.js','../app/js/parity-family-vehicles-v37-17.js','../app/js/parity-live-v37-17.js','../app/js/parity-v37-21-web.js','../app/js/parity-v37-21-web-ui.js','../assets/lifedash-icon.webp'
 ];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(APP_SHELL)).catch(()=>{}));self.skipWaiting()});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('lifedashpro-web-')&&k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim()});
