@@ -1,0 +1,20 @@
+/* LifeDashPro production cleanup — keep diagnostics out of normal user-facing modules. */
+body.workspace-desktop .web-parity-banner,
+body.workspace-desktop .web-parity-banner[data-auto="1"]{display:none!important}
+body.workspace-desktop .v214-tools-head>.pill{display:none!important}
+body.workspace-desktop .web-upgrade-note[data-dev-only="1"]{display:none!important}
+
+/* Keep real status pills inside actual records, but never expose development labels. */
+body.workspace-desktop .production-sync-source{display:inline-flex;align-items:center;gap:6px;color:var(--app2-muted,#697386);font-size:9.5px;font-weight:700}
+body.workspace-desktop .production-sync-source:before{content:"";width:7px;height:7px;border-radius:50%;background:#20b26b;box-shadow:0 0 0 3px rgba(32,178,107,.10)}
+
+/* Finance summary is a normal product surface, not a parity/debug panel. */
+body.workspace-desktop .finance-production-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+body.workspace-desktop .finance-production-summary .card{min-height:118px}
+body.workspace-desktop .finance-production-summary .metric{font-size:24px!important;line-height:1.1!important;margin-top:9px!important}
+
+/* Provider errors should appear only where the feature is used. */
+body.workspace-desktop .provider-dev-label,
+body.workspace-desktop [data-dev-provider-label]{display:none!important}
+
+@media(max-width:900px){body.workspace-desktop .finance-production-summary{grid-template-columns:1fr}}
