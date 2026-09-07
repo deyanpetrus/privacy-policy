@@ -1,0 +1,11 @@
+/* LifeDashPro Web v37.21.10 production auth/recovery hardening. */
+body.workspace-desktop .app-shell.hidden{display:none!important}
+body.workspace-desktop .auth-view.hidden{display:none!important}
+body.workspace-desktop .auth-view:not(.hidden){position:relative;z-index:10020;min-height:100vh}
+body.workspace-desktop .boot:not(.hidden){position:fixed;inset:0;z-index:10030;background:radial-gradient(circle at 75% 10%,rgba(106,56,245,.15),transparent 28%),#07111f}
+body.workspace-desktop:has(.auth-view:not(.hidden)) #lifeDashDesktop{display:none!important}
+body.workspace-desktop:has(.auth-view:not(.hidden)) .desktop-root{pointer-events:none!important}
+.web-auth-recovery{margin-top:14px;padding:13px 14px;border:1px solid rgba(255,200,102,.28);border-radius:14px;background:rgba(255,200,102,.06);color:#dce8f7}
+.web-auth-recovery b,.web-auth-recovery span{display:block}.web-auth-recovery b{font-size:12px}.web-auth-recovery span{margin-top:4px;color:#aebfd3;font-size:10.5px;line-height:1.45}.web-auth-recovery .page-actions{margin-top:10px}
+.web-auth-loading{display:flex;align-items:center;gap:9px;margin-top:14px;padding:11px 12px;border:1px solid rgba(82,122,197,.28);border-radius:13px;background:rgba(37,99,235,.08);font-size:11px;color:#cfe0ff}.web-auth-loading i{width:10px;height:10px;border-radius:50%;border:2px solid rgba(255,255,255,.25);border-top-color:#79a8ff;animation:webAuthSpin .75s linear infinite}@keyframes webAuthSpin{to{transform:rotate(360deg)}}
+@media(max-width:760px){body.workspace-desktop .auth-view:not(.hidden){padding-top:24px}.web-auth-recovery{margin-bottom:18px}}
