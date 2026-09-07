@@ -4,7 +4,7 @@
   const needsDesktop=!url.searchParams.has('workspace');
   if(needsDesktop){
     url.searchParams.set('workspace','desktop');
-    url.searchParams.set('v','13');
+    url.searchParams.set('v','372110');
     history.replaceState({},'',url.pathname+'?'+url.searchParams.toString()+url.hash);
   }
   window.addEventListener('DOMContentLoaded',()=>{
