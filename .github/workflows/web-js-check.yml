@@ -6,11 +6,15 @@ on:
     paths:
       - 'app/**/*.js'
       - 'app/index.html'
+      - 'lifedashpro/**/*.js'
+      - 'lifedashpro/index.html'
       - '.github/workflows/web-js-check.yml'
   pull_request:
     paths:
       - 'app/**/*.js'
       - 'app/index.html'
+      - 'lifedashpro/**/*.js'
+      - 'lifedashpro/index.html'
 
 jobs:
   syntax:
@@ -24,7 +28,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          for file in app/js/*.js app/sw.js app/config.js; do
+          for file in app/js/*.js app/sw.js app/config.js lifedashpro/*.js; do
             echo "Checking $file"
             node --check "$file"
           done
