@@ -1,5 +1,5 @@
 'use strict';
-const CACHE='lifedashpro-web-canonical-v37-21-10-production-1';
+const CACHE='lifedashpro-web-canonical-v37-21-10-production-2';
 const APP_SHELL=[
   './','./index.html','./entry.js','./manifest.webmanifest',
   '../app/config.js',
