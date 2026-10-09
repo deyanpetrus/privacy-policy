@@ -36,6 +36,7 @@
   const PREFERENCE='lifedash_web_live_city_v18';
   const MY_CITIES='lifedash_web_live_saved_cities_v181';
   let openedDetails=null;
+  let detailMap=null,detailMapKey='',detailMapLoadingKey='',leafletPromise=null;
   const RADIUS_KM=250;
   const page=$('#content'),app=$('#appView');
   if(!page||!app)return;
@@ -151,7 +152,7 @@
         lon:Number(f.geometry?.coordinates?.[0])}))
       .map(x=>({...x,distance:Number.isFinite(x.lat)&&Number.isFinite(x.lon)?
         Math.round(haversine(lat,lon,x.lat,x.lon)):null}))
-      .slice(0,30);
+      .slice(0,120);
   }
   async function getFires(city){
     const [, ,lat,lon]=city;
@@ -173,7 +174,7 @@
       .map(x=>({...x,distance:Math.round(haversine(lat,lon,x.lat,x.lon))}))
       .filter(x=>x.distance<=RADIUS_KM)
       .sort((a,b)=>a.distance-b.distance);
-    return {total:valid.length,nearest:valid.slice(0,30)};
+    return {total:valid.length,nearest:valid.slice(0,30),points:valid.slice(0,500)};
   }
   const fetchers={weather:getWeather,quakes:getQuakes,fires:getFires};
   function key(city,type){return city[0]+'|'+type}
@@ -188,6 +189,8 @@
     const next=getCity(id);
     if(activeCity?.[0]===next[0])return;
     activeCity=next;generation++;openedDetails=null;
+    disposeDetailMap();
+    document.dispatchEvent(new CustomEvent('lifedash:world-city-change',{detail:{id:next[0]}}));
     try{localStorage.setItem(PREFERENCE,next[0])}catch(_){}
     updateView();
     refresh(false);
@@ -341,10 +344,92 @@
     link.target='_blank';link.rel='noopener noreferrer';
     return link;
   }
+
+  function disposeDetailMap(){
+    if(detailMap){try{detailMap.remove()}catch(_){}}
+    detailMap=null;detailMapKey='';detailMapLoadingKey='';
+  }
+  async function ensureLeaflet(){
+    if(window.L?.map&&window.L?.tileLayer)return window.L;
+    if(leafletPromise)return leafletPromise;
+    leafletPromise=new Promise((resolve,reject)=>{
+      const done=()=>window.L?.map?resolve(window.L):reject(new Error('Map library could not be loaded'));
+      if(!document.querySelector('link[data-world-leaflet]')){
+        const link=document.createElement('link');
+        link.rel='stylesheet';link.dataset.worldLeaflet='true';
+        link.href='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css';
+        document.head.append(link);
+      }
+      const script=document.createElement('script');
+      script.src='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
+      script.async=true;script.dataset.worldLeaflet='true';
+      const timeout=setTimeout(()=>reject(new Error('Map library timed out')),12000);
+      script.onload=()=>{clearTimeout(timeout);done()};
+      script.onerror=()=>{clearTimeout(timeout);reject(new Error('Map library unavailable'))};
+      document.head.append(script);
+    }).catch(err=>{leafletPromise=null;throw err});
+    return leafletPromise;
+  }
+  async function renderDetailMap(type,result){
+    const holder=$('#worldDetailMap'),status=$('#worldDetailMapStatus');
+    if(!holder||!status||!activeCity)return;
+    const points=(type==='quakes'?result?.data:result?.data?.points||[])
+      .filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lon)&&Math.abs(x.lat)<=90&&Math.abs(x.lon)<=180);
+    const mapId=type+'|'+activeCity[0]+'|'+String(result?.checkedAt||'')+'|'+points.length;
+    if(detailMap&&detailMapKey===mapId)return;
+    if(detailMapLoadingKey===mapId)return;
+    if(detailMap)disposeDetailMap();
+    if(!points.length){
+      status.textContent=result?.error?'Map unavailable — '+result.error:
+        result?.data?'No map markers for these events.':'Waiting for event coordinates…';
+      return;
+    }
+    status.textContent='Loading interactive map for '+points.length+' markers…';
+    detailMapLoadingKey=mapId;
+    try{
+      const L=await ensureLeaflet();
+      if(!holder.isConnected||detailMapLoadingKey!==mapId||openedDetails!==type||!activeCity||mapId!==type+'|'+activeCity[0]+'|'+String(entry(type)?.checkedAt||'')+'|'+
+        (type==='quakes'?(entry(type)?.data||[]).length:(entry(type)?.data?.points||[]).length))return;
+      const center=[activeCity[2],activeCity[3]];
+      const m=L.map(holder,{scrollWheelZoom:false,zoomControl:true,preferCanvas:true}).setView(center,7);
+      detailMap=m;detailMapKey=mapId;
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+        maxZoom:18,attribution:'© OpenStreetMap contributors',crossOrigin:true
+      }).addTo(m);
+      const locations=[];
+      for(const x of points){
+        const color=type==='quakes'?'#367de8':'#e9624a';
+        const marker=L.circleMarker([x.lat,x.lon],{radius:type==='quakes'?6:4,
+          color:'#ffffff',weight:1.3,fillColor:color,fillOpacity:.91}).addTo(m);
+        // No HTML injection from external quake/FIRMS payloads.
+        const popup=document.createElement('div');
+        const strong=document.createElement('strong');
+        strong.textContent=type==='quakes'?'M '+round(x.mag,1)+' · '+x.place:'Thermal detection';
+        const small=document.createElement('div');
+        small.textContent=(x.distance==null?'':x.distance+' km · ')+
+          (type==='quakes'?'Observed '+stamp(x.time):(x.satellite||'Satellite')+' · '+(x.observedAt||''));
+        popup.append(strong,small);marker.bindPopup(popup);
+        locations.push([x.lat,x.lon]);
+      }
+      if(locations.length===1)m.setView(locations[0],10);
+      else m.fitBounds(locations,{padding:[22,22],maxZoom:10});
+      status.textContent=points.length+' markers · '+(type==='quakes'?'USGS earthquakes':'FIRMS thermal detections')+
+        ' · select a point for details.';
+      requestAnimationFrame(()=>{if(m===detailMap)m.invalidateSize()});
+    }catch(error){
+      if(detailMapLoadingKey===mapId){
+        status.textContent='Interactive map unavailable ('+String(error?.message||'loading error')+
+          '). Event list and coordinates remain available.';
+        disposeDetailMap();
+      }
+    }finally{
+      if(detailMapLoadingKey===mapId)detailMapLoadingKey='';
+    }
+  }
   function updateEventDetails(){
     const panel=$('#worldEventDetails');if(!panel)return;
     panel.hidden=!openedDetails;
-    if(!openedDetails)return;
+    if(!openedDetails){disposeDetailMap();return}
     const e=entry(openedDetails);
     const heading=$('#worldEventDetailsTitle'),list=$('#worldEventDetailsList'),notice=$('#worldEventDetailsNote');
     if(!list||!heading)return;
@@ -355,10 +440,11 @@
       if(notice)notice.textContent='Only successfully returned events can be displayed.';
       return;
     }
-    const events=openedDetails==='quakes'?e.data:e.data.nearest;
+    const events=openedDetails==='quakes'?e.data.slice(0,30):e.data.nearest;
+    renderDetailMap(openedDetails,e);
     if(notice)notice.textContent=openedDetails==='quakes'?
-      'USGS events within 250 km in the last 7 days. Up to 30 newest records.':
-      'Nearest '+events.length+' of '+e.data.total+' thermal detections (not confirmed fires). Coordinates open in OpenStreetMap.';
+      'USGS events within 250 km in the last 7 days. List: latest 30; map: up to 120 events.':
+      'Nearest '+events.length+' of '+e.data.total+' thermal detections in the list. Map: all '+(e.data.points?.length||0)+' returned points (not confirmed fires).';
     if(!events.length){list.append(element('p','world-extra-placeholder','No matching records for this city and time window.'));return;}
     for(const x of events){
       const item=element('article','world-event-item');
@@ -492,6 +578,18 @@
     dh.append(title,close);details.append(dh);
     const notice=element('p','world-event-note');notice.id='worldEventDetailsNote';
     details.append(notice);
+    const mapShell=element('section','world-detail-map-shell');
+    mapShell.setAttribute('aria-label','Interactive map of World Live events');
+    const mapHeading=element('div','world-detail-map-heading');
+    mapHeading.append(element('strong','','Event map · all available markers'),
+      element('small','','Map tiles © OpenStreetMap contributors'));
+    mapShell.append(mapHeading);
+    const mapStatus=element('p','world-map-status','Open details to load the map');
+    mapStatus.id='worldDetailMapStatus';mapStatus.setAttribute('role','status');
+    mapShell.append(mapStatus);
+    const map=element('div','world-detail-map');
+    map.id='worldDetailMap';map.setAttribute('aria-label','Map of events near selected city');
+    mapShell.append(map);details.append(mapShell);
     const items=element('div','world-event-list');items.id='worldEventDetailsList';
     details.append(items);host.append(details);
     updatePinned();
@@ -543,6 +641,7 @@
   function syncIdentity(){
     const id=authenticated()?String(bridge()?.identity()||''):'';
     if(id===identity)return;
+    disposeDetailMap();
     identity=id;
     generation++;
     cache.clear();pending.clear();attempt.clear();
@@ -554,7 +653,8 @@
     if(!authenticated())return;
     if(!activeCity)activeCity=chooseDefault();
     const host=$('#worldLivePage',page);
-    if(host&&!host.dataset.worldReady)initPage(host);
+    if(host&&!host.dataset.worldReady){disposeDetailMap();initPage(host)}
+    if(!host&&detailMap)disposeDetailMap();
     dashboard();
     if(host||$('#worldLiveDashboard',page)){
       updateView();

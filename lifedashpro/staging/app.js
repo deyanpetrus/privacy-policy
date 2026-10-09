@@ -161,6 +161,14 @@ window.LifeDashWorldBridge=Object.freeze({
   authenticated:()=>Boolean(state.user&&state.session),
   identity:()=>state.user?.id||null,
   profileCity:()=>String(state.profile?.city||''),
+  air:async location=>{
+    if(!state.user||!state.session||!state.client)throw new Error('Sign in first.');
+    const {data,error}=await state.client.functions.invoke('air-traffic-nearby',{body:location});
+    if(error)throw error;
+    if(!data||data.ok!==true||!Array.isArray(data.aircraft))
+      throw new Error(data?.error||'Air Traffic response unavailable');
+    return data;
+  },
   fires:async bounds=>{
     if(!state.user||!state.session||!state.client)throw new Error('Sign in first.');
     const {data,error}=await state.client.functions.invoke('nasa-firms-nearby',{body:bounds});

@@ -1,0 +1,43 @@
+/* LifeDashPro World Live v1.8.2 — event map + Air Traffic & Road Live.
+   Only new World Live components are styled; v1.6.1 Light/Dark/card hover untouched. */
+.world-detail-map-shell{margin:13px 0 18px;border-radius:15px;border:1px solid var(--line);background:var(--panel2);padding:11px;min-width:0}
+.world-detail-map-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:4px 4px 11px}
+.world-detail-map-heading strong{font-size:13px}
+.world-detail-map-heading small{font-size:10px;color:var(--muted)}
+.world-detail-map{height:340px;width:100%;border-radius:12px;overflow:hidden;background:var(--panel2)}
+.world-detail-map-shell .leaflet-container{font:inherit;border-radius:12px}
+.world-map-status{color:var(--muted);font-size:11px;line-height:1.45;margin:4px 4px 9px}
+.world-mobility-section{min-width:0;margin-top:18px}
+.world-mobility-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 11px}
+.world-mobility-heading h3{margin:0;font-size:18px;letter-spacing:-.02em}
+.world-mobility-refresh{font-size:12px;min-height:37px;padding:8px 12px}
+.world-mobility-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.world-mobility-card{min-width:0;min-height:210px;padding:18px;border-radius:19px;display:flex;flex-direction:column}
+.world-mobility-card .eyebrow{margin:0 0 12px}
+.world-mobility-number{font-size:clamp(22px,2.6vw,29px);letter-spacing:-.045em;line-height:1.2}
+.world-mobility-description{font-size:11px;line-height:1.5;color:var(--muted);margin:8px 0 12px}
+.world-mobility-list{display:grid;gap:7px;max-height:315px;overflow-y:auto;scrollbar-width:thin}
+.world-mobility-item{padding:10px 11px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);display:grid;gap:4px;min-width:0}
+.world-mobility-item strong{font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+.world-mobility-item small{font-size:11px;color:var(--muted);line-height:1.45;overflow-wrap:anywhere}
+.world-mobility-empty{font-size:12px;line-height:1.5;color:var(--muted);padding:5px}
+.world-mobility-card>.world-live-checked{margin-top:auto}
+.world-mobility-footnote{display:block;margin:12px 2px 3px;line-height:1.55;font-size:10px;color:var(--muted)}
+.world-mobility-dashboard{margin:16px 0 0;min-width:0}
+.world-mobility-dashboard-title{display:block;font-size:15px;margin:0 0 12px}
+.world-mobility-dashboard .world-mobility-card{min-height:175px;padding:16px}
+.world-mobility-dashboard .world-mobility-number{font-size:23px}
+.world-mobility-dashboard .world-mobility-list{max-height:120px}
+.world-mobility-dashboard .world-mobility-item{padding:8px}
+.world-mobility-dashboard .world-mobility-item strong{font-size:11px}
+.world-mobility-dashboard .world-mobility-item small{font-size:10px}
+.world-mobility-dashboard .world-live-open{margin-top:10px}
+@media(max-width:800px){
+ .world-mobility-grid{grid-template-columns:minmax(0,1fr);gap:10px}
+ .world-detail-map-shell{padding:7px}
+ .world-detail-map{height:300px}
+ .world-mobility-card{padding:15px}
+ .world-mobility-dashboard .world-mobility-card{min-height:162px}
+}
+@media(max-width:390px){.world-detail-map{height:265px}.world-mobility-heading{flex-wrap:wrap}}
+@media(prefers-reduced-motion:reduce){.world-mobility-card{transition:none!important}}
