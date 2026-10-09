@@ -70,7 +70,7 @@
     if([95,96,99].includes(code))return 'Thunderstorm';
     return 'Conditions available';
   }
-  const round=(x,n=0)=>Number.isFinite(Number(x))?Number(x).toFixed(n):'—';
+  const round=(x,n=0)=>x!==null&&x!==undefined&&x!==''&&Number.isFinite(Number(x))?Number(x).toFixed(n):'—';
   async function json(url,timeoutMs=12000){
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),timeoutMs);
@@ -86,7 +86,7 @@
       current:'temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m',
       daily:'temperature_2m_max,temperature_2m_min',forecast_days:'2',timezone:'auto'});
     const data=await json('https://api.open-meteo.com/v1/forecast?'+q,12000);
-    if(!Number.isFinite(Number(data?.current?.temperature_2m)))throw new Error('Incomplete weather response');
+    if(data?.current?.temperature_2m==null||!Number.isFinite(Number(data.current.temperature_2m)))throw new Error('Incomplete weather response');
     return {temp:Number(data.current.temperature_2m),
       humidity:Number(data.current.relative_humidity_2m),
       wind:Number(data.current.wind_speed_10m),
@@ -161,7 +161,7 @@
         cache.set(k,{data:old?.data||null,checkedAt:old?.checkedAt||null,
           error:(e?.name==='AbortError'?'Request timed out':String(e?.message||'Source unavailable')).slice(0,140)});
       }finally{
-        pending.delete(k);
+        if(pending.get(k)===promise)pending.delete(k);
         if(epoch===generation&&session===identity)updateView();
       }
     })();
@@ -273,7 +273,7 @@
     TYPES.forEach(type=>grid.append(makeCard(type,'page')));
     host.append(grid);
     const source=element('p','world-live-sources',
-      'Sources: Open-Meteo · USGS (past 7 days, magnitude 2+) · NASA FIRMS via LifeDashPro (past 24h). FIRMS observations are not confirmed wildfires or emergency warnings.');
+      'Sources: Open-Meteo · USGS (past 7 days, magnitude 2+) · NASA FIRMS via LifeDashPro (past 24h). FIRMS observations are not confirmed wildfires or emergency warnings. Refresh checks are rate-limited to once per minute per source.');
     host.append(source);
   }
   function dashboard(){
