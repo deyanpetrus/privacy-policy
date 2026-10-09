@@ -5,7 +5,7 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const state={client:null,session:null,user:null,profile:null,page:'dashboard',data:{},editor:null,loading:false,syncReady:false,lastSync:null,deviceId:localStorage.getItem('lifedash_web_device_id')||`web-${crypto.randomUUID?.()||Date.now()}`};
 localStorage.setItem('lifedash_web_device_id',state.deviceId);
 const KINDS=['notes','finance_transactions','family_tasks','documents','vehicles','journey_plans_beta','manual_reminders','travel','radio_favorites'];
-const TITLES={dashboard:'Dashboard',today:'Today & Next 5',notes:'Notes Pro',tasks:'Tasks',documents:'Documents',finance:'Finance',vehicles:'Vehicles',journey:'Journey',radio:'World Radio',profile:'Profile & Settings'};
+const TITLES={dashboard:'Dashboard',today:'Today & Next 5',notes:'Notes Pro',tasks:'Tasks',documents:'Documents',finance:'Finance',vehicles:'Vehicles',journey:'Journey',radio:'World Radio',world:'World Live',profile:'Profile & Settings'};
 
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function fmtMoney(v,c='EUR'){try{return new Intl.NumberFormat(undefined,{style:'currency',currency:c||'EUR'}).format(Number(v)||0)}catch{return `${Number(v||0).toFixed(2)} ${c||'EUR'}`}}
@@ -100,7 +100,7 @@ async function tombstoneRecord(kind,id){
 }
 function updateCounts(){const d=state.data;$('#navNotes').textContent=(d.notes||[]).length;$('#navTasks').textContent=(d.family_tasks||[]).filter(x=>!x.done).length;$('#navDocs').textContent=(d.documents||[]).length;$('#navVehicles').textContent=(d.vehicles||[]).length;$('#navJourneys').textContent=(d.journey_plans_beta||[]).length}
 function setPage(page){state.page=page;location.hash=page;$$('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));$('#pageTitle').textContent=TITLES[page]||'LifeDashPro';$('#quickAddBtn').classList.toggle('hidden',!['notes','finance','tasks','dashboard'].includes(page));render()}
-function render(){if(!state.session)return;const c=$('#content');if(!state.syncReady){c.innerHTML='<section class="card span-12"><h3>Checking secure sync…</h3><p>Could not verify all cloud records yet. No records have been changed. Use Refresh (↻) when your connection is available.</p></section>';$('#quickAddBtn').disabled=true;return;}$('#quickAddBtn').disabled=false;const fn={dashboard:renderDashboard,today:renderToday,notes:renderNotes,tasks:renderTasks,documents:()=>renderReadOnly('documents','Documents','▣'),finance:renderFinance,vehicles:()=>renderReadOnly('vehicles','Vehicles','◈'),journey:renderJourney,profile:renderProfile,radio:()=>'<section id="worldRadioPage" class="radio-page-shell" aria-label="World Radio"></section>'}[state.page]||renderDashboard;c.innerHTML=fn();wirePageRows()}
+function render(){if(!state.session)return;const c=$('#content');if(!state.syncReady){c.innerHTML='<section class="card span-12"><h3>Checking secure sync…</h3><p>Could not verify all cloud records yet. No records have been changed. Use Refresh (↻) when your connection is available.</p></section>';$('#quickAddBtn').disabled=true;return;}$('#quickAddBtn').disabled=false;const fn={dashboard:renderDashboard,today:renderToday,notes:renderNotes,tasks:renderTasks,documents:()=>renderReadOnly('documents','Documents','▣'),finance:renderFinance,vehicles:()=>renderReadOnly('vehicles','Vehicles','◈'),journey:renderJourney,profile:renderProfile,radio:()=>'<section id="worldRadioPage" class="radio-page-shell" aria-label="World Radio"></section>',world:()=>'<section id="worldLivePage" class="world-live-page" aria-label="World Live"></section>'}[state.page]||renderDashboard;c.innerHTML=fn();wirePageRows()}
 function financeStats(){const tx=state.data.finance_transactions||[];let inc=0,exp=0;const currencies=new Set();for(const x of tx){const currency=String(x.currency||x.baseCurrencyAtEntry||'EUR').toUpperCase();currencies.add(currency);const a=Number(x.amount)||0;if(x.type==='income')inc+=a;else exp+=a}return{inc,exp,bal:inc-exp,currency:[...currencies][0]||'EUR',mixed:currencies.size>1}}
 function fmtTotal(stats,key){return stats.mixed?'Multiple currencies':fmtMoney(stats[key],stats.currency)}
 function timelineItems(){const out=[];for(const n of state.data.notes||[]){if(n.dueDate&&n.status!=='completed'&&n.status!=='archived')out.push({date:n.dueDate,time:n.dueTime||'',type:'Note',title:n.title||'Note'})}for(const t of state.data.family_tasks||[]){if(t.dueDate&&!t.done)out.push({date:t.dueDate,time:t.reminderTime||'',type:'Task',title:t.title||'Task'})}for(const r of state.data.manual_reminders||[]){const d=r.dueDate||r.date||String(r.scheduledFor||'').slice(0,10);if(d)out.push({date:d,time:r.time||r.reminderTime||'',type:'Reminder',title:r.title||r.text||'Reminder'})}return out.sort((a,b)=>`${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`)).slice(0,12)}
@@ -155,6 +155,20 @@ $('#refreshBtn').onclick=refreshAll;$('#quickAddBtn').onclick=()=>openEditor(sta
 $$('[data-page]').forEach(b=>b.onclick=()=>setPage(b.dataset.page));
 // V1.7 radio adapter: strictly scoped to the existing Android radio_favorites kind.
 // Reuse the same user-scoped RLS and revision-safe CRUD routines.
+// v1.8 read-only World Live adapter to the existing authenticated Edge Function.
+// Never expose the JWT, Supabase client or data write operations to the view.
+window.LifeDashWorldBridge=Object.freeze({
+  authenticated:()=>Boolean(state.user&&state.session),
+  identity:()=>state.user?.id||null,
+  profileCity:()=>String(state.profile?.city||''),
+  fires:async bounds=>{
+    if(!state.user||!state.session||!state.client)throw new Error('Sign in first.');
+    const {data,error}=await state.client.functions.invoke('nasa-firms-nearby',{body:bounds});
+    if(error)throw error;
+    if(!data||data.ok!==true||!Array.isArray(data.fires))throw new Error(data?.error||'FIRMS response unavailable');
+    return data.fires;
+  }
+});
 window.LifeDashRadioBridge=Object.freeze({
   authenticated:()=>Boolean(state.user&&state.session),
   ready:()=>Boolean(state.user&&state.session&&state.syncReady),
