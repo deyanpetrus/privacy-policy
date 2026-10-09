@@ -292,17 +292,17 @@
       quick.append(radioButton(label,'radio-country-chip',()=>setCountry(code)));
     }
     pop.append(quick);
-    const list=node('div','radio-country-list');list.id='radioCountryList';
-    list.setAttribute('aria-label','Available countries');
-    list.addEventListener('keydown',e=>{
+    const countryList=node('div','radio-country-list');countryList.id='radioCountryList';
+    countryList.setAttribute('aria-label','Available countries');
+    countryList.addEventListener('keydown',e=>{
       if(e.key==='Escape'){e.preventDefault();closeCountryPicker(true);return}
       if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;
-      const buttons=$$('.radio-country-option',list),i=buttons.indexOf(document.activeElement);
+      const buttons=$('.radio-country-option',countryList),i=buttons.indexOf(document.activeElement);
       const next=i+(e.key==='ArrowDown'?1:-1);
       if(next>=0&&next<buttons.length){e.preventDefault();buttons[next].focus()}
       else if(next<0){e.preventDefault();filter.focus()}
     });
-    pop.append(list);picker.append(trigger,pop);countryField.append(picker);
+    pop.append(countryList);picker.append(trigger,pop);countryField.append(picker);
     const searchLabel=node('label','radio-field radio-search-field');searchLabel.append(node('span','','Station name'));
     const input=node('input','radio-input');input.id='radioSearchInput';input.type='search';input.maxLength=75;
     input.placeholder='Search worldwide stations';input.value=search;
