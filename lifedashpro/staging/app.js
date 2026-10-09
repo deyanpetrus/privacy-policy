@@ -156,6 +156,7 @@ $$('[data-page]').forEach(b=>b.onclick=()=>setPage(b.dataset.page));
 window.// V1.7 radio adapter: strictly scoped to the existing Android radio_favorites kind.
 // Reuse the same user-scoped RLS and revision-safe CRUD routines.
 window.LifeDashRadioBridge=Object.freeze({
+  authenticated:()=>Boolean(state.user&&state.session),
   ready:()=>Boolean(state.user&&state.session&&state.syncReady),
   favorites:()=>state.user&&state.syncReady?[...(state.data.radio_favorites||[])]:[],
   saveFavorite:async item=>{
