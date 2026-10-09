@@ -34,6 +34,8 @@
   const WINDOW={weather:15*60*1000,quakes:15*60*1000,fires:30*60*1000};
   const MIN_RETRY=60*1000;
   const PREFERENCE='lifedash_web_live_city_v18';
+  const MY_CITIES='lifedash_web_live_saved_cities_v181';
+  let openedDetails=null;
   const RADIUS_KM=250;
   const page=$('#content'),app=$('#appView');
   if(!page||!app)return;
@@ -80,20 +82,60 @@
       return await response.json();
     }finally{clearTimeout(timeout)}
   }
+  function moonInfo(day){
+    // Local-calendar-day approximation, not lunar rise/set ephemerides.
+    const noon=Date.parse(String(day).slice(0,10)+'T12:00:00Z');
+    if(!Number.isFinite(noon))return 'Moon phase unavailable';
+    const lunarDays=29.530588853;
+    const fraction=((noon-Date.UTC(2000,0,6,18,14))/(86400000*lunarDays)%1+1)%1;
+    const labels=['New Moon','Waxing Crescent','First Quarter','Waxing Gibbous',
+      'Full Moon','Waning Gibbous','Last Quarter','Waning Crescent'];
+    const index=Math.floor((fraction*8+.5)%8);
+    const illuminated=Math.round((1-Math.cos(fraction*2*Math.PI))*50);
+    return labels[index]+' · ~'+illuminated+'% illuminated (estimate)';
+  }
   async function getWeather(city){
-    const [, ,lat,lon]=city;
+    const [,,lat,lon]=city;
     const q=new URLSearchParams({latitude:String(lat),longitude:String(lon),
       current:'temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m',
-      daily:'temperature_2m_max,temperature_2m_min',forecast_days:'2',timezone:'auto'});
+      hourly:'temperature_2m,precipitation_probability,weather_code',
+      daily:'weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset',
+      forecast_days:'6',timezone:'auto'});
     const data=await json('https://api.open-meteo.com/v1/forecast?'+q,12000);
-    if(data?.current?.temperature_2m==null||!Number.isFinite(Number(data.current.temperature_2m)))throw new Error('Incomplete weather response');
+    if(data?.current?.temperature_2m==null||!Number.isFinite(Number(data.current.temperature_2m)))
+      throw new Error('Incomplete weather response');
+    const currentHour=String(data.current.time||'').slice(0,13);
+    const hourly=Array.isArray(data.hourly?.time)?data.hourly.time:[];
+    const nextHours=hourly.map((time,i)=>({
+      time:String(time),temp:data.hourly?.temperature_2m?.[i],
+      rain:data.hourly?.precipitation_probability?.[i],
+      code:data.hourly?.weather_code?.[i]
+    })).filter(x=>x.time.slice(0,13)>=currentHour).slice(0,24);
+    const days=Array.isArray(data.daily?.time)?data.daily.time.slice(0,5).map((day,i)=>({
+      date:String(day),code:data.daily.weather_code?.[i],
+      high:data.daily.temperature_2m_max?.[i],low:data.daily.temperature_2m_min?.[i],
+      sunrise:String(data.daily.sunrise?.[i]||''),sunset:String(data.daily.sunset?.[i]||'')
+    })):[];
+    let pollen=null;
+    try{
+      const p=new URLSearchParams({latitude:String(lat),longitude:String(lon),
+        current:'alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen',
+        timezone:'auto'});
+      const air=await json('https://air-quality-api.open-meteo.com/v1/air-quality?'+p,9000);
+      const fields=[['Grass','grass_pollen'],['Birch','birch_pollen'],['Alder','alder_pollen'],
+        ['Olive','olive_pollen'],['Mugwort','mugwort_pollen'],['Ragweed','ragweed_pollen']];
+      pollen=fields.map(([name,key])=>({name,value:air?.current?.[key]}))
+        .filter(x=>x.value!==null&&x.value!==undefined&&Number.isFinite(Number(x.value)))
+        .map(x=>({name:x.name,value:Number(x.value)}));
+      if(!pollen.length)pollen=null;
+    }catch(_){ /* Region/season may not offer pollen; show unavailable, never a false zero. */ }
     return {temp:Number(data.current.temperature_2m),
-      humidity:Number(data.current.relative_humidity_2m),
-      wind:Number(data.current.wind_speed_10m),
+      humidity:data.current.relative_humidity_2m,
+      wind:data.current.wind_speed_10m,
       code:Number(data.current.weather_code),
-      high:Number(data.daily?.temperature_2m_max?.[0]),
-      low:Number(data.daily?.temperature_2m_min?.[0]),
-      observed:String(data.current.time||'')};
+      high:data.daily?.temperature_2m_max?.[0],low:data.daily?.temperature_2m_min?.[0],
+      observed:String(data.current.time||''),hours:nextHours,days,
+      moon:moonInfo(data.current.time||new Date().toISOString()),pollen};
   }
   async function getQuakes(city){
     const [, ,lat,lon]=city;
@@ -104,11 +146,12 @@
     if(!Array.isArray(data?.features))throw new Error('Incomplete earthquake response');
     return data.features.filter(f=>Number.isFinite(f?.properties?.time)&&Number.isFinite(f?.properties?.mag))
       .map(f=>({id:String(f.id||''),mag:Number(f.properties.mag),place:String(f.properties.place||'Nearby'),
-        time:f.properties.time,lat:Number(f.geometry?.coordinates?.[1]),
+        time:f.properties.time,depth:f.geometry?.coordinates?.[2]??null,
+        sourceUrl:String(f.properties.url||''),lat:Number(f.geometry?.coordinates?.[1]),
         lon:Number(f.geometry?.coordinates?.[0])}))
       .map(x=>({...x,distance:Number.isFinite(x.lat)&&Number.isFinite(x.lon)?
         Math.round(haversine(lat,lon,x.lat,x.lon)):null}))
-      .slice(0,5);
+      .slice(0,30);
   }
   async function getFires(city){
     const [, ,lat,lon]=city;
@@ -130,7 +173,7 @@
       .map(x=>({...x,distance:Math.round(haversine(lat,lon,x.lat,x.lon))}))
       .filter(x=>x.distance<=RADIUS_KM)
       .sort((a,b)=>a.distance-b.distance);
-    return {total:valid.length,nearest:valid.slice(0,4)};
+    return {total:valid.length,nearest:valid.slice(0,30)};
   }
   const fetchers={weather:getWeather,quakes:getQuakes,fires:getFires};
   function key(city,type){return city[0]+'|'+type}
@@ -144,7 +187,7 @@
   function setCity(id){
     const next=getCity(id);
     if(activeCity?.[0]===next[0])return;
-    activeCity=next;generation++;
+    activeCity=next;generation++;openedDetails=null;
     try{localStorage.setItem(PREFERENCE,next[0])}catch(_){}
     updateView();
     refresh(false);
@@ -206,6 +249,140 @@
         ['No satellite thermal detections returned in this area']
     };
   }
+
+  function pinnedCities(){
+    try{
+      const raw=JSON.parse(localStorage.getItem(MY_CITIES)||'[]');
+      if(Array.isArray(raw))return [...new Set(raw.filter(id=>CITIES.some(c=>c[0]===id)))].slice(0,8);
+    }catch(_){}
+    return [];
+  }
+  function updatePinned(){
+    const row=$('#worldMyCities');
+    if(!row||!activeCity)return;
+    row.replaceChildren();
+    const label=element('strong','world-my-cities-caption','My cities');row.append(label);
+    const saved=pinnedCities();
+    const star=element('button','secondary world-city-save',saved.includes(activeCity[0])?'★ Saved':'☆ Save city');
+    star.type='button';star.setAttribute('aria-label',saved.includes(activeCity[0])?'Remove current city from My cities':'Save current city to My cities');
+    star.addEventListener('click',()=>{
+      const cur=pinnedCities();
+      let next=cur.includes(activeCity[0])?cur.filter(id=>id!==activeCity[0]):[...cur,activeCity[0]].slice(-8);
+      try{localStorage.setItem(MY_CITIES,JSON.stringify(next))}catch(_){}
+      updatePinned();
+    });
+    row.append(star);
+    for(const id of saved){
+      const c=getCity(id);
+      const b=element('button','world-city-chip',c[1].split(',')[0]);
+      b.type='button';b.setAttribute('aria-label','Switch World Live to '+c[1]);
+      if(c[0]===activeCity[0])b.classList.add('selected');
+      b.addEventListener('click',()=>setCity(id));
+      row.append(b);
+    }
+    const note=element('small','world-city-local','Saved on this browser');
+    row.append(note);
+  }
+  function addInfoRow(parent,label,value){
+    const item=element('div','world-extra-tile');
+    item.append(element('span','',label),element('strong','',value));
+    parent.append(item);
+  }
+  function updateWeatherExtra(){
+    const holder=$('#worldWeatherExtra');
+    if(!holder)return;
+    const info=entry('weather'),weather=info?.data;
+    const hourly=$('#worldHourly'),days=$('#worldFiveDay'),sun=$('#worldSunMoon'),pollen=$('#worldPollen');
+    if(!hourly||!days||!sun||!pollen)return;
+    hourly.replaceChildren();days.replaceChildren();sun.replaceChildren();pollen.replaceChildren();
+    if(!weather){
+      const text=info?.error?'Weather forecast unavailable: '+info.error:'Waiting for weather forecast…';
+      hourly.append(element('p','world-extra-placeholder',text));
+      days.append(element('p','world-extra-placeholder',text));
+      sun.append(element('p','world-extra-placeholder',text));
+      pollen.append(element('p','world-extra-placeholder',text));
+      return;
+    }
+    for(const h of weather.hours||[]){
+      const tile=element('div','world-hour-tile');
+      addInfoRow(tile,'Time',h.time.slice(11,16));
+      addInfoRow(tile,'Temperature',round(h.temp)+'°C');
+      addInfoRow(tile,'Rain chance',round(h.rain)+'%');
+      hourly.append(tile);
+    }
+    if(!(weather.hours||[]).length)hourly.append(element('p','world-extra-placeholder','Hourly forecast is not available.'));
+    for(const d of weather.days||[]){
+      const tile=element('div','world-day-tile');
+      const when=new Date(d.date+'T12:00:00Z');
+      const dayLabel=Number.isFinite(when.getTime())?
+        new Intl.DateTimeFormat(undefined,{weekday:'short',day:'2-digit',month:'short',timeZone:'UTC'}).format(when):d.date;
+      addInfoRow(tile,dayLabel,round(d.low)+'° / '+round(d.high)+'°');
+      tile.append(element('small','',weatherDescription(Number(d.code))));
+      days.append(tile);
+    }
+    if(!(weather.days||[]).length)days.append(element('p','world-extra-placeholder','Daily forecast is not available.'));
+    const first=weather.days?.[0];
+    const localTime=str=>str&&str.includes('T')?str.slice(11,16):'—';
+    addInfoRow(sun,'Sunrise',localTime(first?.sunrise));
+    addInfoRow(sun,'Sunset',localTime(first?.sunset));
+    addInfoRow(sun,'Moon phase',weather.moon||'Unavailable');
+    if(Array.isArray(weather.pollen)&&weather.pollen.length){
+      for(const x of weather.pollen) addInfoRow(pollen,x.name,round(x.value,1)+' grains/m³');
+    }else pollen.append(element('p','world-extra-placeholder','Pollen data unavailable for this region or season.'));
+    const stale=$('#worldForecastStale');
+    if(stale)stale.textContent=info?.error?'Last available forecast (refresh failed) · '+stamp(info.checkedAt):
+      'Open-Meteo · Checked '+stamp(info?.checkedAt);
+  }
+  function mapLink(lat,lon){
+    if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)return null;
+    const y=lat.toFixed(5),x=lon.toFixed(5);
+    const link=element('a','world-map-link','View on map ↗');
+    link.href='https://www.openstreetmap.org/?mlat='+encodeURIComponent(y)+'&mlon='+encodeURIComponent(x)+'#map=9/'+encodeURIComponent(y)+'/'+encodeURIComponent(x);
+    link.target='_blank';link.rel='noopener noreferrer';
+    return link;
+  }
+  function updateEventDetails(){
+    const panel=$('#worldEventDetails');if(!panel)return;
+    panel.hidden=!openedDetails;
+    if(!openedDetails)return;
+    const e=entry(openedDetails);
+    const heading=$('#worldEventDetailsTitle'),list=$('#worldEventDetailsList'),notice=$('#worldEventDetailsNote');
+    if(!list||!heading)return;
+    heading.textContent=openedDetails==='quakes'?'Earthquake details & map':'Thermal detection details & map';
+    list.replaceChildren();
+    if(!e?.data){
+      list.append(element('p','world-extra-placeholder',e?.error?'Source unavailable: '+e.error:'Waiting for source data…'));
+      if(notice)notice.textContent='Only successfully returned events can be displayed.';
+      return;
+    }
+    const events=openedDetails==='quakes'?e.data:e.data.nearest;
+    if(notice)notice.textContent=openedDetails==='quakes'?
+      'USGS events within 250 km in the last 7 days. Up to 30 newest records.':
+      'Nearest '+events.length+' of '+e.data.total+' thermal detections (not confirmed fires). Coordinates open in OpenStreetMap.';
+    if(!events.length){list.append(element('p','world-extra-placeholder','No matching records for this city and time window.'));return;}
+    for(const x of events){
+      const item=element('article','world-event-item');
+      const details=element('div','world-event-copy');
+      if(openedDetails==='quakes'){
+        details.append(element('strong','','M '+round(x.mag,1)+' · '+x.place));
+        details.append(element('small','','Reported '+stamp(x.time)+
+          (x.distance!=null?' · '+x.distance+' km away':'')+
+          (x.depth!==null&&Number.isFinite(Number(x.depth))?' · depth '+round(x.depth,1)+' km':'')));
+      }else{
+        details.append(element('strong','','Thermal detection · '+x.distance+' km away'));
+        details.append(element('small','',x.satellite+(x.observedAt?' · observed '+stamp(Date.parse(x.observedAt)):'')+
+          (x.confidence?' · confidence '+x.confidence:'')));
+      }
+      item.append(details);
+      const map=mapLink(x.lat,x.lon);
+      if(map)item.append(map);
+      if(openedDetails==='quakes'&&/^https:\/\/earthquake\.usgs\.gov\//.test(x.sourceUrl||'')){
+        const source=element('a','world-map-link','USGS report ↗');
+        source.href=x.sourceUrl;source.target='_blank';source.rel='noopener noreferrer';item.append(source);
+      }
+      list.append(item);
+    }
+  }
   function renderInto(kind,type,container){
     if(!container)return;
     const e=entry(type);
@@ -248,6 +425,16 @@
     checked.dataset.liveChecked='';
     checked.setAttribute('role','status');
     card.append(main,subtitle,rows,checked);
+    if(kind==='page'&&type!=='weather'){
+      const more=element('button','secondary world-details-button','View details & map ↗');
+      more.type='button';
+      more.addEventListener('click',()=>{
+        openedDetails=openedDetails===type?null:type;
+        updateEventDetails();
+        if(openedDetails)$('#worldEventDetails')?.scrollIntoView({block:'nearest'});
+      });
+      card.append(more);
+    }
     if(kind==='dashboard'){
       const open=element('button','text-btn world-live-open','Open World Live →');
       open.type='button';
@@ -279,6 +466,37 @@
     const grid=element('div','world-live-grid');
     TYPES.forEach(type=>grid.append(makeCard(type,'page')));
     host.append(grid);
+    const cities=element('div','world-my-cities');cities.id='worldMyCities';host.insertBefore(cities,grid);
+    const forecast=element('section','world-forecast-section');forecast.id='worldWeatherExtra';
+    forecast.append(element('h3','','24-hour forecast'));
+    const hourly=element('div','world-hour-list');hourly.id='worldHourly';forecast.append(hourly);
+    forecast.append(element('h3','','5-day forecast'));
+    const days=element('div','world-days-grid');days.id='worldFiveDay';forecast.append(days);
+    const extras=element('div','world-astro-pollen-grid');
+    const sunBox=element('section','world-extra-card');
+    sunBox.append(element('h4','','Sun & Moon'),element('div','world-extra-list'));
+    sunBox.querySelector('.world-extra-list').id='worldSunMoon';
+    const pollenBox=element('section','world-extra-card');
+    pollenBox.append(element('h4','','Pollen · current concentrations'),element('div','world-extra-list'));
+    pollenBox.querySelector('.world-extra-list').id='worldPollen';
+    extras.append(sunBox,pollenBox);
+    forecast.append(extras);
+    const note=element('small','world-forecast-stale','');note.id='worldForecastStale';
+    forecast.append(note);
+    host.append(forecast);
+    const details=element('section','world-event-details');details.id='worldEventDetails';details.hidden=true;
+    const dh=element('div','world-event-detail-head');
+    const title=element('h3','','Event details');title.id='worldEventDetailsTitle';
+    const close=element('button','secondary','Close');close.type='button';
+    close.addEventListener('click',()=>{openedDetails=null;updateEventDetails()});
+    dh.append(title,close);details.append(dh);
+    const notice=element('p','world-event-note');notice.id='worldEventDetailsNote';
+    details.append(notice);
+    const items=element('div','world-event-list');items.id='worldEventDetailsList';
+    details.append(items);host.append(details);
+    updatePinned();
+    updateWeatherExtra();
+    updateEventDetails();
     const source=element('p','world-live-sources',
       'Sources: Open-Meteo · USGS (past 7 days, magnitude 2+) · NASA FIRMS via LifeDashPro (past 24h). FIRMS observations are not confirmed wildfires or emergency warnings. Refresh checks are rate-limited to once per minute per source.');
     host.append(source);
@@ -304,6 +522,7 @@
     if(!activeCity)return;
     const sel=$('#worldLiveCity');
     if(sel&&sel.value!==activeCity[0])sel.value=activeCity[0];
+    updatePinned();
     const title=$('#worldLiveDashboard .world-live-dashboard-title strong');
     if(title)title.textContent='World Live · '+cityLabel();
     for(const type of TYPES){
@@ -312,6 +531,8 @@
       renderInto('page',type,pageCard);
       renderInto('dashboard',type,dashCard);
     }
+    updateWeatherExtra();
+    updateEventDetails();
     const refreshButton=$('#worldLiveRefresh');
     if(refreshButton){
       const pendingAny=TYPES.some(type=>pending.has(key(activeCity,type)));
