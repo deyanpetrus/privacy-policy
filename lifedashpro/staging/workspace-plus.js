@@ -65,11 +65,6 @@
    const tail=$('.span-12',grid);
    order.forEach(key=>{if(cards[key])grid.insertBefore(cards[key],tail||null)});
  }
- function saveOrder(grid){
-   storageSet(LAYOUT_KEY,JSON.stringify(WIDGETS.filter(k=>!!$('.'+k,grid)).sort((a,b)=>{
-     const nodes=$$('> .card',grid);return nodes.indexOf($('.'+a,grid))-nodes.indexOf($('.'+b,grid));
-   })));
- }
  function currentOrder(grid){
    return $$(':scope > .card',grid).map(n=>WIDGETS.find(k=>n.classList.contains(k))).filter(Boolean);
  }
@@ -80,6 +75,7 @@
    if(!grid||grid.dataset.organizerV15==='1')return;
    if(WIDGETS.some(k=>!$('.'+k,grid)))return;
    grid.dataset.organizerV15='1';
+   customizing=false;
    applyOrder(grid,layoutSaved());
    const toolbar=el('div','widget-layout-toolbar');
    toolbar.setAttribute('aria-label','Dashboard layout');
