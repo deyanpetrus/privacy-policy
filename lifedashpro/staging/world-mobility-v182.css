@@ -41,3 +41,34 @@
 }
 @media(max-width:390px){.world-detail-map{height:265px}.world-mobility-heading{flex-wrap:wrap}}
 @media(prefers-reduced-motion:reduce){.world-mobility-card{transition:none!important}}
+
+
+/* v1.8.4 — Additive in-page mobility maps. Reuses locked card/Light/Dark styling. */
+.world-mobility-map-button{
+  align-self:start;min-height:37px;padding:8px 13px;margin:12px 0 0;
+  border-radius:11px;font-size:12px;
+}
+.world-mobility-map-button:focus-visible{
+  outline:2px solid var(--primary2);outline-offset:3px;
+}
+.world-mobility-map-panel{
+  margin:14px 0 2px;padding:14px;background:var(--panel);
+  border:1px solid var(--line);border-radius:17px;min-width:0;
+}
+.world-mobility-map-panel[hidden]{display:none!important}
+.world-mobility-map-title{display:block;font-size:14px;margin:0 0 7px}
+.world-mobility-map-status{
+  color:var(--muted);font-size:11px;line-height:1.45;margin:0 0 10px;overflow-wrap:anywhere;
+}
+.world-mobility-map-canvas{
+  width:100%;height:340px;border-radius:13px;overflow:hidden;
+  background:var(--panel2);
+}
+.world-mobility-map-panel .leaflet-container{font:inherit}
+@media(max-width:800px){
+  .world-mobility-map-panel{padding:9px;border-radius:15px}
+  .world-mobility-map-canvas{height:290px}
+}
+@media(max-width:390px){
+  .world-mobility-map-canvas{height:250px}
+}
