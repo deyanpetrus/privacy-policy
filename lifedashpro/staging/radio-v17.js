@@ -26,8 +26,9 @@
   audio.volume=volume/100;
   const volDock=$('#radioDockVolume');if(volDock)volDock.value=String(volume);
 
-  function signedIn(){return !app.classList.contains('hidden')&&Boolean(bridge()?.ready())}
-  function favorites(){return signedIn()?bridge().favorites():[]}
+  function signedIn(){return !app.classList.contains('hidden')&&Boolean(bridge()?.authenticated())}
+  function cloudReady(){return signedIn()&&Boolean(bridge()?.ready())}
+  function favorites(){return cloudReady()?bridge().favorites():[]}
   function isFavorite(id){return favorites().some(x=>String(x.id||x.stationuuid)===String(id))}
   function safeText(v,max=140){return String(v??'').trim().slice(0,max)}
   function safeHttps(url){
@@ -130,7 +131,8 @@
       button.textContent=playing?'Ⅱ':'▶';
       button.setAttribute('aria-label',playing?'Pause radio':'Play radio');
       button.setAttribute('title',playing?'Pause radio':'Play radio');
-      button.disabled=!current||!current.stream;
+      button.disabled=(!current||!current.stream)&&id!=='radioWidgetPlay';
+      if(id==='radioWidgetPlay'&&!current){button.textContent='↗';button.setAttribute('aria-label','Browse worldwide radio stations')}
     }
     for(const id of ['radioDockFav','radioPageFav']){
       const button=$('#'+id);if(!button)continue;
@@ -138,7 +140,7 @@
       button.textContent=selected?'★':'☆';
       button.setAttribute('aria-label',selected?'Remove station from favorites':'Add station to favorites');
       button.setAttribute('aria-pressed',String(Boolean(selected)));
-      button.disabled=!current||busyFavorites.has(current.id)||!signedIn();
+      button.disabled=!current||busyFavorites.has(current?.id)||!cloudReady();
     }
     for(const input of $$('#radioDockVolume,#radioPageVolume'))input.value=String(volume);
     const count=$('#navRadioFav');if(count)count.textContent=String(favorites().length);
@@ -184,7 +186,7 @@
     syncControls();
   }
   async function toggleFavorite(station){
-    if(!station||!signedIn()||busyFavorites.has(station.id))return;
+    if(!station||!cloudReady()||busyFavorites.has(station.id))return;
     busyFavorites.add(station.id);syncControls();draw();
     try{
       if(isFavorite(station.id))await bridge().removeFavorite(station.id);
@@ -251,7 +253,8 @@
     host.append(messages);
     const list=node('div','radio-station-grid');list.id='radioStationGrid';host.append(list);
     syncControls();
-    if(!loading&&!stations.length&&!error&&!message){load('top');}
+    if(view==='favorites'&&!loading)stations=uniqueStations(favorites());
+    if(!loading&&!stations.length&&!error&&!message&&view==='top'){load('top');}
     else draw();
     if(!countriesLoaded)loadCountries();
   }
@@ -281,7 +284,7 @@
       const isFav=isFavorite(station.id);
       const favorite=radioButton(isFav?'★':'☆','radio-control',()=>toggleFavorite(station),
         {'aria-label':isFav?'Remove favorite '+station.name:'Favorite '+station.name,'aria-pressed':String(isFav)});
-      favorite.disabled=busyFavorites.has(station.id)||!signedIn();
+      favorite.disabled=busyFavorites.has(station.id)||!cloudReady();
       const play=radioButton(current?.id===station.id&&playing?'Ⅱ':'▶','radio-control radio-control-play',
         ()=>current?.id===station.id?togglePlayback():playStation(station),
         {'aria-label':'Play '+station.name});
