@@ -48,10 +48,9 @@
     var match=/^(\d{4}-\d{2})(?:-\d{2})?/.exec(value);
     return match?match[1]:'';
   }
-  function dueDate(row){
-    var raw=row.dataset.uiDue||row.dataset.uiDate||'';
-    return /^\d{4}-\d{2}-\d{2}/.test(raw)?raw.slice(0,10):'';
-  }
+  function datePart(raw){return /^\d{4}-\d{2}-\d{2}/.test(raw)?raw.slice(0,10):''}
+  function dueDate(row){return datePart(row.dataset.uiDue||'')}
+  function entryDate(row){return datePart(row.dataset.uiDate||'')}
   function build(page,list){
     var all=Array.from(list.querySelectorAll(':scope > .data-row'));
     if(!all.length)return;
@@ -171,9 +170,10 @@
     var sort=settings.sort;
     if(sort==='title')return getRowText(a).localeCompare(getRowText(b));
     if(sort==='due'||sort==='date-new'||sort==='date-old'){
-      var first=dueDate(a)||'9999-99-99',second=dueDate(b)||'9999-99-99';
+      var pick=sort==='due'?dueDate:entryDate;
+      var first=pick(a)||'9999-99-99',second=pick(b)||'9999-99-99';
       if(sort==='date-new'){
-        first=dueDate(a)||'0000-00-00';second=dueDate(b)||'0000-00-00';
+        first=pick(a)||'0000-00-00';second=pick(b)||'0000-00-00';
         return second.localeCompare(first);
       }
       return first.localeCompare(second);
