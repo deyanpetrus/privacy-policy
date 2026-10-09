@@ -157,23 +157,60 @@ $$('[data-page]').forEach(b=>b.onclick=()=>setPage(b.dataset.page));
 // Reuse the same user-scoped RLS and revision-safe CRUD routines.
 // v1.8 read-only World Live adapter to the existing authenticated Edge Function.
 // Never expose the JWT, Supabase client or data write operations to the view.
+// World Live Edge requests: recover once from a stale authenticated web token.
+// The Edge Functions keep verify_jwt=true, user validation and per-user throttling.
+let worldAuthRefreshPromise=null;
+async function invokeWorldSecure(slug,body){
+  if(!state.user||!state.session||!state.client)throw new Error('Sign in first.');
+  const userId=state.user.id;
+  let response=await state.client.functions.invoke(slug,{body});
+  if(response.error&&Number(response.error?.context?.status)===401){
+    // One shared refresh avoids concurrent FIRMS / ADS-B token rotation races.
+    if(!worldAuthRefreshPromise){
+      const requestedClient=state.client;
+      worldAuthRefreshPromise=requestedClient.auth.refreshSession().finally(()=>{
+        worldAuthRefreshPromise=null;
+      });
+    }
+    let renewed;
+    try{renewed=await worldAuthRefreshPromise}
+    catch(_){throw new Error('Login session expired. Please sign out and sign in again.');}
+    if(renewed?.error||!renewed?.data?.session?.access_token||
+       renewed.data.session.user?.id!==userId||
+       state.user?.id!==userId)
+      throw new Error('Login session expired. Please sign out and sign in again.');
+    response=await state.client.functions.invoke(slug,{body});
+  }
+  if(response.error){
+    const status=Number(response.error?.context?.status)||0;
+    let detail='';
+    try{
+      const context=response.error?.context;
+      const message=context?.clone?await context.clone().json():null;
+      if(typeof message?.error==='string')detail=message.error.slice(0,140);
+    }catch(_){}
+    if(status===401)throw new Error('Login authorization failed (401). Sign out and sign in again.');
+    if(status===429)throw new Error('Source rate limit reached (429). Wait before refreshing.');
+    if(status===503)throw new Error(detail||'Live source is temporarily unavailable (503).');
+    throw new Error(detail||(status?'Live source request failed (HTTP '+status+').':
+      'Live source connection failed.'));
+  }
+  if(!response.data||response.data.ok!==true)throw new Error(
+    String(response.data?.error||'Live source returned invalid data').slice(0,140));
+  return response.data;
+}
 window.LifeDashWorldBridge=Object.freeze({
   authenticated:()=>Boolean(state.user&&state.session),
   identity:()=>state.user?.id||null,
   profileCity:()=>String(state.profile?.city||''),
   air:async location=>{
-    if(!state.user||!state.session||!state.client)throw new Error('Sign in first.');
-    const {data,error}=await state.client.functions.invoke('air-traffic-nearby',{body:location});
-    if(error)throw error;
-    if(!data||data.ok!==true||!Array.isArray(data.aircraft))
-      throw new Error(data?.error||'Air Traffic response unavailable');
+    const data=await invokeWorldSecure('air-traffic-nearby',location);
+    if(!Array.isArray(data.aircraft))throw new Error('Air Traffic response unavailable');
     return data;
   },
   fires:async bounds=>{
-    if(!state.user||!state.session||!state.client)throw new Error('Sign in first.');
-    const {data,error}=await state.client.functions.invoke('nasa-firms-nearby',{body:bounds});
-    if(error)throw error;
-    if(!data||data.ok!==true||!Array.isArray(data.fires))throw new Error(data?.error||'FIRMS response unavailable');
+    const data=await invokeWorldSecure('nasa-firms-nearby',bounds);
+    if(!Array.isArray(data.fires))throw new Error('FIRMS response unavailable');
     return data.fires;
   }
 });
