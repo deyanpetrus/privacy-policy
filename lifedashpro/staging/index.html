@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#07111f" />
+  <meta name="robots" content="noindex,nofollow" />
+  <meta http-equiv="Cache-Control" content="no-cache" />
+  <meta name="description" content="LifeDashPro Web — your life, one dashboard." />
+  <title>LifeDashPro Web | MKDigital</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div role="note" style="background:#402011;color:#fff3dc;text-align:center;font:600 12px/1.6 system-ui;padding:6px 8px;position:relative;z-index:4">LifeDashPro STAGING · test accounts only · this version connects to the real Supabase project</div>
+  <div id="boot" class="boot" role="status" aria-live="polite"><div class="brand-orb">LD</div><div><strong>LifeDashPro</strong><span id="bootStatus">Loading secure workspace…</span><p id="bootHelp" class="boot-help hidden">The web application is taking too long to load. <a href="./reset.html">Refresh web cache</a> or <button id="retryBoot" type="button">Retry loading</button>.</p></div></div>
+
+  <main id="authView" class="auth-shell hidden">
+    <section class="auth-hero">
+      <a class="mini-brand" href="https://mkdigital.app/" aria-label="MKDigital">MKDigital</a>
+      <div class="hero-copy">
+        <div class="brand-orb large">LD</div>
+        <p class="eyebrow">LIFEDASHPRO WEB</p>
+        <h1>Your life.<br><span>One dashboard.</span></h1>
+        <p class="lead">Use the same LifeDashPro account as Android and keep supported data synchronized through the protected Supabase data model.</p>
+        <div class="trust-row"><span>✓ Same account as Android</span><span>✓ User-scoped RLS</span><span>✓ Desktop + mobile browser</span></div>
+      </div>
+      <div class="auth-foot">LifeDashPro · MKDigital · Web</div>
+    </section>
+
+    <section class="auth-panel">
+      <div id="keySetup" class="setup-card hidden">
+        <span class="setup-icon">⚿</span>
+        <h2>Public Supabase key required</h2>
+        <p>The web client is ready. Add only the public <b>publishable</b> key for the LifeDashPro project. Never use a service-role or secret key here.</p>
+        <label>Publishable key</label>
+        <input id="setupKey" type="password" autocomplete="off" placeholder="sb_publishable_… or legacy anon key" />
+        <button id="saveKeyBtn" class="primary full">Use key on this browser</button>
+        <small>For production, put the same public key in <code>config.js</code> instead of entering it manually.</small>
+      </div>
+
+      <div id="authCard" class="auth-card hidden">
+        <div class="auth-tabs"><button data-auth="signin" class="active">Sign in</button><button data-auth="register">Create account</button></div>
+        <div id="authMessage" class="message hidden"></div>
+        <form id="signinForm" class="auth-form">
+          <div><p class="eyebrow">WELCOME BACK</p><h2>Sign in to LifeDashPro</h2></div>
+          <label>Email<input id="signinEmail" type="email" autocomplete="email" required /></label>
+          <label>Password<input id="signinPassword" type="password" autocomplete="current-password" required minlength="6" /></label>
+          <button class="primary full" type="submit">Sign in</button>
+          <button id="forgotBtn" class="text-btn" type="button">Forgot password?</button>
+        </form>
+        <form id="registerForm" class="auth-form hidden">
+          <div><p class="eyebrow">NEW ACCOUNT</p><h2>Create your account</h2></div>
+          <label>Name<input id="registerName" type="text" autocomplete="name" required maxlength="80" /></label>
+          <label>Email<input id="registerEmail" type="email" autocomplete="email" required /></label>
+          <label>Password<input id="registerPassword" type="password" autocomplete="new-password" required minlength="8" /></label>
+          <div class="two-col"><label>Country<select id="registerCountry"><option value="DE">Germany</option><option value="MK">North Macedonia</option><option value="RS">Serbia</option><option value="AT">Austria</option><option value="CH">Switzerland</option><option value="BG">Bulgaria</option><option value="HR">Croatia</option><option value="SI">Slovenia</option><option value="CA">Canada</option><option value="OTHER">Other</option></select></label><label>Language<select id="registerLanguage"><option value="en">English</option><option value="mk">Македонски</option><option value="de">Deutsch</option><option value="sr">Srpski</option><option value="bg">Български</option><option value="hr">Hrvatski</option><option value="sl">Slovenščina</option><option value="sq">Shqip</option><option value="tr">Türkçe</option><option value="it">Italiano</option><option value="fr">Français</option><option value="es">Español</option></select></label></div>
+          <button class="primary full" type="submit">Create account</button>
+          <small>A confirmation email may be required before the first sign-in.</small>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <div id="appView" class="app hidden">
+    <aside class="sidebar">
+      <div class="side-brand"><div class="brand-orb">LD</div><div><strong>LifeDashPro</strong><span>MKDigital · Web</span></div></div>
+      <nav id="nav">
+        <p>Overview</p>
+        <button data-page="dashboard" class="active"><span>⌂</span>Dashboard</button>
+        <button data-page="today"><span>◷</span>Today & Next 5</button>
+        <p>Organize</p>
+        <button data-page="notes"><span>✎</span>Notes Pro <b id="navNotes">0</b></button>
+        <button data-page="tasks"><span>✓</span>Tasks <b id="navTasks">0</b></button>
+        <button data-page="documents"><span>▣</span>Documents <b id="navDocs">0</b></button>
+        <p>Money</p>
+        <button data-page="finance"><span>€</span>Finance</button>
+        <p>Mobility</p>
+        <button data-page="vehicles"><span>◈</span>Vehicles <b id="navVehicles">0</b></button>
+        <button data-page="journey"><span>⌖</span>Journey <b id="navJourneys">0</b></button>
+        <p>Account</p>
+        <button data-page="profile"><span>⚙</span>Profile & Settings</button>
+      </nav>
+      <div class="side-status"><i id="syncDot"></i><span id="syncLabel">Secure sync</span><small id="syncTime">Not refreshed</small></div>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar">
+        <div><p id="pageEyebrow" class="eyebrow">LIFEDASHPRO WEB</p><h2 id="pageTitle">Dashboard</h2></div>
+        <div class="top-actions"><button id="refreshBtn" class="icon-btn" title="Refresh">↻</button><button id="quickAddBtn" class="primary compact">＋ Add</button><div id="avatar" class="avatar">U</div></div>
+      </header>
+      <div id="notice" class="notice hidden"></div>
+      <div id="content" class="content"></div>
+    </section>
+
+    <nav class="mobile-nav">
+      <button data-page="dashboard" class="active"><span>⌂</span>Home</button>
+      <button data-page="notes"><span>✎</span>Notes</button>
+      <button data-page="finance"><span>€</span>Finance</button>
+      <button data-page="tasks"><span>✓</span>Tasks</button>
+      <button data-page="profile"><span>⚙</span>Profile</button>
+    </nav>
+  </div>
+
+  <dialog id="editorDialog" class="dialog"><form method="dialog" id="editorForm"><div class="dialog-head"><div><p id="editorEyebrow" class="eyebrow">EDIT</p><h3 id="editorTitle">Item</h3></div><button value="cancel" class="icon-btn">×</button></div><div id="editorFields" class="dialog-body"></div><div class="dialog-actions"><button value="cancel" class="secondary">Cancel</button><button id="editorDelete" type="button" class="danger hidden">Delete</button><button id="editorSave" type="button" class="primary">Save</button></div></form></dialog>
+  <dialog id="passwordDialog" class="dialog small"><form method="dialog"><div class="dialog-head"><div><p class="eyebrow">ACCOUNT RECOVERY</p><h3>Set a new password</h3></div></div><div class="dialog-body"><label>New password<input id="newPassword" type="password" minlength="8" /></label><div id="passwordMessage" class="message hidden"></div></div><div class="dialog-actions"><button id="updatePasswordBtn" type="button" class="primary">Update password</button></div></form></dialog>
+
+  <script src="./config.js?v=1.1.0"></script>
+  <script src="./boot.js?v=1.1.0"></script>
+</body>
+</html>
