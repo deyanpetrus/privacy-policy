@@ -1,4 +1,4 @@
-/* LifeDashPro Web v1.5 — additive personal organizer, layout & accent.
+/* LifeDashPro Web — additive Personal Organizer and Dashboard layout only.
    UI only: no Supabase, login, network requests, or data writes. */
 (function(){
  'use strict';
@@ -7,43 +7,17 @@
  const $=(s,root=document)=>root.querySelector(s);
  const $$=(s,root=document)=>Array.from(root.querySelectorAll(s));
  const el=(tag,cls,value)=>{const x=document.createElement(tag);if(cls)x.className=cls;if(value!==undefined)x.textContent=value;return x};
- const ACCENT_KEY='lifedash_web_accent_v15',LAYOUT_KEY='lifedash_web_widget_order_v15';
+ const LAYOUT_KEY='lifedash_web_widget_order_v15';
  const WIDGETS=['dash-upcoming','dash-finance','dash-notes','dash-tasks','dash-journey'];
  const LABELS={notes:'Notes Pro',tasks:'Tasks',documents:'Documents',journey:'Journey'};
  let docsFilter='all', docsCategory='all', customizing=false;
 
  function storageGet(key,fallback){try{return localStorage.getItem(key)||fallback}catch(_){return fallback}}
  function storageSet(key,value){try{localStorage.setItem(key,value)}catch(_){}}
- function initAccent(){
-   const menu=document.getElementById('themeMenu');
-   if(!menu)return;
-   const caption=el('div','theme-menu-title','Color accent');
-   caption.style.borderTop='1px solid var(--line)';
-   caption.style.marginTop='7px';caption.style.paddingTop='12px';
-   menu.appendChild(caption);
-   for(const [mode,icon,title] of [['classic','◈','Classic'],['aurora','✦','Violet · Rose']]){
-     const b=el('button','theme-option');
-     b.type='button';b.setAttribute('data-accent-choice',mode);
-     b.setAttribute('aria-pressed','false');
-     b.append(el('span','theme-choice-icon',icon),document.createTextNode(title),el('span','theme-choice-check','✓'));
-     b.addEventListener('click',()=>{
-       applyAccent(mode);const toggle=document.getElementById('themeToggle');
-       if(toggle?.getAttribute('aria-expanded')==='true')toggle.click();
-     });
-     menu.appendChild(b);
-   }
-   applyAccent(storageGet(ACCENT_KEY,'classic'));
- }
- function applyAccent(mode){
-   if(mode!=='aurora')mode='classic';
-   document.documentElement.setAttribute('data-ld-accent',mode);
-   storageSet(ACCENT_KEY,mode);
-   $$('[data-accent-choice]').forEach(b=>{
-     const current=b.dataset.accentChoice===mode;
-     b.classList.toggle('selected',current);
-     b.setAttribute('aria-pressed',String(current));
-   });
- }
+ // One-time cleanup of the retired Violet · Rose color preference.
+ // UI-only local setting: do not touch saved widgets or account records.
+ document.documentElement.removeAttribute('data-ld-accent');
+ try{localStorage.removeItem('lifedash_web_accent_v15')}catch(_){}
  function navTo(page){
    const button=$('#nav [data-page="'+page+'"]')||$('.mobile-nav [data-page="'+page+'"]');
    if(button)button.click();
@@ -274,7 +248,6 @@
  function enhance(){
    decorateDashboard();buildDocumentOrganizer();financeDisclosure();
  }
- initAccent();
  new MutationObserver(enhance).observe(content,{childList:true});
  enhance();
 })();

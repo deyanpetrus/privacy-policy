@@ -1,49 +1,5 @@
-/* LifeDashPro staging Web v1.5: additive Organizer / Aurora / widget layout. */
-html[data-ld-accent="aurora"]{
- --primary:#9a60e9;--primary2:#ae6fe6;
-}
-html[data-ld-accent="aurora"][data-ld-theme="light"]{
- --primary:#8154d2;--primary2:#a04cc2;
- --panel2:#f7f0ff;--bg2:#f8f3ff;--line:#e8dbf2;
-}
-html[data-ld-accent="aurora"][data-ld-theme="light"] body{
- background:radial-gradient(circle at 9% 12%,rgba(154,119,255,.17),transparent 31%),radial-gradient(circle at 89% 33%,rgba(255,92,172,.16),transparent 34%),#fbf9ff;
-}
-html[data-ld-accent="aurora"][data-ld-theme="dark"]{
- --bg:#12091f;--bg2:#1b0d30;--panel:#211238;--panel2:#2a1a45;--line:#503166;
- --text:#f9f5ff;--muted:#c4afcf;--primary:#a57dff;--primary2:#d24cff;
-}
-html[data-ld-accent="aurora"][data-ld-theme="dark"] body{
- background:radial-gradient(circle at 12% 8%,rgba(157,90,255,.23),transparent 38%),radial-gradient(circle at 88% 34%,rgba(255,76,171,.15),transparent 34%),linear-gradient(145deg,#100820,#1c1033 61%,#2d1237);
-}
-html[data-ld-accent="aurora"] .card,html[data-ld-accent="aurora"] .dash-stat,
-html[data-ld-accent="aurora"] .feature-toolbar,html[data-ld-accent="aurora"] .doc-organizer,
-html[data-ld-accent="aurora"] .organizer-hub{
- border-color:var(--line);
- background-image:linear-gradient(145deg,color-mix(in srgb,var(--panel) 97%,#ba6dff),color-mix(in srgb,var(--panel) 91%,#ff66bd));
- box-shadow:0 10px 34px rgba(142,83,174,.09);
-}
-html[data-ld-accent="aurora"] .topbar{
- background:color-mix(in srgb,var(--panel) 91%,transparent);
- border-color:var(--line);
-}
-html[data-ld-accent="aurora"] .sidebar{background:color-mix(in srgb,var(--panel) 94%,transparent)}
-html[data-ld-accent="aurora"] .primary{background:linear-gradient(125deg,#8a61ee,#d24cff 61%,#ff5cac)}
-html[data-ld-accent="aurora"] .sidebar nav button.active,
-html[data-ld-accent="aurora"][data-ld-theme="light"] .mobile-nav button.active{
- color:var(--primary2);
- background:color-mix(in srgb,var(--primary2) 12%,var(--panel));
-}
-html[data-ld-accent="aurora"] .kpi,html[data-ld-accent="aurora"] .data-row,
-html[data-ld-accent="aurora"] .timeline-item,
-html[data-ld-accent="aurora"] .feature-finance-tile{
- background:color-mix(in srgb,var(--panel2) 87%,#e980fa);
- border-color:var(--line);
-}
-html[data-ld-accent="aurora"] .theme-choice-icon{color:var(--primary2)}
-.theme-menu [data-accent-choice]{font-family:inherit}
-.theme-menu .theme-menu-title{white-space:nowrap}
-
+/* LifeDashPro Web · document organizer and editable dashboard widget layout.
+   Classic theme maintained; no color-accent overrides. */
 /* Desktop widget layout editor (does not affect non-dashboard pages). */
 .widget-layout-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:0 0 14px;padding:10px 13px;border:1px solid var(--line);border-radius:15px;background:var(--panel)}
 .widget-layout-hint,.widget-layout-feedback{font-size:12px;color:var(--muted)}

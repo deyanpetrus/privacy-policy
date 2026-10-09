@@ -1,0 +1,93 @@
+/* LifeDashPro Web staging v1.6.1 — classic cards, subtle rose ambient and BLUE hover.
+   Appearance-only layer. Applies to the existing Dark/Light/Auto theme engine.
+   No color-accent picker, alternate card backgrounds, external assets or JS. */
+
+/* Restrained pink tint only BEHIND the entire dark workspace.
+   Original panels, inputs, finance tiles and text are left as they were. */
+html[data-ld-theme="dark"] body {
+  background:
+    radial-gradient(ellipse 63% 59% at 94% 42%, rgba(195,66,139,.095) 0%, transparent 77%),
+    radial-gradient(ellipse 48% 54% at 12% 11%, rgba(42,92,168,.11) 0%, transparent 78%),
+    linear-gradient(145deg,#07111f 0%,#091323 52%,#121225 100%);
+  background-attachment:fixed;
+}
+
+/* Blue interaction highlight on cards, in BOTH themes.
+   No blue background fill: only a subtle border/outer light on interaction. */
+html[data-ld-theme="dark"]{
+  --ld-card-blue:#55aaff;
+  --ld-card-blue-glow:rgba(61,150,255,.24);
+  --ld-card-blue-ring:rgba(71,160,255,.66);
+}
+html[data-ld-theme="light"]{
+  --ld-card-blue:#3989f7;
+  --ld-card-blue-glow:rgba(71,143,248,.16);
+  --ld-card-blue-ring:rgba(55,130,236,.55);
+}
+html[data-ld-theme] :is(.card,.dash-stat,.doc-organizer,.feature-toolbar,.organizer-hub){
+  transition:border-color .26s cubic-bezier(.2,.72,.22,1),box-shadow .29s ease,transform .25s cubic-bezier(.2,.72,.22,1);
+}
+
+/* Desktop hover only (mouse/trackpad). Prevent battery-draining idle effects. */
+@media(hover:hover) and (pointer:fine){
+  html[data-ld-theme] :is(.card,.dash-stat,.doc-organizer,.feature-toolbar,.organizer-hub):hover{
+    border-color:var(--ld-card-blue-ring);
+    box-shadow:0 0 0 1px var(--ld-card-blue-glow),0 0 18px var(--ld-card-blue-glow),0 13px 33px rgba(18,45,101,.13);
+  }
+  html[data-ld-theme="dark"] :is(.card,.dash-stat,.doc-organizer,.feature-toolbar,.organizer-hub):hover{
+    box-shadow:0 0 0 1px var(--ld-card-blue-glow),0 0 24px var(--ld-card-blue-glow),0 13px 36px rgba(0,10,35,.30);
+  }
+  /* Brief blue light sweep along a CARD edge, not inside its content. */
+  html[data-ld-theme] .card{
+    position:relative;
+    isolation:isolate;
+  }
+  html[data-ld-theme] .card::before{
+    content:"";
+    position:absolute;
+    inset:-1px;
+    border-radius:inherit;
+    padding:1px;
+    pointer-events:none;
+    background:linear-gradient(110deg,transparent 8%,rgba(63,142,255,.16) 20%,var(--ld-card-blue) 47%,rgba(102,190,255,.55) 62%,transparent 88%);
+    background-size:230% 100%;
+    -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+    -webkit-mask-composite:xor;
+    mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+    mask-composite:exclude;
+    opacity:0;
+    transition:opacity .2s ease;
+  }
+  html[data-ld-theme] .card:hover::before{
+    opacity:.95;
+    animation:ld-card-blue-sweep 1s ease-out 1 both;
+  }
+}
+@keyframes ld-card-blue-sweep{
+  from{background-position:100% 0}
+  to{background-position:0 0}
+}
+
+/* Keyboard focus is as apparent as pointer hover. */
+html[data-ld-theme] :is(.card,.dash-stat,.doc-organizer,.feature-toolbar,.organizer-hub):focus-within{
+  border-color:var(--ld-card-blue-ring);
+  box-shadow:0 0 0 2px var(--ld-card-blue-glow),0 0 15px var(--ld-card-blue-glow);
+}
+html[data-ld-theme] :is(.card,.dash-stat,.doc-organizer,.feature-toolbar,.organizer-hub):focus-within::before{
+  animation:none;
+}
+
+/* Keep mobile as lightweight as the v1.5 baseline. */
+@media(max-width:800px){
+  html[data-ld-theme="dark"] body{background-attachment:scroll}
+  html[data-ld-theme] .card::before{display:none}
+}
+
+/* OS accessibility preference: eliminate sweep and animated transitions. */
+@media(prefers-reduced-motion:reduce){
+  html[data-ld-theme] :is(.card,.dash-stat,.doc-organizer,.feature-toolbar,.organizer-hub){
+    animation:none!important;
+    transition:none!important;
+  }
+  html[data-ld-theme] .card::before{animation:none!important;transition:none!important}
+}
