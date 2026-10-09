@@ -43,10 +43,14 @@ function distance(lat1,lon1,lat2,lon2){
 function fmt(x){return x===null||x===undefined||!Number.isFinite(Number(x))?'—':String(Math.round(Number(x)))}
 async function getAir(city){
  const [lat,lon]=CITY[city];
- const data=await Promise.race([
-   window.LifeDashWorldBridge.air({lat,lon,radiusKm:100}),
-   new Promise((_,reject)=>setTimeout(()=>reject(new Error('Air Traffic request timed out')),22000))
- ]);
+ let timeout;
+ let data;
+ try{
+   data=await Promise.race([
+     window.LifeDashWorldBridge.air({lat,lon,radiusKm:100}),
+     new Promise((_,reject)=>{timeout=setTimeout(()=>reject(new Error('Air Traffic request timed out')),22000)})
+   ]);
+ }finally{clearTimeout(timeout)}
  if(!data||!Array.isArray(data.aircraft))throw new Error('Invalid aircraft response');
  const rows=data.aircraft.filter(x=>x&&Number.isFinite(Number(x.latitude))&&Number.isFinite(Number(x.longitude)))
    .map(x=>({
@@ -190,6 +194,9 @@ function mount(){
 function updateCard(card,kind,brief){
  const city=state.city,k=cacheKey(kind,city),value=state.cache.get(k);
  const busy=state.pending.has(k),data=value?.data;
+ const signature=JSON.stringify([city,kind,brief,busy,value?.when||0,value?.error||'',Boolean(data)]);
+ if(card.dataset.mobilitySignature===signature)return;
+ card.dataset.mobilitySignature=signature;
  const total=$('[data-mobility-total]',card),subtitle=$('[data-mobility-description]',card),
    list=$('[data-mobility-list]',card),checked=$('[data-mobility-checked]',card);
  if(!total||!subtitle||!list||!checked)return;
