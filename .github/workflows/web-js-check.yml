@@ -28,7 +28,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          for file in app/js/*.js app/sw.js app/config.js lifedashpro/*.js; do
+          for file in app/js/*.js app/sw.js app/config.js lifedashpro/*.js lifedashpro/staging/*.js; do
             echo "Checking $file"
             node --check "$file"
           done
