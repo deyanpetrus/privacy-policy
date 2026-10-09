@@ -115,7 +115,14 @@
     const dlat=RADIUS_KM/111,dlon=RADIUS_KM/(111*Math.max(.2,Math.cos(lat*Math.PI/180)));
     const body={minLat:Math.max(-89.999,lat-dlat),maxLat:Math.min(89.999,lat+dlat),
       minLon:Math.max(-179.999,lon-dlon),maxLon:Math.min(179.999,lon+dlon)};
-    const rows=await bridge().fires(body);
+    let watchdog;
+    let rows;
+    try{
+      rows=await Promise.race([
+        bridge().fires(body),
+        new Promise((_,reject)=>{watchdog=setTimeout(()=>reject(new Error('FIRMS request timed out')),28000)})
+      ]);
+    }finally{clearTimeout(watchdog)}
     if(!Array.isArray(rows))throw new Error('Incomplete FIRMS response');
     const valid=rows.map(x=>({lat:Number(x.lat),lon:Number(x.lon),observedAt:String(x.observedAt||''),
       satellite:String(x.satellite||''),confidence:String(x.confidence||'')}))
