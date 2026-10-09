@@ -1,0 +1,92 @@
+/* LifeDashPro Web v1.7 Radio · scoped feature styling only.
+   Reuses v1.6.1 Light/Dark/Auto colors, cards, typography and blue hover. */
+.radio-page-shell{display:block;min-width:0}
+.radio-page-heading{margin:0 0 17px}
+.radio-page-heading h2{font-size:clamp(23px,2.4vw,31px);letter-spacing:-.035em;margin:4px 0 6px}
+.radio-page-description{margin:0;color:var(--muted);line-height:1.5}
+.radio-toolbar{display:grid;grid-template-columns:minmax(165px,1fr) minmax(230px,1.8fr) auto;gap:11px;align-items:end;padding:18px;border:1px solid var(--line);border-radius:19px;background:var(--panel);margin-bottom:14px}
+.radio-field{display:flex;flex-direction:column;gap:7px;min-width:0}
+.radio-field>span{color:var(--muted);font-size:11px;font-weight:750}
+.radio-select,.radio-input{display:block;width:100%;min-width:0;height:42px;border-radius:11px;border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:9px 12px;font:inherit}
+.radio-select:focus-visible,.radio-input:focus-visible,.radio-control:focus-visible,.radio-station button:focus-visible{outline:2px solid var(--primary);outline-offset:3px}
+.radio-filter-actions{display:flex;flex-wrap:wrap;gap:7px;align-items:end}
+.radio-filter-actions button{min-height:41px;font-size:12px;padding:9px 12px;white-space:nowrap}
+.radio-current-card{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:17px 18px;background:var(--panel);border:1px solid var(--line);border-radius:18px;margin-bottom:12px}
+.radio-current-info{display:flex;align-items:center;gap:13px;min-width:0;flex:1}
+.radio-current-info>div:last-child{display:flex;flex-direction:column;min-width:0;gap:3px}
+.radio-current-icon,.radio-widget-icon{width:50px;height:50px;flex:none;display:grid;place-items:center;border-radius:15px;background:var(--panel2);color:var(--primary2);font-size:23px}
+.radio-current-info strong{font-size:16px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;max-width:100%}
+.radio-current-info small,.radio-widget-summary small{display:block;font-size:11px;color:var(--muted);white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.radio-eyebrow{color:var(--muted);font-size:10px;font-weight:850;letter-spacing:.12em}
+.radio-current-controls{display:flex;align-items:center;gap:10px}
+.radio-control{width:39px;height:39px;display:grid;place-items:center;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font:inherit;font-size:21px;cursor:pointer;flex:none;transition:border-color .2s ease,background .2s ease,transform .2s ease}
+.radio-control:hover{border-color:var(--primary2)}
+.radio-control:disabled{opacity:.46;cursor:not-allowed}
+.radio-control-play{background:linear-gradient(135deg,var(--primary),#4b81ff);color:white;border:0;font-size:16px;font-weight:900}
+.radio-volume-label{display:flex;gap:7px;align-items:center;color:var(--muted);font-size:11px;white-space:nowrap}
+.radio-volume-label input{width:96px;accent-color:var(--primary);cursor:pointer}
+.radio-result-status{min-height:20px;color:var(--muted);font-size:12px;margin:8px 4px 13px}
+.radio-station-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;padding-bottom:8px}
+.radio-station{display:flex;min-width:0;align-items:center;gap:10px;border:1px solid var(--line);border-radius:15px;padding:12px;background:var(--panel);transition:border-color .2s ease,box-shadow .2s ease}
+.radio-station.selected{border-color:var(--primary2)}
+.radio-station-icon{width:40px;height:40px;flex:none;display:grid;place-items:center;border-radius:12px;color:var(--primary2);background:var(--panel2);font-size:20px}
+.radio-station-info{min-width:0;flex:1}
+.radio-station-info strong{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.radio-station-info small{display:block;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
+.radio-station-actions{display:flex;gap:5px;flex:none}
+.radio-station-actions .radio-control{width:34px;height:34px;font-size:17px}
+.radio-station-actions .radio-control-play{font-size:14px}
+.radio-station.stream-unavailable{opacity:.75}
+.radio-station.stream-unavailable .radio-station-info small::after{content:" · HTTPS stream unavailable";color:var(--warn)}
+@media(hover:hover) and (pointer:fine){
+  .radio-station:hover{border-color:rgba(66,151,253,.55);box-shadow:0 0 15px rgba(61,151,254,.11)}
+}
+.ldp-radio-widget .radio-widget-content{display:flex;gap:12px;align-items:center;min-width:0}
+.radio-widget-summary{min-width:0;flex:1}
+.radio-widget-summary strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}
+.radio-widget-summary small{margin-top:4px}
+.ldp-radio-widget .radio-control-play{width:42px;height:42px}
+.radio-dock{position:fixed;z-index:42;left:calc(258px + 23px);right:23px;bottom:15px;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:68px;padding:11px 16px;border:1px solid var(--line);border-radius:18px;background:var(--panel);color:var(--text);box-shadow:0 16px 44px rgba(2,9,25,.22);backdrop-filter:blur(13px)}
+.radio-dock[hidden]{display:none!important}
+.radio-dock-main{display:flex;align-items:center;gap:12px;min-width:0;flex:1}
+.radio-live-dot{width:9px;height:9px;flex:none;border-radius:50%;background:var(--good);box-shadow:0 0 0 4px rgba(26,197,151,.12)}
+.radio-dock-description{min-width:0;display:flex;flex-direction:column;gap:2px}
+.radio-dock-description strong{font-size:13px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.radio-dock-description small{font-size:11px;color:var(--muted);white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.radio-dock-controls{display:flex;align-items:center;gap:7px;flex:none}
+.radio-dock .radio-control{width:36px;height:36px;font-size:19px}
+.radio-dock .radio-control-play{font-size:14px}
+.radio-dock audio{display:none}
+.app.nav-collapsed .radio-dock{left:calc(82px + 23px)}
+.app.radio-dock-active .content{padding-bottom:175px}
+@media(max-width:1230px){
+  .radio-toolbar{grid-template-columns:minmax(150px,1fr) minmax(190px,1.5fr)}
+  .radio-filter-actions{grid-column:1/-1}
+}
+@media(max-width:1000px){.radio-station-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:800px){
+  .radio-dock,.app.nav-collapsed .radio-dock{left:10px;right:10px;bottom:calc(82px + env(safe-area-inset-bottom));padding:9px 11px;min-height:61px;border-radius:15px}
+  .radio-dock-controls{gap:4px}
+  .radio-dock .radio-control{width:34px;height:34px}
+  .radio-dock .radio-volume-label{display:none}
+  .radio-dock-description strong{max-width:44vw}
+  .radio-dock-description small{max-width:44vw}
+  .app.radio-dock-active .content{padding-bottom:calc(230px + env(safe-area-inset-bottom))}
+  .radio-toolbar{grid-template-columns:minmax(0,1fr);padding:14px}
+  .radio-filter-actions{grid-column:auto}
+  .radio-page-heading h2{font-size:23px}
+  .radio-station-grid{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:435px){
+  .radio-current-card{align-items:flex-start;flex-wrap:wrap;padding:14px}
+  .radio-current-controls{width:100%;justify-content:space-between}
+  .radio-volume-label input{width:min(36vw,120px)}
+  .radio-filter-actions{gap:6px}
+  .radio-filter-actions button{font-size:11px;padding:8px 10px}
+  .radio-station{gap:8px;padding:10px}
+  .radio-station-icon{width:36px;height:36px}
+  .radio-station-info strong{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){
+  .radio-control,.radio-station{transition:none!important}
+}
