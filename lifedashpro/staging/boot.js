@@ -28,7 +28,7 @@
     if(!window.supabase||typeof window.supabase.createClient!=='function'){
       explain('Secure login library is unavailable. Please retry.');return;
     }
-    var s=document.createElement('script');s.src='./app.js?v=1.4.0';s.async=true;
+    var s=document.createElement('script');s.src='./app.js?v=1.5.0';s.async=true;
     s.onerror=function(){explain('The application file could not be loaded. Please retry.');};
     document.body.appendChild(s);
   }
