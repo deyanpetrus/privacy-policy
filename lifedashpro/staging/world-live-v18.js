@@ -34,6 +34,8 @@
   const WINDOW={weather:15*60*1000,quakes:15*60*1000,fires:30*60*1000};
   const MIN_RETRY=60*1000;
   const PREFERENCE='lifedash_web_live_city_v18';
+  const MY_CITIES='lifedash_web_live_saved_cities_v181';
+  let openedDetails=null;
   const RADIUS_KM=250;
   const page=$('#content'),app=$('#appView');
   if(!page||!app)return;
@@ -80,20 +82,60 @@
       return await response.json();
     }finally{clearTimeout(timeout)}
   }
+  function moonInfo(day){
+    // Local-calendar-day approximation, not lunar rise/set ephemerides.
+    const noon=Date.parse(String(day).slice(0,10)+'T12:00:00Z');
+    if(!Number.isFinite(noon))return 'Moon phase unavailable';
+    const lunarDays=29.530588853;
+    const fraction=((noon-Date.UTC(2000,0,6,18,14))/(86400000*lunarDays)%1+1)%1;
+    const labels=['New Moon','Waxing Crescent','First Quarter','Waxing Gibbous',
+      'Full Moon','Waning Gibbous','Last Quarter','Waning Crescent'];
+    const index=Math.floor((fraction*8+.5)%8);
+    const illuminated=Math.round((1-Math.cos(fraction*2*Math.PI))*50);
+    return labels[index]+' · ~'+illuminated+'% illuminated (estimate)';
+  }
   async function getWeather(city){
-    const [, ,lat,lon]=city;
+    const [,,lat,lon]=city;
     const q=new URLSearchParams({latitude:String(lat),longitude:String(lon),
       current:'temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m',
-      daily:'temperature_2m_max,temperature_2m_min',forecast_days:'2',timezone:'auto'});
+      hourly:'temperature_2m,precipitation_probability,weather_code',
+      daily:'weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset',
+      forecast_days:'6',timezone:'auto'});
     const data=await json('https://api.open-meteo.com/v1/forecast?'+q,12000);
-    if(data?.current?.temperature_2m==null||!Number.isFinite(Number(data.current.temperature_2m)))throw new Error('Incomplete weather response');
+    if(data?.current?.temperature_2m==null||!Number.isFinite(Number(data.current.temperature_2m)))
+      throw new Error('Incomplete weather response');
+    const currentHour=String(data.current.time||'').slice(0,13);
+    const hourly=Array.isArray(data.hourly?.time)?data.hourly.time:[];
+    const nextHours=hourly.map((time,i)=>({
+      time:String(time),temp:data.hourly?.temperature_2m?.[i],
+      rain:data.hourly?.precipitation_probability?.[i],
+      code:data.hourly?.weather_code?.[i]
+    })).filter(x=>x.time.slice(0,13)>=currentHour).slice(0,24);
+    const days=Array.isArray(data.daily?.time)?data.daily.time.slice(0,5).map((day,i)=>({
+      date:String(day),code:data.daily.weather_code?.[i],
+      high:data.daily.temperature_2m_max?.[i],low:data.daily.temperature_2m_min?.[i],
+      sunrise:String(data.daily.sunrise?.[i]||''),sunset:String(data.daily.sunset?.[i]||'')
+    })):[];
+    let pollen=null;
+    try{
+      const p=new URLSearchParams({latitude:String(lat),longitude:String(lon),
+        current:'alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen',
+        timezone:'auto'});
+      const air=await json('https://air-quality-api.open-meteo.com/v1/air-quality?'+p,9000);
+      const fields=[['Grass','grass_pollen'],['Birch','birch_pollen'],['Alder','alder_pollen'],
+        ['Olive','olive_pollen'],['Mugwort','mugwort_pollen'],['Ragweed','ragweed_pollen']];
+      pollen=fields.map(([name,key])=>({name,value:air?.current?.[key]}))
+        .filter(x=>x.value!==null&&x.value!==undefined&&Number.isFinite(Number(x.value)))
+        .map(x=>({name:x.name,value:Number(x.value)}));
+      if(!pollen.length)pollen=null;
+    }catch(_){ /* Region/season may not offer pollen; show unavailable, never a false zero. */ }
     return {temp:Number(data.current.temperature_2m),
-      humidity:Number(data.current.relative_humidity_2m),
-      wind:Number(data.current.wind_speed_10m),
+      humidity:data.current.relative_humidity_2m,
+      wind:data.current.wind_speed_10m,
       code:Number(data.current.weather_code),
-      high:Number(data.daily?.temperature_2m_max?.[0]),
-      low:Number(data.daily?.temperature_2m_min?.[0]),
-      observed:String(data.current.time||'')};
+      high:data.daily?.temperature_2m_max?.[0],low:data.daily?.temperature_2m_min?.[0],
+      observed:String(data.current.time||''),hours:nextHours,days,
+      moon:moonInfo(data.current.time||new Date().toISOString()),pollen};
   }
   async function getQuakes(city){
     const [, ,lat,lon]=city;
@@ -104,11 +146,12 @@
     if(!Array.isArray(data?.features))throw new Error('Incomplete earthquake response');
     return data.features.filter(f=>Number.isFinite(f?.properties?.time)&&Number.isFinite(f?.properties?.mag))
       .map(f=>({id:String(f.id||''),mag:Number(f.properties.mag),place:String(f.properties.place||'Nearby'),
-        time:f.properties.time,lat:Number(f.geometry?.coordinates?.[1]),
+        time:f.properties.time,depth:f.geometry?.coordinates?.[2]??null,
+        sourceUrl:String(f.properties.url||''),lat:Number(f.geometry?.coordinates?.[1]),
         lon:Number(f.geometry?.coordinates?.[0])}))
       .map(x=>({...x,distance:Number.isFinite(x.lat)&&Number.isFinite(x.lon)?
         Math.round(haversine(lat,lon,x.lat,x.lon)):null}))
-      .slice(0,5);
+      .slice(0,30);
   }
   async function getFires(city){
     const [, ,lat,lon]=city;
@@ -130,7 +173,7 @@
       .map(x=>({...x,distance:Math.round(haversine(lat,lon,x.lat,x.lon))}))
       .filter(x=>x.distance<=RADIUS_KM)
       .sort((a,b)=>a.distance-b.distance);
-    return {total:valid.length,nearest:valid.slice(0,4)};
+    return {total:valid.length,nearest:valid.slice(0,30)};
   }
   const fetchers={weather:getWeather,quakes:getQuakes,fires:getFires};
   function key(city,type){return city[0]+'|'+type}
@@ -144,7 +187,7 @@
   function setCity(id){
     const next=getCity(id);
     if(activeCity?.[0]===next[0])return;
-    activeCity=next;generation++;
+    activeCity=next;generation++;openedDetails=null;
     try{localStorage.setItem(PREFERENCE,next[0])}catch(_){}
     updateView();
     refresh(false);
