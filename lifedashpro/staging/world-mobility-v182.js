@@ -203,7 +203,7 @@ async function renderMobilityMap(){
    const L=await requestLeaflet();
    const latest=state.cache.get(cacheKey(kind,city));
    const latestSignature=kind+'|'+city+'|'+String(latest?.when||0)+'|'+String(latest?.error||'')+'|'+
-     (latest?.data?.rows||[]).length;
+     (latest?.data?.rows||[]).filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lon)&&Math.abs(x.lat)<=90&&Math.abs(x.lon)<=180).length;
    if(!holder.isConnected||visibleMapKind!==kind||state.city!==city||mapLoading!==signature||
       latestSignature!==signature||!signedIn())return;
    const center=CITY[city];
