@@ -52,6 +52,25 @@
       qa('[data-page]',profileMenu).forEach(function(button){button.addEventListener('click',closeProfile)});
     }
 
+    // Mobile header keeps short, complete labels instead of "Profile & Setti…".
+    // The full page heading remains inside the content and is never renamed.
+    var heading=byId('pageTitle');
+    var headingFull=heading?heading.textContent.trim():'';
+    var shortTitles={'Profile & Settings':'Profile','Today & Next 5':'Today'};
+    function updateCompactTitle(){
+      if(!heading)return;
+      var shown=heading.textContent.trim();
+      if(shown && shown!==shortTitles[headingFull])headingFull=shown;
+      var compact=window.matchMedia('(max-width: 800px)').matches;
+      var desired=compact&&(shortTitles[headingFull]||headingFull)||headingFull;
+      if(shown!==desired)heading.textContent=desired;
+      heading.setAttribute('title',headingFull);
+      heading.setAttribute('aria-label',headingFull);
+    }
+    if(heading){
+      new MutationObserver(updateCompactTitle).observe(heading,{childList:true,subtree:true});
+      updateCompactTitle();
+    }
     var narrow=window.matchMedia('(max-width: 800px)');
     var STORAGE_KEY='lifedash_web_nav_collapsed_v1';
     var desktopCollapsed=false;
@@ -89,8 +108,8 @@
     qa('#nav [data-page],.mobile-nav [data-page]').forEach(function(button){
       button.addEventListener('click',function(){closeMobile(false);closeProfile()});
     });
-    if(narrow.addEventListener)narrow.addEventListener('change',applyWidth);
-    else if(narrow.addListener)narrow.addListener(applyWidth);
+    if(narrow.addEventListener)narrow.addEventListener('change',function(){applyWidth();updateCompactTitle()});
+    else if(narrow.addListener)narrow.addListener(function(){applyWidth();updateCompactTitle()});
     applyWidth();
 
     document.addEventListener('pointerdown',function(e){
