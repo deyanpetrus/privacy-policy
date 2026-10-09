@@ -145,6 +145,13 @@ html[data-ld-theme="light"] .header-sync{background:#fff}
   .dash-grid>.dash-notes,.dash-grid>.dash-tasks{grid-column:span 6}
   .dash-grid>.dash-journey{grid-column:span 12}
 }
+@media(min-width:801px) and (max-width:1050px){
+  .topbar{padding:0 14px}
+  .topbar .eyebrow{display:none}
+  .topbar h2{font-size:20px}
+  .topbar .header-sync{display:none}
+  .top-actions{gap:6px}
+}
 @media(max-width:980px){
   .dash-grid>.dash-upcoming,.dash-grid>.dash-finance,.dash-grid>.dash-notes,.dash-grid>.dash-tasks,.dash-grid>.dash-journey{grid-column:span 12}
   .dash-grid>.dash-upcoming,.dash-grid>.dash-finance{min-height:unset}
