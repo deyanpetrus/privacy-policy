@@ -373,18 +373,16 @@
   async function renderDetailMap(type,result){
     const holder=$('#worldDetailMap'),status=$('#worldDetailMapStatus');
     if(!holder||!status||!activeCity)return;
-    const points=(type==='quakes'?result?.data:result?.data?.points||[])
+    const points=(type==='quakes'?(result?.data||[]):(result?.data?.points||[]))
       .filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lon)&&Math.abs(x.lat)<=90&&Math.abs(x.lon)<=180);
     const mapId=type+'|'+activeCity[0]+'|'+String(result?.checkedAt||'')+'|'+points.length;
     if(detailMap&&detailMapKey===mapId)return;
     if(detailMapLoadingKey===mapId)return;
     if(detailMap)disposeDetailMap();
-    if(!points.length){
-      status.textContent=result?.error?'Map unavailable — '+result.error:
-        result?.data?'No map markers for these events.':'Waiting for event coordinates…';
-      return;
-    }
-    status.textContent='Loading interactive map for '+points.length+' markers…';
+    // Map stays available as a geographic reference even when the FIRMS
+    // service is unavailable. Never paint invented points or claim zero fires.
+    status.textContent='Loading map · '+(points.length?points.length+' verified markers':
+      'waiting for verified event coordinates')+'…';
     detailMapLoadingKey=mapId;
     try{
       const L=await ensureLeaflet();
@@ -412,9 +410,13 @@
         locations.push([x.lat,x.lon]);
       }
       if(locations.length===1)m.setView(locations[0],10);
-      else m.fitBounds(locations,{padding:[22,22],maxZoom:10});
-      status.textContent=points.length+' markers · '+(type==='quakes'?'USGS earthquakes':'FIRMS thermal detections')+
-        ' · select a point for details.';
+      else if(locations.length>1)m.fitBounds(locations,{padding:[22,22],maxZoom:10});
+      status.textContent=points.length?
+        points.length+' verified markers · '+(type==='quakes'?'USGS earthquakes':'FIRMS thermal detections')+
+          ' · select a point for details.':
+        result?.error?'Source unavailable: '+result.error+' · No markers can be plotted until data arrives.':
+        result?.data?'No detections returned for this area. Map centered on selected city.':
+          'Awaiting verified data · no markers plotted.';
       requestAnimationFrame(()=>{if(m===detailMap)m.invalidateSize()});
     }catch(error){
       if(detailMapLoadingKey===mapId){
@@ -435,13 +437,16 @@
     if(!list||!heading)return;
     heading.textContent=openedDetails==='quakes'?'Earthquake details & map':'Thermal detection details & map';
     list.replaceChildren();
+    // Render the in-page map with the city center whether or not the provider works.
+    renderDetailMap(openedDetails,e);
     if(!e?.data){
-      list.append(element('p','world-extra-placeholder',e?.error?'Source unavailable: '+e.error:'Waiting for source data…'));
-      if(notice)notice.textContent='Only successfully returned events can be displayed.';
+      list.append(element('p','world-extra-placeholder',e?.error?
+        'Source unavailable: '+e.error+' · No verified markers are available.':
+        'Waiting for verified events…'));
+      if(notice)notice.textContent='Map is centered on the selected city. No detections are assumed when the source fails.';
       return;
     }
     const events=openedDetails==='quakes'?e.data.slice(0,30):e.data.nearest;
-    renderDetailMap(openedDetails,e);
     if(notice)notice.textContent=openedDetails==='quakes'?
       'USGS events within 250 km in the last 7 days. List: latest 30; map: up to 120 events.':
       'Nearest '+events.length+' of '+e.data.total+' thermal detections in the list. Map: all '+(e.data.points?.length||0)+' returned points (not confirmed fires).';
