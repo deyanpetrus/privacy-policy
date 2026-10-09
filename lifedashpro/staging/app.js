@@ -4,8 +4,8 @@ const cfg=window.LIFEDASH_CONFIG||{};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const state={client:null,session:null,user:null,profile:null,page:'dashboard',data:{},editor:null,loading:false,syncReady:false,lastSync:null,deviceId:localStorage.getItem('lifedash_web_device_id')||`web-${crypto.randomUUID?.()||Date.now()}`};
 localStorage.setItem('lifedash_web_device_id',state.deviceId);
-const KINDS=['notes','finance_transactions','family_tasks','documents','vehicles','journey_plans_beta','manual_reminders','travel'];
-const TITLES={dashboard:'Dashboard',today:'Today & Next 5',notes:'Notes Pro',tasks:'Tasks',documents:'Documents',finance:'Finance',vehicles:'Vehicles',journey:'Journey',profile:'Profile & Settings'};
+const KINDS=['notes','finance_transactions','family_tasks','documents','vehicles','journey_plans_beta','manual_reminders','travel','radio_favorites'];
+const TITLES={dashboard:'Dashboard',today:'Today & Next 5',notes:'Notes Pro',tasks:'Tasks',documents:'Documents',finance:'Finance',vehicles:'Vehicles',journey:'Journey',radio:'World Radio',profile:'Profile & Settings'};
 
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function fmtMoney(v,c='EUR'){try{return new Intl.NumberFormat(undefined,{style:'currency',currency:c||'EUR'}).format(Number(v)||0)}catch{return `${Number(v||0).toFixed(2)} ${c||'EUR'}`}}
@@ -100,7 +100,7 @@ async function tombstoneRecord(kind,id){
 }
 function updateCounts(){const d=state.data;$('#navNotes').textContent=(d.notes||[]).length;$('#navTasks').textContent=(d.family_tasks||[]).filter(x=>!x.done).length;$('#navDocs').textContent=(d.documents||[]).length;$('#navVehicles').textContent=(d.vehicles||[]).length;$('#navJourneys').textContent=(d.journey_plans_beta||[]).length}
 function setPage(page){state.page=page;location.hash=page;$$('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));$('#pageTitle').textContent=TITLES[page]||'LifeDashPro';$('#quickAddBtn').classList.toggle('hidden',!['notes','finance','tasks','dashboard'].includes(page));render()}
-function render(){if(!state.session)return;const c=$('#content');if(!state.syncReady){c.innerHTML='<section class="card span-12"><h3>Checking secure sync…</h3><p>Could not verify all cloud records yet. No records have been changed. Use Refresh (↻) when your connection is available.</p></section>';$('#quickAddBtn').disabled=true;return;}$('#quickAddBtn').disabled=false;const fn={dashboard:renderDashboard,today:renderToday,notes:renderNotes,tasks:renderTasks,documents:()=>renderReadOnly('documents','Documents','▣'),finance:renderFinance,vehicles:()=>renderReadOnly('vehicles','Vehicles','◈'),journey:renderJourney,profile:renderProfile}[state.page]||renderDashboard;c.innerHTML=fn();wirePageRows()}
+function render(){if(!state.session)return;const c=$('#content');if(!state.syncReady){c.innerHTML='<section class="card span-12"><h3>Checking secure sync…</h3><p>Could not verify all cloud records yet. No records have been changed. Use Refresh (↻) when your connection is available.</p></section>';$('#quickAddBtn').disabled=true;return;}$('#quickAddBtn').disabled=false;const fn={dashboard:renderDashboard,today:renderToday,notes:renderNotes,tasks:renderTasks,documents:()=>renderReadOnly('documents','Documents','▣'),finance:renderFinance,vehicles:()=>renderReadOnly('vehicles','Vehicles','◈'),journey:renderJourney,profile:renderProfile,radio:()=>'<section id="worldRadioPage" class="radio-page-shell" aria-label="World Radio"></section>'}[state.page]||renderDashboard;c.innerHTML=fn();wirePageRows()}
 function financeStats(){const tx=state.data.finance_transactions||[];let inc=0,exp=0;const currencies=new Set();for(const x of tx){const currency=String(x.currency||x.baseCurrencyAtEntry||'EUR').toUpperCase();currencies.add(currency);const a=Number(x.amount)||0;if(x.type==='income')inc+=a;else exp+=a}return{inc,exp,bal:inc-exp,currency:[...currencies][0]||'EUR',mixed:currencies.size>1}}
 function fmtTotal(stats,key){return stats.mixed?'Multiple currencies':fmtMoney(stats[key],stats.currency)}
 function timelineItems(){const out=[];for(const n of state.data.notes||[]){if(n.dueDate&&n.status!=='completed'&&n.status!=='archived')out.push({date:n.dueDate,time:n.dueTime||'',type:'Note',title:n.title||'Note'})}for(const t of state.data.family_tasks||[]){if(t.dueDate&&!t.done)out.push({date:t.dueDate,time:t.reminderTime||'',type:'Task',title:t.title||'Task'})}for(const r of state.data.manual_reminders||[]){const d=r.dueDate||r.date||String(r.scheduledFor||'').slice(0,10);if(d)out.push({date:d,time:r.time||r.reminderTime||'',type:'Reminder',title:r.title||r.text||'Reminder'})}return out.sort((a,b)=>`${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`)).slice(0,12)}
@@ -153,6 +153,22 @@ $('#forgotBtn').onclick=async()=>{const email=$('#signinEmail').value.trim();if(
 $('#updatePasswordBtn').onclick=async()=>{const p=$('#newPassword').value;if(p.length<8)return $('#passwordMessage').textContent='Use at least 8 characters.';const {error}=await state.client.auth.updateUser({password:p});if(error){$('#passwordMessage').textContent=error.message;$('#passwordMessage').classList.remove('hidden');return}$('#passwordDialog').close();msg('Password updated.','good')};
 $('#refreshBtn').onclick=refreshAll;$('#quickAddBtn').onclick=()=>openEditor(state.page==='finance'?'finance':state.page==='tasks'?'tasks':'notes');$('#editorSave').onclick=saveEditor;$('#editorDelete').onclick=deleteEditor;
 $$('[data-page]').forEach(b=>b.onclick=()=>setPage(b.dataset.page));
+// V1.7 radio adapter: strictly scoped to the existing Android radio_favorites kind.
+// Reuse the same user-scoped RLS and revision-safe CRUD routines.
+window.LifeDashRadioBridge=Object.freeze({
+  authenticated:()=>Boolean(state.user&&state.session),
+  ready:()=>Boolean(state.user&&state.session&&state.syncReady),
+  favorites:()=>state.user&&state.syncReady?[...(state.data.radio_favorites||[])]:[],
+  saveFavorite:async item=>{
+    if(!state.user||!state.syncReady)throw new Error('Sign in and finish sync first.');
+    if(!item||typeof item.id!=='string'||!item.id.trim()||item.stationuuid!==item.id)throw new Error('Invalid station identifier.');
+    return upsertRecord('radio_favorites',item);
+  },
+  removeFavorite:async id=>{
+    if(!state.user||!state.syncReady)throw new Error('Sign in and finish sync first.');
+    return tombstoneRecord('radio_favorites',String(id));
+  }
+});
 window.addEventListener('hashchange',()=>{const p=location.hash.slice(1);if(TITLES[p])setPage(p)});
 window.addEventListener('online',()=>state.session&&refreshAll());
 window.addEventListener('focus',()=>{if(state.session&&state.lastSync&&Date.now()-state.lastSync.getTime()>120000)refreshAll()});
