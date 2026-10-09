@@ -49,7 +49,7 @@
     return match?match[1]:'';
   }
   function dueDate(row){
-    var raw=row.dataset.uiDate||'';
+    var raw=row.dataset.uiDue||row.dataset.uiDate||'';
     return /^\d{4}-\d{2}-\d{2}/.test(raw)?raw.slice(0,10):'';
   }
   function build(page,list){
