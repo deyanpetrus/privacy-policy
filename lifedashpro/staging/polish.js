@@ -65,6 +65,7 @@
         sidebarToggle.setAttribute('aria-label',mobile()?(open?'Close navigation':'Open navigation'):(desktopCollapsed?'Expand sidebar':'Collapse sidebar'));
       }
       if(sidebar)sidebar.setAttribute('aria-hidden',mobile()&&!open?'true':'false');
+      if(sidebar)sidebar.inert=mobile()&&!open;
     }
     function closeMobile(restoreFocus){
       if(!mobile())return;
