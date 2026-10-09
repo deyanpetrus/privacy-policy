@@ -90,3 +90,67 @@
 @media(prefers-reduced-motion:reduce){
   .radio-control,.radio-station{transition:none!important}
 }
+
+
+/* Radio v1.7.1: in-app searchable country selector in existing Classic themes. */
+.radio-country-field{position:relative;min-width:0}
+.radio-country-picker{position:relative;min-width:0}
+.radio-country-trigger{
+  width:100%;min-height:42px;display:flex;justify-content:space-between;align-items:center;gap:12px;
+  background:var(--panel2);border:1px solid var(--line);border-radius:11px;color:var(--text);
+  padding:9px 12px;text-align:left;font:inherit;font-size:13px;font-weight:710;
+  cursor:pointer;transition:border-color .18s ease,box-shadow .2s ease;
+}
+.radio-country-trigger:hover,.radio-country-trigger[aria-expanded="true"]{
+  border-color:var(--primary2);box-shadow:0 0 0 2px rgba(60,145,255,.11);
+}
+.radio-country-trigger:focus-visible,.radio-country-filter:focus-visible,
+.radio-country-option:focus-visible,.radio-country-chip:focus-visible{
+  outline:2px solid var(--primary2);outline-offset:2px;
+}
+.radio-country-selected{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.radio-country-chevron{font-size:19px;line-height:1;color:var(--muted);flex:none}
+.radio-country-trigger[aria-expanded="true"] .radio-country-chevron{transform:rotate(180deg)}
+.radio-country-popover{
+  position:absolute;top:calc(100% + 8px);left:0;z-index:75;
+  width:min(385px,calc(100vw - 32px));max-width:calc(100vw - 32px);
+  padding:12px;background:var(--panel);color:var(--text);
+  border:1px solid var(--line);border-radius:16px;
+  box-shadow:0 20px 54px rgba(5,17,40,.25),0 0 16px rgba(50,138,250,.08);
+}
+.radio-country-popover[hidden],.radio-country-quick[hidden]{display:none!important}
+.radio-country-filter{
+  width:100%;height:43px;min-width:0;padding:10px 12px;border:1px solid var(--line);
+  background:var(--panel2);color:var(--text);border-radius:11px;font:inherit;font-size:13px;
+}
+.radio-country-filter::placeholder{color:var(--muted);opacity:.85}
+.radio-country-quick{display:flex;flex-wrap:wrap;gap:6px;padding:12px 0 10px}
+.radio-country-chip{
+  border-radius:999px;background:var(--panel2);color:var(--text);border:1px solid var(--line);
+  padding:7px 10px;font:inherit;font-size:11px;font-weight:720;cursor:pointer;
+}
+.radio-country-chip:hover{border-color:var(--primary2)}
+.radio-country-list{max-height:min(285px,42dvh);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.radio-country-option{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  width:100%;min-height:41px;padding:8px 10px;text-align:left;
+  color:var(--text);background:transparent;border:0;border-radius:10px;
+  font:inherit;font-size:13px;cursor:pointer;
+}
+.radio-country-option:hover,.radio-country-option.selected{
+  background:var(--panel2);color:var(--primary2);
+}
+.radio-country-option.selected{font-weight:800}
+.radio-country-option-name{white-space:normal;overflow-wrap:anywhere}
+.radio-country-option-code{flex:none;border:1px solid var(--line);border-radius:7px;padding:3px 6px;font-size:10px;color:var(--muted)}
+.radio-country-empty{padding:12px 8px;margin:0;font-size:12px;color:var(--muted)}
+.radio-legacy-note{color:var(--muted);opacity:.85;font-size:10px!important;white-space:normal!important;line-height:1.4}
+.radio-station.stream-unavailable .radio-station-info small::after{content:none!important}
+@media(max-width:800px){
+  .radio-country-popover{width:100%;max-width:100%;padding:10px}
+  .radio-country-list{max-height:min(255px,39dvh)}
+}
+@media(prefers-reduced-motion:reduce){
+  .radio-country-trigger{transition:none}
+  .radio-country-chevron{transition:none}
+}
