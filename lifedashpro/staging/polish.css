@@ -178,6 +178,7 @@ html[data-ld-theme="light"] .header-sync{background:#fff}
   .topbar{gap:8px}
   .topbar-heading .eyebrow{display:none}
   .topbar .top-actions{gap:5px}
+  .theme-menu{position:fixed;top:79px;right:12px;left:auto;width:min(240px,calc(100vw - 24px))}
   .topbar .icon-btn,.topbar .profile-menu-btn{width:36px;height:36px;min-height:36px}
   .topbar .theme-toggle{width:36px;min-width:36px;min-height:36px}
   .topbar .primary.compact{padding:8px 10px;min-height:36px;font-size:12px}
