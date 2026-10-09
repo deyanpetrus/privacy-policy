@@ -36,7 +36,7 @@
   const PREFERENCE='lifedash_web_live_city_v18';
   const MY_CITIES='lifedash_web_live_saved_cities_v181';
   let openedDetails=null;
-  let detailMap=null,detailMapKey='',leafletPromise=null;
+  let detailMap=null,detailMapKey='',detailMapLoadingKey='',leafletPromise=null;
   const RADIUS_KM=250;
   const page=$('#content'),app=$('#appView');
   if(!page||!app)return;
@@ -347,7 +347,7 @@
 
   function disposeDetailMap(){
     if(detailMap){try{detailMap.remove()}catch(_){}}
-    detailMap=null;detailMapKey='';
+    detailMap=null;detailMapKey='';detailMapLoadingKey='';
   }
   async function ensureLeaflet(){
     if(window.L?.map&&window.L?.tileLayer)return window.L;
@@ -377,6 +377,7 @@
       .filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lon)&&Math.abs(x.lat)<=90&&Math.abs(x.lon)<=180);
     const mapId=type+'|'+activeCity[0]+'|'+String(result?.checkedAt||'')+'|'+points.length;
     if(detailMap&&detailMapKey===mapId)return;
+    if(detailMapLoadingKey===mapId)return;
     if(detailMap)disposeDetailMap();
     if(!points.length){
       status.textContent=result?.error?'Map unavailable — '+result.error:
@@ -384,9 +385,10 @@
       return;
     }
     status.textContent='Loading interactive map for '+points.length+' markers…';
+    detailMapLoadingKey=mapId;
     try{
       const L=await ensureLeaflet();
-      if(!holder.isConnected||openedDetails!==type||!activeCity||mapId!==type+'|'+activeCity[0]+'|'+String(entry(type)?.checkedAt||'')+'|'+
+      if(!holder.isConnected||detailMapLoadingKey!==mapId||openedDetails!==type||!activeCity||mapId!==type+'|'+activeCity[0]+'|'+String(entry(type)?.checkedAt||'')+'|'+
         (type==='quakes'?(entry(type)?.data||[]).length:(entry(type)?.data?.points||[]).length))return;
       const center=[activeCity[2],activeCity[3]];
       const m=L.map(holder,{scrollWheelZoom:false,zoomControl:true,preferCanvas:true}).setView(center,7);
@@ -415,9 +417,13 @@
         ' · select a point for details.';
       requestAnimationFrame(()=>{if(m===detailMap)m.invalidateSize()});
     }catch(error){
-      status.textContent='Interactive map unavailable ('+String(error?.message||'loading error')+
-        '). Event list and coordinates remain available.';
-      disposeDetailMap();
+      if(detailMapLoadingKey===mapId){
+        status.textContent='Interactive map unavailable ('+String(error?.message||'loading error')+
+          '). Event list and coordinates remain available.';
+        disposeDetailMap();
+      }
+    }finally{
+      if(detailMapLoadingKey===mapId)detailMapLoadingKey='';
     }
   }
   function updateEventDetails(){
