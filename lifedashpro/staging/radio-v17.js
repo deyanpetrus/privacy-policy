@@ -19,7 +19,7 @@
   const FALLBACK_COUNTRIES=[['DE','Germany'],['MK','North Macedonia'],['RS','Serbia'],['AT','Austria'],['CH','Switzerland'],['HR','Croatia'],['SI','Slovenia'],['BA','Bosnia and Herzegovina'],['BG','Bulgaria'],['GR','Greece'],['AL','Albania'],['IT','Italy'],['FR','France'],['ES','Spain'],['GB','United Kingdom'],['US','United States'],['CA','Canada'],['BR','Brazil'],['JP','Japan'],['TR','Türkiye'],['RO','Romania'],['NL','Netherlands'],['BE','Belgium'],['PL','Poland'],['CZ','Czechia'],['SE','Sweden'],['NO','Norway'],['AU','Australia'],['IN','India']];
   const PREF_VOLUME='lifedash_web_radio_volume_v17';
   let mirror=0, current=null, playing=false, view='top', stations=[],search='',country='',loading=false,error='',message='',requestSeq=0;
-  let availableCountries=FALLBACK_COUNTRIES.slice(),countriesLoaded=false;
+  let availableCountries=FALLBACK_COUNTRIES.slice(),countriesLoaded=false,countryPickerOpen=false;
   const busyFavorites=new Set();
   let volume=70;
   try {const v=Number(localStorage.getItem(PREF_VOLUME));if(Number.isFinite(v)&&v>=0&&v<=100)volume=v;}catch(_){}
@@ -46,7 +46,7 @@
       votes:Math.max(0,Number(s.votes)||0),bitrate:Math.max(0,Number(s.bitrate)||0),clickcount:Math.max(0,Number(s.clickcount)||0)};
   }
   function uniqueStations(rows){
-    const ids=new Set();return (Array.isArray(rows)?rows:[]).map(normalize).filter(s=>{if(!s||ids.has(s.id))return false;ids.add(s.id);return true}).slice(0,65);
+    const ids=new Set();return (Array.isArray(rows)?rows:[]).map(normalize).filter(s=>{if(!s||ids.has(s.id))return false;ids.add(s.id);return true}).slice(0,140);
   }
   function favoritePayload(s){
     return {id:s.id,stationuuid:s.id,name:s.name,url:s.url||s.stream,url_resolved:s.stream||s.rawStream||s.url,
@@ -77,17 +77,71 @@
       const valid=rows.filter(x=>/^[A-Z]{2}$/.test(String(x.iso_3166_1||'').toUpperCase())&&x.name)
         .map(x=>[String(x.iso_3166_1).toUpperCase(),safeText(x.name,80)]);
       if(valid.length>50)availableCountries=valid.sort((a,b)=>a[1].localeCompare(b[1]));
-      refreshCountrySelect();
+      refreshCountryPicker();
     }catch(_){/* Built-in world selection remains usable. */}
   }
-  function refreshCountrySelect(){
-    const select=$('#radioCountrySelect');if(!select)return;
-    const old=country;
-    select.replaceChildren();
-    const first=node('option','','Top worldwide');first.value='';select.append(first);
-    availableCountries.forEach(([cc,name])=>{const o=node('option','',name);o.value=cc;select.append(o)});
-    if(old&&availableCountries.some(x=>x[0]===old))select.value=old;
-    else select.value='';
+  const PREFERRED_COUNTRIES=['DE','MK','RS','BA','AT','CH'];
+  function countryName(code){
+    return code?availableCountries.find(c=>c[0]===code)?.[1]||code:'Top worldwide';
+  }
+  function setCountry(code){
+    country=code||'';
+    countryPickerOpen=false;
+    const pop=$('#radioCountryPopover'),trigger=$('#radioCountryTrigger');
+    if(pop)pop.hidden=true;
+    if(trigger)trigger.setAttribute('aria-expanded','false');
+    refreshCountryPicker();
+    search='';
+    const q=$('#radioSearchInput');if(q)q.value='';
+    load(country?'country':'top');
+  }
+  function closeCountryPicker(restoreFocus=false){
+    const popup=$('#radioCountryPopover'),trigger=$('#radioCountryTrigger');
+    countryPickerOpen=false;
+    if(popup)popup.hidden=true;
+    if(trigger){
+      trigger.setAttribute('aria-expanded','false');
+      if(restoreFocus)trigger.focus();
+    }
+  }
+  function refreshCountryPicker(){
+    const label=$('#radioCountrySelected');
+    if(label)label.textContent=countryName(country);
+    const filter=$('#radioCountryFilter');
+    renderCountryList(filter?.value||'');
+  }
+  function renderCountryList(filter=''){
+    const list=$('#radioCountryList'),quick=$('#radioCountryQuick');
+    if(!list)return;
+    const term=String(filter).trim().toLocaleLowerCase();
+    if(quick)quick.hidden=Boolean(term);
+    const entries=[['','Top worldwide'],...availableCountries];
+    const matches=entries.filter(([cc,name])=>!term||
+      name.toLocaleLowerCase().includes(term)||cc.toLocaleLowerCase().includes(term));
+    list.replaceChildren();
+    if(!matches.length){
+      list.append(node('p','radio-country-empty','No countries match your search.'));
+      return;
+    }
+    for(const [cc,name] of matches){
+      const button=radioButton('','radio-country-option',()=>setCountry(cc),
+        {'aria-pressed':String(country===cc),'title':name});
+      button.append(node('span','radio-country-option-name',name),
+        node('span','radio-country-option-code',cc||'WORLD'));
+      if(country===cc)button.classList.add('selected');
+      list.append(button);
+    }
+  }
+  function openCountryPicker(){
+    const pop=$('#radioCountryPopover'),trigger=$('#radioCountryTrigger');
+    if(!pop||!trigger)return;
+    countryPickerOpen=true;
+    pop.hidden=false;
+    trigger.setAttribute('aria-expanded','true');
+    const filter=$('#radioCountryFilter');
+    if(filter)filter.value='';
+    renderCountryList();
+    filter?.focus();
   }
   async function findStations(kind,q,cc){
     const k=kind==='favorites'?'favorites':kind==='country'?'country':kind==='search'?'search':'top';
@@ -98,7 +152,9 @@
        '/stations/topvote/60?hidebroken=true';
     let rows=await getJSON(path);
     if(k==='country'&&!rows.length)rows=await getJSON('/stations/search?countrycode='+encodeURIComponent(cc)+'&hidebroken=true&limit=60');
-    return uniqueStations(rows);
+    // Browsing shows only HTTPS stream candidates; cloud favorites are intentionally
+    // NOT filtered or deleted. HTTPS does not guarantee a decodable live stream.
+    return uniqueStations(rows).filter(s=>Boolean(s.stream)).slice(0,60);
   }
   async function load(kind=view){
     view=kind;
@@ -107,7 +163,7 @@
       const result=await findStations(kind,search,country);
       if(seq!==requestSeq)return;
       stations=result;
-      if(result.length===0)message=kind==='favorites'?'No favorite stations yet. Browse World Radio and tap ☆ to save one.':'No matching stations were found.';
+      if(result.length===0)message=kind==='favorites'?'No favorite stations yet. Browse World Radio and tap ☆ to save one.':'No stations with a secure HTTPS stream found. Try another country or search.';
     }catch(e){
       if(seq!==requestSeq)return;
       error=e.message||'Could not find stations.';
@@ -202,26 +258,51 @@
     b.addEventListener('click',handler);
     return b;
   }
-  function optionCountry(select){
-    const blank=node('option','','Top worldwide');blank.value='';select.appendChild(blank);
-    for(const [code,name] of availableCountries){
-      const opt=node('option','',name);opt.value=code;select.append(opt);
-    }
-    if(country&&availableCountries.some(x=>x[0]===country))select.value=country;
-  }
   function mountPage(host){
-    host.dataset.radioReady='1';host.replaceChildren();
+    host.dataset.radioReady='1';host.replaceChildren();countryPickerOpen=false;
     const head=node('div','radio-page-heading');
     head.append(node('div','eyebrow','WORLD RADIO'),node('h2','','Listen around the world'),
       node('p','radio-page-description','Discover global stations. Favorites sync with your Android LifeDashPro account.'));
     host.append(head);
     const toolbar=node('div','radio-toolbar');
-    const countryLabel=node('label','radio-field');
-    countryLabel.append(node('span','','Country'));
-    const countrySelect=node('select','radio-select');countrySelect.id='radioCountrySelect';countrySelect.setAttribute('aria-label','Find stations by country');
-    optionCountry(countrySelect);
-    countrySelect.addEventListener('change',()=>{country=countrySelect.value;search='';const q=$('#radioSearchInput');if(q)q.value='';load(country?'country':'top')});
-    countryLabel.append(countrySelect);
+    const countryField=node('div','radio-field radio-country-field');
+    const countryLabel=node('span','','Country');countryField.append(countryLabel);
+    const picker=node('div','radio-country-picker');picker.id='radioCountryPicker';
+    const trigger=radioButton('','radio-country-trigger',()=>{
+      if(countryPickerOpen)closeCountryPicker();
+      else openCountryPicker();
+    },{'aria-label':'Choose radio station country','aria-haspopup':'true','aria-expanded':'false','aria-controls':'radioCountryPopover'});
+    trigger.id='radioCountryTrigger';
+    const selected=node('span','radio-country-selected',countryName(country));selected.id='radioCountrySelected';
+    trigger.append(selected,node('span','radio-country-chevron','⌄'));
+    const pop=node('div','radio-country-popover');pop.id='radioCountryPopover';pop.hidden=true;
+    pop.setAttribute('aria-label','Select country');
+    const filter=node('input','radio-country-filter');filter.id='radioCountryFilter';
+    filter.type='search';filter.autocomplete='off';filter.placeholder='Search country or code…';
+    filter.setAttribute('aria-label','Search countries by name or code');
+    filter.addEventListener('input',()=>renderCountryList(filter.value));
+    filter.addEventListener('keydown',e=>{
+      if(e.key==='Escape'){e.stopPropagation();closeCountryPicker(true)}
+      if(e.key==='ArrowDown'){e.preventDefault();$('#radioCountryList .radio-country-option')?.focus()}
+    });
+    pop.append(filter);
+    const quick=node('div','radio-country-quick');quick.id='radioCountryQuick';
+    for(const code of ['',...PREFERRED_COUNTRIES]){
+      const label=code?countryName(code):'Worldwide';
+      quick.append(radioButton(label,'radio-country-chip',()=>setCountry(code)));
+    }
+    pop.append(quick);
+    const countryList=node('div','radio-country-list');countryList.id='radioCountryList';
+    countryList.setAttribute('aria-label','Available countries');
+    countryList.addEventListener('keydown',e=>{
+      if(e.key==='Escape'){e.preventDefault();closeCountryPicker(true);return}
+      if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;
+      const buttons=$('.radio-country-option',countryList),i=buttons.indexOf(document.activeElement);
+      const next=i+(e.key==='ArrowDown'?1:-1);
+      if(next>=0&&next<buttons.length){e.preventDefault();buttons[next].focus()}
+      else if(next<0){e.preventDefault();filter.focus()}
+    });
+    pop.append(countryList);picker.append(trigger,pop);countryField.append(picker);
     const searchLabel=node('label','radio-field radio-search-field');searchLabel.append(node('span','','Station name'));
     const input=node('input','radio-input');input.id='radioSearchInput';input.type='search';input.maxLength=75;
     input.placeholder='Search worldwide stations';input.value=search;
@@ -230,10 +311,11 @@
     const actions=node('div','radio-filter-actions');
     actions.append(
       radioButton('Search','primary',()=>{search=input.value.trim();load(search?'search':'top')}),
-      radioButton('Top stations','secondary',()=>{search='';country='';input.value='';countrySelect.value='';load('top')}),
+      radioButton('Top stations','secondary',()=>{search='';country='';input.value='';closeCountryPicker();refreshCountryPicker();load('top')}),
       radioButton('★ Favorites','secondary',()=>load('favorites'))
     );
-    toolbar.append(countryLabel,searchLabel,actions);host.append(toolbar);
+    toolbar.append(countryField,searchLabel,actions);host.append(toolbar);
+    refreshCountryPicker();
 
     const now=node('section','radio-current-card');now.setAttribute('aria-label','Current station');
     const currentInfo=node('div','radio-current-info');currentInfo.append(node('span','radio-current-icon','♫'));
@@ -280,6 +362,9 @@
       const title=node('strong','',station.name);title.title=station.name;
       const subtitle=node('small','',[station.country||station.countrycode,station.codec].filter(Boolean).join(' · ')||'Worldwide radio');
       info.append(title,subtitle);
+      if(!station.stream&&view==='favorites'){
+        info.append(node('small','radio-legacy-note','Saved in Favorites · Not playable in web browser'));
+      }
       const actions=node('div','radio-station-actions');
       const isFav=isFavorite(station.id);
       const favorite=radioButton(isFav?'★':'☆','radio-control',()=>toggleFavorite(station),
@@ -331,6 +416,12 @@
   $('#radioDockOpen')?.addEventListener('click',openRadio);
   $('#radioDockClose')?.addEventListener('click',()=>stop());
   volDock?.addEventListener('input',e=>setVolume(e.target.value));
+  document.addEventListener('pointerdown',e=>{
+    if(countryPickerOpen&&!e.target.closest('#radioCountryPicker'))closeCountryPicker();
+  });
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&countryPickerOpen)closeCountryPicker(true);
+  });
   new MutationObserver(onContent).observe(content,{childList:true});
   new MutationObserver(()=>{
     if(app.classList.contains('hidden')){
