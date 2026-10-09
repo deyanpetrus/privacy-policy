@@ -27,6 +27,7 @@ const page=$('#content'),app=$('#appView');
 if(!page||!app)return;
 const state={city:'',identity:'',generation:0,cache:new Map(),pending:new Map(),attempt:new Map()};
 const AIR_TTL=2*60*1000,ROAD_TTL=15*60*1000,MIN_RETRY=60000;
+let visibleMapKind=null,mapInstance=null,mapSignature='',mapLoading='',mapLibraryPromise=null;
 const stamp=t=>t&&Number.isFinite(Number(t))?
  new Intl.DateTimeFormat(undefined,{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(Number(t))):'Not checked';
 function signedIn(){return !app.classList.contains('hidden')&&Boolean(window.LifeDashWorldBridge?.authenticated())}
@@ -109,12 +110,13 @@ function cacheKey(kind,city){return kind+'|'+city}
 function switchCity(id){
  const name=CITY[id]?id:getCity();
  if(name===state.city)return;
- state.city=name;state.generation++;
+ state.city=name;state.generation++;removeMobilityMap();
  updateAll();refresh();
 }
 function ensureIdentity(){
  const user=signedIn()?String(window.LifeDashWorldBridge?.identity()||''):'';
  if(state.identity===user)return;
+ removeMobilityMap();visibleMapKind=null;
  state.identity=user;state.generation++;state.cache.clear();state.pending.clear();state.attempt.clear();
  state.city=user?getCity():'';
 }
@@ -147,6 +149,99 @@ function load(kind,force=false){
 function refresh(force=false){
  for(const kind of ['air','road'])load(kind,force);
 }
+
+function removeMobilityMap(){
+ if(mapInstance){try{mapInstance.remove()}catch(_){}}
+ mapInstance=null;mapSignature='';mapLoading='';
+}
+function toggleMobilityMap(kind){
+ if(visibleMapKind===kind){visibleMapKind=null;removeMobilityMap()}
+ else{visibleMapKind=kind;removeMobilityMap()}
+ const panel=$('#worldMobilityMapPanel');
+ if(panel)panel.hidden=!visibleMapKind;
+ renderMobilityMap();
+ if(visibleMapKind)panel?.scrollIntoView({block:'nearest',behavior:'auto'});
+}
+function requestLeaflet(){
+ if(window.L?.map&&window.L?.tileLayer)return Promise.resolve(window.L);
+ if(mapLibraryPromise)return mapLibraryPromise;
+ mapLibraryPromise=new Promise((resolve,reject)=>{
+   let script=document.querySelector('script[data-world-leaflet]');
+   let timeout;
+   const done=()=>{clearTimeout(timeout);window.L?.map?resolve(window.L):reject(new Error('Map library failed to load'))};
+   const fail=()=>{clearTimeout(timeout);reject(new Error('Map library unavailable'))};
+   timeout=setTimeout(()=>reject(new Error('Map library timeout')),12000);
+   if(!document.querySelector('link[data-world-leaflet]')){
+     const css=document.createElement('link');css.rel='stylesheet';css.dataset.worldLeaflet='true';
+     css.href='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css';
+     document.head.append(css);
+   }
+   if(!script){
+     script=document.createElement('script');script.dataset.worldLeaflet='true';script.async=true;
+     script.src='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
+     script.onload=done;script.onerror=fail;document.head.append(script);
+   }else if(window.L?.map)done();
+   else{script.addEventListener('load',done,{once:true});script.addEventListener('error',fail,{once:true})}
+ }).catch(e=>{mapLibraryPromise=null;throw e});
+ return mapLibraryPromise;
+}
+async function renderMobilityMap(){
+ const panel=$('#worldMobilityMapPanel'),holder=$('#worldMobilityMapCanvas'),status=$('#worldMobilityMapStatus');
+ if(!panel||!holder||!status||!visibleMapKind||!state.city||!signedIn())return;
+ panel.hidden=false;
+ const kind=visibleMapKind,city=state.city,record=state.cache.get(cacheKey(kind,city));
+ const unsupported=kind==='road'&&CITY[city][2]!=='DE';
+ const coords=(record?.data?.rows||[]).filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lon)&&
+   Math.abs(x.lat)<=90&&Math.abs(x.lon)<=180);
+ const signature=kind+'|'+city+'|'+String(record?.when||0)+'|'+String(record?.error||'')+'|'+coords.length;
+ if(mapSignature===signature&&mapInstance)return;
+ if(mapLoading===signature)return;
+ removeMobilityMap();
+ mapLoading=signature;
+ status.textContent='Loading '+(kind==='air'?'aircraft':'road events')+' map…';
+ try{
+   const L=await requestLeaflet();
+   const latest=state.cache.get(cacheKey(kind,city));
+   const latestSignature=kind+'|'+city+'|'+String(latest?.when||0)+'|'+String(latest?.error||'')+'|'+
+     (latest?.data?.rows||[]).length;
+   if(!holder.isConnected||visibleMapKind!==kind||state.city!==city||mapLoading!==signature||
+      latestSignature!==signature||!signedIn())return;
+   const center=CITY[city];
+   const map=L.map(holder,{scrollWheelZoom:false,zoomControl:true,preferCanvas:true})
+     .setView([center[0],center[1]],8);
+   mapInstance=map;mapSignature=signature;
+   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      maxZoom:18,attribution:'© OpenStreetMap contributors'
+   }).addTo(map);
+   const points=[];
+   for(const x of coords){
+     const marker=L.circleMarker([x.lat,x.lon],{radius:kind==='air'?6:5,
+       weight:1.3,color:'#fff',fillColor:kind==='air'?'#347eec':'#f08734',
+       fillOpacity:.9}).addTo(map);
+     const popup=document.createElement('div');
+     const title=document.createElement('strong');
+     title.textContent=kind==='air'?x.callsign||'Aircraft':x.road+' · '+x.kind;
+     const detail=document.createElement('p');
+     detail.textContent=kind==='air'?'Altitude '+fmt(x.altitude)+' m · Speed '+
+       fmt(x.speed)+' km/h · '+x.status:
+       x.title+' · '+fmt(x.dist)+' km from city center';
+     popup.append(title,detail);marker.bindPopup(popup);
+     points.push([x.lat,x.lon]);
+   }
+   if(points.length===1)map.setView(points[0],10);
+   else if(points.length>1)map.fitBounds(points,{maxZoom:11,padding:[20,20]});
+   status.textContent=unsupported?'Road Live currently covers Germany only. No road markers for this city.':
+      record?.error?(points.length?'Last known positions; source refresh failed: ':'Source unavailable: ')+record.error:
+      points.length?points.length+' verified '+(kind==='air'?'aircraft':'road event')+
+        ' markers · select a point to view details.':
+      record?.data?'No records returned by this source for the selected area.':
+        'Waiting for verified records. No markers drawn.';
+   requestAnimationFrame(()=>{if(mapInstance===map)map.invalidateSize()});
+ }catch(e){
+   if(mapLoading===signature){removeMobilityMap();status.textContent=
+     'Map unavailable: '+String(e?.message||'load failed')+' · the event list remains available.'}
+ }finally{if(mapLoading===signature)mapLoading=''}
+}
 function makeCard(kind,short=false){
  const card=el('article','card world-mobility-card');
  card.dataset.mobility=kind;
@@ -157,6 +252,11 @@ function makeCard(kind,short=false){
  const last=el('small','world-live-checked','Not checked');last.dataset.mobilityChecked='';
  last.setAttribute('role','status');
  card.append(total,sub,list,last);
+ if(!short){
+   const mapButton=el('button','secondary world-mobility-map-button','View map & markers ↗');
+   mapButton.type='button';mapButton.addEventListener('click',()=>toggleMobilityMap(kind));
+   card.append(mapButton);
+ }
  if(short){
    const open=el('button','text-btn world-live-open','Open World Live →');
    open.type='button';open.addEventListener('click',()=>$('#nav [data-page="world"]')?.click());
@@ -175,6 +275,14 @@ function mount(){
    refreshBtn.id='worldMobilityRefresh';top.append(refreshBtn);sec.append(top);
    const grid=el('div','world-mobility-grid');
    grid.append(makeCard('air'),makeCard('road'));sec.append(grid);
+   const maps=el('section','world-mobility-map-panel');maps.id='worldMobilityMapPanel';
+   maps.hidden=true;maps.setAttribute('aria-label','World Live mobility map');
+   maps.append(el('strong','world-mobility-map-title','Live movement & road marker map'));
+   const message=el('p','world-mobility-map-status','Select Air Traffic or Road Live to show a map.');
+   message.id='worldMobilityMapStatus';message.setAttribute('role','status');
+   const canvas=el('div','world-mobility-map-canvas');canvas.id='worldMobilityMapCanvas';
+   canvas.setAttribute('aria-label','Live aircraft and road event locations');
+   maps.append(message,canvas);sec.append(maps);
    sec.append(el('small','world-mobility-footnote',
      'Air Traffic: ADS-B compatible snapshot via LifeDashPro Edge, within 100 km; not for flight safety. Road Live: Autobahn API for selected German motorways, incidents within 130 km. Other countries not supported yet.'));
    const anchor=$('.world-forecast-section',full);
@@ -243,6 +351,7 @@ function updateAll(){
    .forEach(card=>updateCard(card,card.dataset.mobility,Boolean(card.closest('#worldMobilityDashboard'))));
  const b=$('#worldMobilityRefresh');
  if(b)b.disabled=['air','road'].some(kind=>state.pending.has(cacheKey(kind,state.city)));
+ if(visibleMapKind)void renderMobilityMap();
 }
 function onContent(){
  ensureIdentity();
@@ -251,6 +360,7 @@ function onContent(){
  const old=state.city,cur=getCity();
  if(CITY[cur]&&cur!==old){state.city=cur;state.generation++}
  const host=$('#worldLivePage',page),dash=$('#worldLiveDashboard',page);
+ if(!host){removeMobilityMap();visibleMapKind=null}
  if(!host&&!dash)return;
  mount();updateAll();refresh();
 }
