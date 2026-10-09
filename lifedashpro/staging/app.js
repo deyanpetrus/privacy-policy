@@ -153,7 +153,7 @@ $('#forgotBtn').onclick=async()=>{const email=$('#signinEmail').value.trim();if(
 $('#updatePasswordBtn').onclick=async()=>{const p=$('#newPassword').value;if(p.length<8)return $('#passwordMessage').textContent='Use at least 8 characters.';const {error}=await state.client.auth.updateUser({password:p});if(error){$('#passwordMessage').textContent=error.message;$('#passwordMessage').classList.remove('hidden');return}$('#passwordDialog').close();msg('Password updated.','good')};
 $('#refreshBtn').onclick=refreshAll;$('#quickAddBtn').onclick=()=>openEditor(state.page==='finance'?'finance':state.page==='tasks'?'tasks':'notes');$('#editorSave').onclick=saveEditor;$('#editorDelete').onclick=deleteEditor;
 $$('[data-page]').forEach(b=>b.onclick=()=>setPage(b.dataset.page));
-window.// V1.7 radio adapter: strictly scoped to the existing Android radio_favorites kind.
+// V1.7 radio adapter: strictly scoped to the existing Android radio_favorites kind.
 // Reuse the same user-scoped RLS and revision-safe CRUD routines.
 window.LifeDashRadioBridge=Object.freeze({
   authenticated:()=>Boolean(state.user&&state.session),
@@ -169,7 +169,7 @@ window.LifeDashRadioBridge=Object.freeze({
     return tombstoneRecord('radio_favorites',String(id));
   }
 });
-addEventListener('hashchange',()=>{const p=location.hash.slice(1);if(TITLES[p])setPage(p)});
+window.addEventListener('hashchange',()=>{const p=location.hash.slice(1);if(TITLES[p])setPage(p)});
 window.addEventListener('online',()=>state.session&&refreshAll());
 window.addEventListener('focus',()=>{if(state.session&&state.lastSync&&Date.now()-state.lastSync.getTime()>120000)refreshAll()});
 init().then(()=>{const p=location.hash.slice(1);if(TITLES[p])setPage(p)});
