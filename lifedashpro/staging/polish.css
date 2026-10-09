@@ -210,3 +210,82 @@ html[data-ld-theme="light"] .header-sync{background:#fff}
   html{scroll-behavior:auto}
   *,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}
 }
+
+
+/* v1.3.1 mobile visual QA: consistent upright typography.
+   Use a known sans-serif face on Android; respect user font scaling. */
+:where(.app,.auth-shell,.boot,.staging-banner,.dialog),
+:where(.app,.auth-shell,.boot,.staging-banner,.dialog) * {
+  font-family:Arial,"Noto Sans",Roboto,"Helvetica Neue",sans-serif!important;
+  font-style:normal!important;
+}
+
+/* Profile labels must not sit inline with inputs (original staging omission).
+   Inputs retain their existing IDs, disabled state, and save bindings. */
+.profile-card{grid-template-columns:100px minmax(0,1fr)}
+.profile-card>div:last-child{min-width:0;width:100%}
+.profile-card .form-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px 14px;
+}
+.profile-card .form-grid label{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:7px;
+  min-width:0;
+  max-width:100%;
+  font-size:12px;
+  line-height:1.45;
+  font-weight:730;
+  color:var(--muted);
+}
+.profile-card .form-grid input{
+  display:block;
+  box-sizing:border-box;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  min-height:45px;
+  margin:0;
+  padding:11px 13px;
+  color:var(--text);
+  background:var(--panel2);
+  border:1px solid var(--line);
+  border-radius:12px;
+  font-size:14px;
+  font-weight:550;
+  text-overflow:ellipsis;
+  outline:none;
+}
+.profile-card .form-grid input:focus-visible{
+  outline:2px solid var(--primary);
+  outline-offset:2px;
+}
+.profile-card .form-grid input:disabled{
+  opacity:1;
+  color:var(--muted);
+  -webkit-text-fill-color:var(--muted);
+  cursor:default;
+}
+.profile-card .primary,.profile-card .secondary{
+  min-height:44px;
+}
+.section-head>div{min-width:0;max-width:100%}
+.section-head p{overflow-wrap:anywhere}
+
+@media(max-width:800px){
+  .profile-card{display:flex;flex-direction:column;gap:20px;align-items:stretch}
+  .profile-card .form-grid{grid-template-columns:minmax(0,1fr);gap:15px}
+  .profile-card .profile-avatar{flex:none}
+  .profile-card .form-grid input{width:100%}
+  .profile-card .form-grid+div{flex-wrap:wrap}
+  .section-head>div{width:100%}
+  .section-head h2{line-height:1.25}
+}
+@media(max-width:380px){
+  .topbar-left{gap:7px}
+  .topbar h2{max-width:88px;font-size:17px}
+  .topbar .top-actions{gap:4px}
+}
