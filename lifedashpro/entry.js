@@ -12,6 +12,7 @@
     clean.searchParams.delete('workspace');
     clean.searchParams.delete('v');
     clean.searchParams.delete('desktopBootstrap');
+    clean.searchParams.delete('cacheReset');
     const qs=clean.searchParams.toString();
     const defaultHash=clean.hash==='#dashboard'?'':clean.hash;
     history.replaceState({},'',clean.pathname+(qs?'?'+qs:'')+defaultHash);
