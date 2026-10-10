@@ -114,7 +114,34 @@ function renderTasks(){const a=state.data.family_tasks||[];return pageWrap('Task
 function renderFinance(){const a=state.data.finance_transactions||[],s=financeStats();return pageWrap('Finance','Record-level transaction sync; source-managed Android-linked rows are shown but protected from web deletion.',`<div class="info-grid"><div class="info-tile"><strong>${fmtTotal(s,'inc')}</strong><span>Income</span></div><div class="info-tile"><strong>${fmtTotal(s,'exp')}</strong><span>Expenses</span></div><div class="info-tile"><strong>${fmtTotal(s,'bal')}</strong><span>Balance</span></div><div class="info-tile"><strong>${a.length}</strong><span>Transactions</span></div></div><div style="height:14px"></div>${listToolbar('New transaction','finance')}${a.length?`<div class="list">${a.map(t=>rowHtml('finance',t,t.type==='income'?'＋':'−',t.description||'Transaction',`${t.category||'other'} · ${t.date||''}`,fmtMoney(t.amount,t.currency||'EUR'),t.type)).join('')}</div>`:'<div class="empty">No synced transactions.</div>'}`)}
 function renderReadOnly(kind,title,icon){const a=state.data[kind]||[];return pageWrap(title,'Synced from the same LifeDashPro account. This web phase is read-only for this module to avoid schema-specific destructive edits.',a.length?`<div class="list">${a.map(x=>rowHtml('readonly',x,icon,x.title||x.name||x.description||[x.brand,x.model].filter(Boolean).join(' ')||'Item',x.category||x.type||x.updatedAt||'',x.status||'synced')).join('')}</div>`:'<div class="empty">No synced items.</div>')}
 function renderJourney(){const a=state.data.journey_plans_beta||[];return pageWrap('Journey','Same canonical saved Journey records as Android. Editing remains Android-first in this safe-sync phase.',a.length?`<div class="list">${a.map(x=>rowHtml('readonly',x,'⌖',x.title||'Journey',`${(x.stops||[]).length} stops${x.startDate?' · '+x.startDate:''}`,x.timeMode||'saved')).join('')}</div>`:'<div class="empty">No saved journeys.</div>')}
-function renderProfile(){const p=state.profile||{};return pageWrap('Profile & Settings','Account data uses the same Supabase Auth identity as Android.',`<section class="card span-12 profile-card"><div class="profile-avatar">${esc((p.name||state.user.email||'U').charAt(0).toUpperCase())}</div><div><div class="form-grid"><label>Name<input id="profileName" value="${esc(p.name||'')}"></label><label>Email<input value="${esc(state.user.email||'')}" disabled></label><label>City<input id="profileCity" value="${esc(p.city||'')}"></label><label>Country<input id="profileCountry" value="${esc(p.country||'')}"></label><label>Language<input id="profileLanguage" value="${esc(p.language||'en')}"></label></div><div style="display:flex;gap:8px;margin-top:16px"><button class="primary" id="saveProfile">Save profile</button><button class="secondary" id="logoutBtn">Sign out</button></div></div></section><section class="card span-12"><p class="eyebrow">SYNC CONTRACT</p><p>Web version <b>${esc(cfg.webVersion||'safe-sync')}</b> · Android data contract <b>${esc(cfg.contractVersion||'v38.13')}</b>. Native Android alarms, background navigation, Car Mode and other native services are not recreated by the browser.</p></section>`)}
+function renderProfile(){
+ const p=state.profile||{};
+ const full=String(p.name||state.user?.user_metadata?.name||'').trim();
+ const first=String(p.first_name||full.split(/\s+/)[0]||'').trim();
+ const last=String(p.last_name!=null?p.last_name:full.split(/\s+/).slice(1).join(' ')).trim();
+ return pageWrap('Profile & Settings','Manage your LifeDashPro identity and account security.',`
+<section class='card span-12 profile-card'><div class='profile-avatar'>${esc((first||state.user?.email||'U').charAt(0).toUpperCase())}</div><div>
+<h3>Profile information</h3><div class='form-grid'>
+<label>First name (required)<input id='profileFirstName' autocomplete='given-name' maxlength='80' required value='${esc(first)}'></label>
+<label>Last name (optional)<input id='profileLastName' autocomplete='family-name' maxlength='80' value='${esc(last)}'></label>
+<label>Email (account)<input value='${esc(state.user?.email||'')}' disabled></label>
+<label>City<input id='profileCity' value='${esc(p.city||'')}'></label>
+<label>Country<input id='profileCountry' value='${esc(p.country||'')}'></label>
+<label>Language<input id='profileLanguage' value='${esc(p.language||'en')}'></label></div>
+<div style='display:flex;gap:8px;margin-top:16px;flex-wrap:wrap'><button type='button' class='primary' id='saveProfile'>Save profile</button><button type='button' class='secondary' id='logoutBtn'>Sign out</button></div></div></section>
+<section class='card span-12'><h3>Change email</h3><p>Supabase may send confirmation messages to both your current and new email. Your sign-in address stays unchanged until the required confirmations are completed.</p>
+<div class='form-grid'><label>New email address<input id='profileNewEmail' type='email' autocomplete='email' maxlength='254' placeholder='new@example.com'></label></div>
+<div style='margin-top:12px'><button id='requestEmailChangeBtn' type='button' class='secondary'>Request email change</button></div>
+<p id='accountEmailMessage' class='message' role='status' aria-live='polite'></p></section>
+<section class='card span-12'><h3>Change password</h3><p>Confirm your current password. If your account requires additional verification or you use a passwordless sign-in, request a one-time code and enter it below. Your credentials are never stored in LifeDashPro data.</p>
+<div class='form-grid'><label>Current password<input id='profileCurrentPassword' type='password' autocomplete='current-password'></label>
+<label>New password<input id='profileNewPassword' type='password' autocomplete='new-password' minlength='12'></label>
+<label>Confirm new password<input id='profileConfirmPassword' type='password' autocomplete='new-password' minlength='12'></label>
+<label>One-time verification code (when used)<input id='profileReauthCode' type='text' inputmode='numeric' autocomplete='one-time-code' maxlength='12'></label></div>
+<div style='display:flex;gap:8px;margin-top:12px;flex-wrap:wrap'><button id='sendAccountNonceBtn' type='button' class='secondary'>Send verification code</button><button id='changeAccountPasswordBtn' type='button' class='primary'>Update password</button></div>
+<p id='accountPasswordMessage' class='message' role='status' aria-live='polite'></p></section>
+<section class='card span-12'><p class='eyebrow'>SYNC CONTRACT</p><p>Web version <b>${esc(cfg.webVersion||'safe-sync')}</b> · Android data contract <b>${esc(cfg.contractVersion||'v38.13')}</b>. Native Android alarms, background navigation, Car Mode and other native services are not recreated by the browser.</p></section>`);
+}
 function pageWrap(title,desc,body){return `<div class="section-head"><div><p class="eyebrow">LIFEDASHPRO WEB</p><h2>${esc(title)}</h2><p>${esc(desc)}</p></div></div>${body}`}
 function listToolbar(label,mode){return `<div class="section-head"><div class="toolbar"><button class="primary" data-new="${mode}">＋ ${esc(label)}</button></div></div>`}
 function rowHtml(mode,x,icon,title,sub,badge,cls=''){return `<div class="data-row" data-open="${mode}" data-id="${esc(x.id)}" data-ui-kind="${esc(mode)}" data-ui-date="${esc(x.date||x.dueDate||x.updatedAt||x._sync?.updated_at||'')}" data-ui-due="${esc(x.dueDate||'')}" data-ui-expires="${esc(x.expiresAt||x.expiryDate||x.expirationDate||x.validUntil||'')}" data-ui-status="${esc(x.status||'')}" data-ui-completed="${x.done===true||x.done==='true'?'true':'false'}" data-ui-type="${esc(x.type||'')}" data-ui-category="${esc(x.category||'')}" data-ui-amount="${esc(x.amount??'')}" data-ui-currency="${esc(x.currency||x.baseCurrencyAtEntry||'EUR')}"><span class="row-icon">${esc(icon)}</span><div class="row-main"><strong>${esc(title)}</strong><small>${esc(sub)}</small></div><span class="${mode==='finance'&&cls?'amount '+cls:'pill'}">${esc(badge||'')}</span></div>`}
@@ -122,6 +149,9 @@ function wirePageRows(){
   $$('[data-go]').forEach(b=>b.onclick=()=>setPage(b.dataset.go));$$('[data-new]').forEach(b=>b.onclick=()=>openEditor(b.dataset.new));
   $$('[data-open]').forEach(r=>{if(r.dataset.open!=='readonly')r.onclick=()=>openEditor(r.dataset.open,r.dataset.id)});
   $('#saveProfile')?.addEventListener('click',saveProfile);$('#logoutBtn')?.addEventListener('click',()=>state.client.auth.signOut());
+  $('#requestEmailChangeBtn')?.addEventListener('click',requestEmailChange);
+  $('#sendAccountNonceBtn')?.addEventListener('click',sendAccountNonce);
+  $('#changeAccountPasswordBtn')?.addEventListener('click',changeAccountPassword);
 }
 function openEditor(mode,id){
   if(!state.syncReady)return msg('Wait until all cloud data is loaded.','error');
@@ -143,12 +173,76 @@ async function saveEditor(){
   try{$('#editorSave').disabled=true;await upsertRecord(e.kind,item);$('#editorDialog').close();msg('Saved and synchronized.','good')}catch(x){msg(`Save failed: ${x.message}`,'error')}finally{$('#editorSave').disabled=false}
 }
 async function deleteEditor(){const e=state.editor;if(!e?.item||isProtectedFinance(e.item))return;if(!confirm('Delete this item? This will synchronize the deletion to the same LifeDashPro account.'))return;try{await tombstoneRecord(e.kind,e.item.id);$('#editorDialog').close();msg('Deleted with synchronized tombstone.','good')}catch(x){msg(`Delete failed: ${x.message}`,'error')}}
-async function saveProfile(){const fullName=$('#profileName').value.trim();const nameParts=fullName.split(/\s+/).filter(Boolean);if(!nameParts.length)return msg('Name is required.','error');const row={id:state.user.id,name:fullName,first_name:nameParts[0],last_name:nameParts.slice(1).join(' '),city:$('#profileCity').value.trim(),country:$('#profileCountry').value.trim(),language:$('#profileLanguage').value.trim()||'en'};const {data,error}=await state.client.from('profiles').upsert(row,{onConflict:'id'}).select().single();if(error)return msg(`Profile save failed: ${error.message}`,'error');state.profile=data;msg('Profile updated.','good');render()}
-
+async function saveProfile(){
+ const first=String($('#profileFirstName')?.value||'').trim();
+ const last=String($('#profileLastName')?.value||'').trim();
+ if(!first||first.length>80||last.length>80)return msg('First name is required (80 characters maximum per field).','error');
+ const row={id:state.user.id,name:[first,last].filter(Boolean).join(' '),first_name:first,last_name:last,city:$('#profileCity').value.trim(),country:$('#profileCountry').value.trim(),language:$('#profileLanguage').value.trim()||'en'};
+ const button=$('#saveProfile');if(button)button.disabled=true;
+ try{
+  if(!state.session||!state.syncReady)throw new Error('Sign in and finish sync before updating your profile.');
+  const {data,error}=await state.client.from('profiles').upsert(row,{onConflict:'id'}).select().single();
+  if(error)throw error;
+  state.profile=data;const initial=first.charAt(0).toUpperCase();$('#avatar').textContent=initial;
+  msg('Profile saved.','good');render();
+ }catch(e){msg('Profile save failed: '+e.message,'error')}finally{if(button?.isConnected)button.disabled=false}
+}
+function accountMessage(id,message,error=false){
+ const el=$('#'+id);if(!el)return;el.textContent=String(message||'').slice(0,400);
+ el.className='message'+(error?' error':'');
+}
+async function assertCurrentAccount(){
+ if(!state.user||!state.session||!state.client)throw new Error('Please sign in again.');
+ const uid=state.user.id;
+ const {data,error}=await state.client.auth.getUser();
+ if(error||!data?.user||data.user.id!==uid||state.user?.id!==uid)throw new Error('Session changed. Sign in again before changing credentials.');
+ return uid;
+}
+async function requestEmailChange(){
+ const input=$('#profileNewEmail'),button=$('#requestEmailChangeBtn');
+ const newEmail=String(input?.value||'').trim().toLowerCase();
+ if(newEmail.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail))return accountMessage('accountEmailMessage','Enter a valid new email address. ',true);
+ if(newEmail===String(state.user?.email||'').toLowerCase())return accountMessage('accountEmailMessage','This is already your current email.',true);
+ if(!window.confirm('Request an email change to '+newEmail+'? You may need to confirm messages at both email addresses.'))return;
+ if(button)button.disabled=true;
+ try{
+  await assertCurrentAccount();
+  const {error}=await state.client.auth.updateUser({email:newEmail},{emailRedirectTo:location.origin+(cfg.basePath||'/lifedashpro/staging/')});
+  if(error)throw error;
+  if(input)input.value='';
+  accountMessage('accountEmailMessage','Email change requested. Follow the verification messages. Your old email remains active until confirmation.');
+ }catch(e){accountMessage('accountEmailMessage','Email change failed: '+e.message,true)}
+ finally{if(button?.isConnected)button.disabled=false}
+}
+async function sendAccountNonce(){
+ const button=$('#sendAccountNonceBtn');if(button)button.disabled=true;
+ try{await assertCurrentAccount();
+  const {error}=await state.client.auth.reauthenticate();if(error)throw error;
+  accountMessage('accountPasswordMessage','Verification code requested. Check your confirmed email and enter the code before updating the password.');
+ }catch(e){accountMessage('accountPasswordMessage','Could not send verification code: '+e.message,true)}
+ finally{if(button?.isConnected)button.disabled=false}
+}
+async function changeAccountPassword(){
+ const oldEl=$('#profileCurrentPassword'),newEl=$('#profileNewPassword'),confirmEl=$('#profileConfirmPassword'),nonceEl=$('#profileReauthCode'),button=$('#changeAccountPasswordBtn');
+ const currentPassword=String(oldEl?.value||''),password=String(newEl?.value||''),confirmation=String(confirmEl?.value||''),nonce=String(nonceEl?.value||'').trim();
+ const clear=()=>{for(const el of [oldEl,newEl,confirmEl,nonceEl])if(el)el.value=''};
+ if(password.length<12||password.length>128)return accountMessage('accountPasswordMessage','Choose a password of 12–128 characters.',true);
+ if(password!==confirmation)return accountMessage('accountPasswordMessage','New passwords do not match.',true);
+ if(!currentPassword&&!nonce)return accountMessage('accountPasswordMessage','Provide your current password or a verification code.',true);
+ if(currentPassword&&currentPassword===password)return accountMessage('accountPasswordMessage','New password must differ from the current password.',true);
+ if(button)button.disabled=true;
+ try{
+  await assertCurrentAccount();
+  const attrs={password};if(currentPassword)attrs.current_password=currentPassword;if(nonce)attrs.nonce=nonce;
+  const {error}=await state.client.auth.updateUser(attrs);if(error)throw error;
+  clear();accountMessage('accountPasswordMessage','Password changed successfully. Use the new password the next time you sign in.');
+ }catch(e){clear();accountMessage('accountPasswordMessage','Password change failed: '+e.message,true)}
+ finally{if(button?.isConnected)button.disabled=false}
+}
 $$('[data-auth]').forEach(b=>b.onclick=()=>{const mode=b.dataset.auth;$$('[data-auth]').forEach(x=>x.classList.toggle('active',x===b));$('#signinForm').classList.toggle('hidden',mode!=='signin');$('#registerForm').classList.toggle('hidden',mode!=='register');authMsg('')});
 $('#saveKeyBtn').onclick=()=>{const k=$('#setupKey').value.trim();if(!k)return authMsg('Enter a public publishable/anon key.','error');if(k.startsWith('sb_secret_')||k.includes('service_role'))return authMsg('Secret/service-role keys must never be used in the browser.','error');localStorage.setItem('lifedash_web_publishable_key',k);location.reload()};
 $('#signinForm').onsubmit=async e=>{e.preventDefault();authMsg('Signing in…');const {error}=await state.client.auth.signInWithPassword({email:$('#signinEmail').value.trim(),password:$('#signinPassword').value});if(error)authMsg(error.message,'error')};
-$('#registerForm').onsubmit=async e=>{e.preventDefault();authMsg('Creating account…');const email=$('#registerEmail').value.trim(),password=$('#registerPassword').value,name=$('#registerName').value.trim(),country=$('#registerCountry').value,language=$('#registerLanguage').value;const emailRedirectTo=`${location.origin}${cfg.basePath||'/lifedashpro/'}`;const {data,error}=await state.client.auth.signUp({email,password,options:{emailRedirectTo,data:{name,full_name:name,country,language}}});if(error)return authMsg(error.message,'error');if(data.session){authMsg('Account created and signed in.','good')}else authMsg('Account created. Check your email to confirm, then sign in.','good')};
+$('#registerForm').onsubmit=async e=>{e.preventDefault();authMsg('Creating account…');const email=$('#registerEmail').value.trim(),password=$('#registerPassword').value,firstName=$('#registerFirstName').value.trim(),lastName=$('#registerLastName').value.trim(),country=$('#registerCountry').value,language=$('#registerLanguage').value;if(!firstName||firstName.length>80||lastName.length>80)return authMsg('First name is required (up to 80 characters).','error');const name=[firstName,lastName].filter(Boolean).join(' ');const emailRedirectTo=`${location.origin}${cfg.basePath||'/lifedashpro/'}`;const {data,error}=await state.client.auth.signUp({email,password,options:{emailRedirectTo,data:{name,full_name:name,first_name:firstName,last_name:lastName,country,language}}});if(error)return authMsg(error.message,'error');if(data.session){authMsg('Account created and signed in.','good')}else authMsg('Account created. Check your email to confirm, then sign in.','good')};
 $('#forgotBtn').onclick=async()=>{const email=$('#signinEmail').value.trim();if(!email)return authMsg('Enter your email first.','error');const redirectTo=`${location.origin}${cfg.basePath||'/lifedashpro/'}`;const {error}=await state.client.auth.resetPasswordForEmail(email,{redirectTo});authMsg(error?error.message:'Password reset email sent.',error?'error':'good')};
 $('#updatePasswordBtn').onclick=async()=>{const p=$('#newPassword').value;if(p.length<8)return $('#passwordMessage').textContent='Use at least 8 characters.';const {error}=await state.client.auth.updateUser({password:p});if(error){$('#passwordMessage').textContent=error.message;$('#passwordMessage').classList.remove('hidden');return}$('#passwordDialog').close();msg('Password updated.','good')};
 $('#refreshBtn').onclick=refreshAll;$('#quickAddBtn').onclick=()=>openEditor(state.page==='finance'?'finance':state.page==='tasks'?'tasks':'notes');$('#editorSave').onclick=saveEditor;$('#editorDelete').onclick=deleteEditor;
