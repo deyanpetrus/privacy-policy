@@ -333,9 +333,9 @@
       ' in '+monthTitle(selectedMonth)+' · '+currency));
     if(undated)subtitle.append(node('span','finance-plus-warning',undated+' record(s) with invalid or missing date/amount/type not included'));
     root.append(subtitle);
+    renderRecurrence(root,overview);
     const grid=node('div','finance-plus-analytics-grid');
     renderTrend(grid);renderCategories(grid);root.append(grid);
-    renderRecurrence(root,overview);
     renderGoals(root);
     const footer=node('p','finance-plus-disclaimer',
       'With monthly repeats is an estimated plan, not bank balance or confirmed payments. Saved only is the canonical ledger. Repeat estimates are never written as transactions, and CSV exports saved entries only. Existing Paid/Unpaid and Android-managed safeguards remain unchanged.');
