@@ -140,6 +140,7 @@ function renderProfile(){
 <label>One-time verification code (when used)<input id='profileReauthCode' type='text' inputmode='numeric' autocomplete='one-time-code' maxlength='12'></label></div>
 <div style='display:flex;gap:8px;margin-top:12px;flex-wrap:wrap'><button id='sendAccountNonceBtn' type='button' class='secondary'>Send verification code</button><button id='changeAccountPasswordBtn' type='button' class='primary'>Update password</button></div>
 <p id='accountPasswordMessage' class='message' role='status' aria-live='polite'></p></section>
+<section id='accountDeletionV114' class='account-deletion-v114' aria-label='Delete My Data or Delete Account'></section>
 <section class='card span-12'><p class='eyebrow'>SYNC CONTRACT</p><p>Web version <b>${esc(cfg.webVersion||'safe-sync')}</b> · Android data contract <b>${esc(cfg.contractVersion||'v38.13')}</b>. Native Android alarms, background navigation, Car Mode and other native services are not recreated by the browser.</p></section>`);
 }
 function pageWrap(title,desc,body){return `<div class="section-head"><div><p class="eyebrow">LIFEDASHPRO WEB</p><h2>${esc(title)}</h2><p>${esc(desc)}</p></div></div>${body}`}
