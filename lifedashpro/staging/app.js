@@ -100,7 +100,7 @@ async function tombstoneRecord(kind,id){
 }
 function updateCounts(){const d=state.data;$('#navNotes').textContent=(d.notes||[]).length;$('#navTasks').textContent=(d.family_tasks||[]).filter(x=>!x.done).length;$('#navDocs').textContent=(d.documents||[]).length;$('#navVehicles').textContent=(d.vehicles||[]).length;$('#navJourneys').textContent=(d.journey_plans_beta||[]).length}
 function setPage(page){state.page=page;location.hash=page;$$('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));$('#pageTitle').textContent=TITLES[page]||'LifeDashPro';$('#quickAddBtn').classList.toggle('hidden',!['notes','finance','tasks','dashboard'].includes(page));render()}
-function render(){if(!state.session)return;const c=$('#content');if(!state.syncReady){c.innerHTML='<section class="card span-12"><h3>Checking secure sync…</h3><p>Could not verify all cloud records yet. No records have been changed. Use Refresh (↻) when your connection is available.</p></section>';$('#quickAddBtn').disabled=true;return;}$('#quickAddBtn').disabled=false;const fn={dashboard:renderDashboard,today:renderToday,calendar:()=>'<section id="personalCalendar" class="personal-calendar" aria-label="Personal Organizer Calendar"></section>',notes:renderNotes,tasks:renderTasks,documents:()=>renderReadOnly('documents','Documents','▣'),finance:renderFinance,vehicles:()=>renderReadOnly('vehicles','Vehicles','◈'),journey:renderJourney,profile:renderProfile,radio:()=>'<section id="worldRadioPage" class="radio-page-shell" aria-label="World Radio"></section>',world:()=>'<section id="worldLivePage" class="world-live-page" aria-label="World Live"></section>'}[state.page]||renderDashboard;c.innerHTML=fn();wirePageRows()}
+function render(){if(!state.session)return;const c=$('#content');if(!state.syncReady){c.innerHTML='<section class="card span-12"><h3>Checking secure sync…</h3><p>Could not verify all cloud records yet. No records have been changed. Use Refresh (↻) when your connection is available.</p></section>';$('#quickAddBtn').disabled=true;return;}$('#quickAddBtn').disabled=false;const fn={dashboard:renderDashboard,today:renderToday,calendar:()=>'<section id="personalCalendar" class="personal-calendar" aria-label="Personal Organizer Calendar"></section>',notes:renderNotes,tasks:renderTasks,documents:()=>'<section id="documentsProPage" class="documents-pro-page" aria-label="Documents Pro"></section>',finance:renderFinance,vehicles:()=>renderReadOnly('vehicles','Vehicles','◈'),journey:renderJourney,profile:renderProfile,radio:()=>'<section id="worldRadioPage" class="radio-page-shell" aria-label="World Radio"></section>',world:()=>'<section id="worldLivePage" class="world-live-page" aria-label="World Live"></section>'}[state.page]||renderDashboard;c.innerHTML=fn();wirePageRows()}
 function financeStats(){const tx=state.data.finance_transactions||[];let inc=0,exp=0;const currencies=new Set();for(const x of tx){const currency=String(x.currency||x.baseCurrencyAtEntry||'EUR').toUpperCase();currencies.add(currency);const a=Number(x.amount)||0;if(x.type==='income')inc+=a;else exp+=a}return{inc,exp,bal:inc-exp,currency:[...currencies][0]||'EUR',mixed:currencies.size>1}}
 function fmtTotal(stats,key){return stats.mixed?'Multiple currencies':fmtMoney(stats[key],stats.currency)}
 function timelineItems(){const out=[];for(const n of state.data.notes||[]){if(n.dueDate&&n.status!=='completed'&&n.status!=='archived')out.push({date:n.dueDate,time:n.dueTime||'',type:'Note',title:n.title||'Note'})}for(const t of state.data.family_tasks||[]){if(t.dueDate&&!t.done)out.push({date:t.dueDate,time:t.reminderTime||'',type:'Task',title:t.title||'Task'})}for(const r of state.data.manual_reminders||[]){const d=r.dueDate||r.date||String(r.scheduledFor||'').slice(0,10);if(d)out.push({date:d,time:r.time||r.reminderTime||'',type:'Reminder',title:r.title||r.text||'Reminder'})}return out.sort((a,b)=>`${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`)).slice(0,12)}
@@ -201,6 +201,30 @@ async function invokeWorldSecure(slug,body){
 }
 // Read-only v1.9 calendar adapter. Uses the existing per-user, RLS-scoped sync.
 // Calendar displays the same Android records; no new table, alarms or mutations.
+// Web v1.9.1: read-only Documents Pro bridge. Private attachments are downloaded
+// only on explicit user action using existing authenticated Storage RLS.
+window.LifeDashDocumentsBridge=Object.freeze({
+  ready:()=>Boolean(state.user&&state.session&&state.syncReady),
+  identity:()=>state.user?.id||null,
+  snapshot:()=>state.user&&state.session&&state.syncReady?
+    (state.data.documents||[]).map(doc=>({...doc})):null,
+  readFile:async id=>{
+    if(!state.user||!state.session||!state.syncReady||!state.client)
+      throw new Error('Sign in and finish secure sync first.');
+    const doc=(state.data.documents||[]).find(x=>String(x.id)===String(id));
+    if(!doc)throw new Error('Document is no longer in your synced records. Refresh data.');
+    const path=String(doc.storagePath||'');
+    // Local Android file:// URIs are not web-readable. Never use an untrusted URL.
+    if(!path.startsWith(state.user.id+'/documents/')||
+       path.includes('..')||/[?#\\]/.test(path))
+      throw new Error('This document has no accessible cloud file. It may exist only on your Android device.');
+    const {data,error}=await state.client.storage.from('lifedash-attachments').download(path);
+    if(error||!(data instanceof Blob))
+      throw new Error('Could not securely download this document: '+(error?.message||'File unavailable.'));
+    return {blob:data,name:String(doc.name||'Document').slice(0,170),
+      mime:String(doc.mimeType||data.type||'application/octet-stream').slice(0,90)};
+  }
+});
 window.LifeDashCalendarBridge=Object.freeze({
   ready:()=>Boolean(state.user&&state.session&&state.syncReady),
   identity:()=>state.user?.id||null,
