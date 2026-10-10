@@ -1,0 +1,198 @@
+/* LifeDashPro Web v1.15 — scoped Profile & Settings visual polish.
+   No data, account, or deletion logic changes. Dark/light palettes inherited. */
+#content .ldp-profile-section,
+#accountDeletionV114 .ldp-delete-pane{
+  --ldp-field-bg:#0b1d33;
+  --ldp-field-border:#2b4562;
+  --ldp-field-focus:#8178ff;
+  background:linear-gradient(155deg,rgba(19,40,68,.95),rgba(9,23,41,.98));
+  border:1px solid var(--line);
+  border-radius:22px;
+  padding:clamp(20px,2.6vw,30px);
+  box-shadow:0 12px 34px rgba(0,0,0,.09);
+}
+#content .ldp-profile-section{margin-bottom:16px;min-width:0}
+#content .ldp-profile-personal{
+  grid-template-columns:86px minmax(0,1fr);
+  gap:22px;align-items:start;
+}
+#content .ldp-profile-personal .profile-avatar{
+  width:76px;height:76px;border-radius:24px;
+  background:linear-gradient(145deg,#6555d9,#347bca);
+  color:#fff;font-size:30px;box-shadow:0 15px 32px rgba(60,91,208,.22);
+}
+#content .ldp-profile-heading{
+  display:flex;align-items:center;gap:13px;
+  padding-bottom:17px;margin-bottom:19px;
+  border-bottom:1px solid var(--line);
+}
+#content .ldp-profile-heading h3{
+  margin:0;font-weight:850;font-size:clamp(17px,1.5vw,20px);letter-spacing:-.35px;color:var(--text);
+}
+#content .ldp-profile-heading p{
+  font-size:12px;line-height:1.55;color:var(--muted);margin:5px 0 0;
+}
+#content .ldp-profile-icon{
+  width:43px;height:43px;border:1px solid rgba(126,121,255,.26);
+  border-radius:14px;display:grid;place-items:center;flex:none;
+  color:#b5aaff;font-size:22px;background:rgba(108,100,255,.13);
+}
+#content .ldp-profile-email .ldp-profile-icon{
+  color:#76c9f6;background:rgba(38,150,224,.12);
+  border-color:rgba(89,166,217,.24);
+}
+#content .ldp-profile-password .ldp-profile-icon{
+  color:#8be4c7;background:rgba(31,182,137,.12);
+  border-color:rgba(89,217,165,.22);
+}
+#content .ldp-profile-description{
+  font-size:13px;line-height:1.65;margin:0 0 20px;
+  max-width:780px;color:var(--muted);
+}
+#content .ldp-profile-section .form-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:19px 18px;
+}
+#content .ldp-profile-section .form-grid label,
+#accountDeletionV114 .ldp-delete-pane > label:not(.ldp-delete-ack){
+  display:flex;flex-direction:column;gap:8px;min-width:0;
+  font-size:12px;line-height:1.4;font-weight:750;
+  letter-spacing:.08px;color:var(--text);
+}
+#content .ldp-profile-section .form-grid input,
+#content .ldp-profile-section .form-grid select,
+#accountDeletionV114 .ldp-delete-pane input[type=email],
+#accountDeletionV114 .ldp-delete-pane input[type=text]{
+  appearance:none;width:100%;min-width:0;box-sizing:border-box;
+  min-height:49px;margin:0;padding:13px 15px;
+  border:1px solid var(--ldp-field-border);
+  border-radius:13px;outline:none;
+  background:var(--ldp-field-bg);color:var(--text);
+  font:inherit;font-size:14px;font-weight:550;
+  transition:border-color .16s ease,box-shadow .16s ease,background .16s ease;
+}
+#content .ldp-profile-section .form-grid input::placeholder,
+#accountDeletionV114 .ldp-delete-pane input::placeholder{color:var(--muted);opacity:.85}
+#content .ldp-profile-section .form-grid input:hover:not(:disabled),
+#accountDeletionV114 .ldp-delete-pane input:hover:not(:disabled){border-color:#577196}
+#content .ldp-profile-section .form-grid input:focus-visible,
+#accountDeletionV114 .ldp-delete-pane input[type=email]:focus-visible,
+#accountDeletionV114 .ldp-delete-pane input[type=text]:focus-visible{
+  border-color:var(--ldp-field-focus);
+  box-shadow:0 0 0 4px rgba(116,106,255,.17);
+}
+#content .ldp-profile-section .form-grid input:disabled{
+  opacity:1;cursor:not-allowed;color:var(--muted);
+  border-style:dashed;background:rgba(95,119,149,.10);
+}
+#content .ldp-profile-actions{
+  display:flex;flex-wrap:wrap;align-items:center;gap:11px;margin-top:23px;
+}
+#content .ldp-profile-actions button,
+#accountDeletionV114 .ldp-delete-pane > button{
+  min-height:45px;border-radius:12px;padding:12px 19px;
+  font-size:13px;font-weight:800;
+  transition:transform .16s ease,filter .16s ease;
+}
+#content .ldp-profile-actions button:hover:not(:disabled),
+#accountDeletionV114 .ldp-delete-pane > button:hover:not(:disabled){
+  transform:translateY(-1px);filter:brightness(1.1)
+}
+#content .ldp-profile-section .message:empty{display:none}
+#content .ldp-profile-section .message:not(:empty){margin-top:17px}
+#accountDeletionV114{
+  width:100%;gap:17px;margin:4px 0 23px;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+#accountDeletionV114 .ldp-delete-pane{
+  border-color:rgba(245,114,121,.20);
+  background:linear-gradient(155deg,rgba(67,26,43,.28),rgba(14,26,43,.98) 45%,rgba(9,22,39,.98));
+}
+#accountDeletionV114 .ldp-delete-pane:first-child{border-color:rgba(244,174,71,.25)}
+#accountDeletionV114 .ldp-delete-pane h3{
+  display:flex;gap:10px;align-items:center;
+  font-size:18px;font-weight:850;letter-spacing:-.25px;color:var(--text);
+  margin:0 0 14px;
+}
+#accountDeletionV114 .ldp-delete-pane h3:before{
+  content:"!";display:grid;place-items:center;
+  flex:0 0 33px;width:33px;height:33px;
+  border-radius:10px;font-size:19px;
+  background:rgba(255,101,112,.14);color:#ff8c99;
+  border:1px solid rgba(255,101,112,.2);
+}
+#accountDeletionV114 .ldp-delete-pane:first-child h3:before{
+  content:"−";background:rgba(243,165,69,.13);color:#ffc176;border-color:rgba(243,165,69,.2);
+}
+#accountDeletionV114 .ldp-delete-pane p{
+  color:var(--muted);font-size:12.5px;line-height:1.65;margin:0 0 14px;
+}
+#accountDeletionV114 .ldp-delete-pane .ldp-delete-caution{
+  background:rgba(245,169,80,.08);border:1px solid rgba(245,169,80,.17);
+  padding:12px 13px;border-radius:11px;color:var(--text);
+}
+#accountDeletionV114 .ldp-delete-pane > label:not(.ldp-delete-ack){margin:17px 0 0}
+#accountDeletionV114 .ldp-delete-ack{
+  display:flex!important;flex-direction:row!important;
+  gap:10px;align-items:flex-start;
+  border:1px solid var(--line);border-radius:12px;padding:12px 13px;
+  background:rgba(109,126,159,.06);
+  color:var(--text);font-weight:600!important;font-size:12px!important;
+}
+#accountDeletionV114 .ldp-delete-ack input[type=checkbox]{
+  appearance:auto;accent-color:#ff7081;flex:none;width:18px;height:18px;margin:1px 0 0;
+}
+#accountDeletionV114 .ldp-delete-pane > button{
+  width:100%;margin-top:18px;
+  background:rgba(218,71,89,.16);border:1px solid rgba(249,117,132,.43);
+  color:#ff9da8;box-shadow:none;
+}
+#accountDeletionV114 .ldp-delete-pane:first-child > button{
+  background:rgba(232,151,67,.12);border-color:rgba(237,170,94,.4);color:#ffd199;
+}
+#accountDeletionV114 .ldp-delete-pane > button:disabled{opacity:.44;cursor:not-allowed}
+#accountDeletionV114 .ldp-delete-result:empty{display:none}
+#accountDeletionV114 .ldp-delete-result:not(:empty){
+  padding:11px 12px;margin-top:13px!important;
+  border-radius:11px;border:1px solid var(--line);
+  background:rgba(94,119,152,.1);color:var(--text);
+}
+#accountDeletionV114 .ldp-delete-note{
+  border:1px solid var(--line);border-radius:12px;
+  padding:12px 16px;margin:0;font-size:12px;line-height:1.6;
+}
+html[data-ld-theme="light"] #content .ldp-profile-section,
+html[data-ld-theme="light"] #accountDeletionV114 .ldp-delete-pane{
+  --ldp-field-bg:#f8fbff;--ldp-field-border:#c8d7e8;--ldp-field-focus:#6356e9;
+  background:linear-gradient(150deg,#fff,#fafdff);
+  box-shadow:0 12px 35px rgba(40,66,112,.06);
+}
+html[data-ld-theme="light"] #content .ldp-profile-personal .profile-avatar{
+  background:linear-gradient(145deg,#5e62ef,#3498ce);color:#fff;
+}
+html[data-ld-theme="light"] #content .ldp-profile-icon{color:#554bd1;background:#efefff}
+html[data-ld-theme="light"] #content .ldp-profile-email .ldp-profile-icon{color:#12699f;background:#e9f6ff}
+html[data-ld-theme="light"] #content .ldp-profile-password .ldp-profile-icon{color:#0c8467;background:#e6f7f1}
+html[data-ld-theme="light"] #content .ldp-profile-section .form-grid input:disabled{background:#f0f5fc}
+html[data-ld-theme="light"] #accountDeletionV114 .ldp-delete-pane{background:linear-gradient(150deg,#fff,#fff9f9);border-color:#f2d1d6}
+html[data-ld-theme="light"] #accountDeletionV114 .ldp-delete-pane:first-child{background:linear-gradient(150deg,#fff,#fffaf4);border-color:#f1ddc3}
+html[data-ld-theme="light"] #accountDeletionV114 .ldp-delete-pane h3:before{color:#b93650;background:#ffe9ed}
+html[data-ld-theme="light"] #accountDeletionV114 .ldp-delete-pane:first-child h3:before{color:#a05f1e;background:#fff0dd}
+html[data-ld-theme="light"] #accountDeletionV114 .ldp-delete-pane .ldp-delete-caution{background:#fff8ee;color:#7d5429}
+html[data-ld-theme="light"] #accountDeletionV114 .ldp-delete-pane > button{color:#a52c42;background:#fff0f2}
+html[data-ld-theme="light"] #accountDeletionV114 .ldp-delete-pane:first-child > button{color:#995410;background:#fff2df}
+html[data-ld-theme="light"] #accountDeletionV114 .ldp-delete-result:not(:empty){background:#f6f8ff}
+@media(max-width:960px){
+  #accountDeletionV114{grid-template-columns:1fr}
+}
+@media(max-width:680px){
+  #content .ldp-profile-section,#accountDeletionV114 .ldp-delete-pane{padding:19px;border-radius:17px}
+  #content .ldp-profile-personal{grid-template-columns:1fr;gap:16px}
+  #content .ldp-profile-personal .profile-avatar{height:62px;width:62px;border-radius:18px;font-size:25px}
+  #content .ldp-profile-section .form-grid{grid-template-columns:1fr;gap:16px}
+  #content .ldp-profile-actions button{width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+  #content .ldp-profile-section input,#accountDeletionV114 input,
+  #content .ldp-profile-actions button,#accountDeletionV114 button{transition:none!important}
+}
