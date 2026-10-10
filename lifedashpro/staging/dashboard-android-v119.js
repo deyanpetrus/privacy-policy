@@ -67,19 +67,19 @@ function collect(snapshot){
  }
  for(const f of snapshot.finance_transactions||[]){
   const paid=f.isPaid===true||f.isPaid==='true'||f.paid===true;
+  const unpaid=f.isPaid===false||f.isPaid==='false'||f.paid===false;
   const title=f.description||f.title||f.merchant||f.category||'Transaction';
   const currency=f.currency||f.baseCurrencyAtEntry||'EUR';
   const positive=String(f.type||'').toLowerCase()==='income';
   const money=amount(f.amount,currency);
-  const label=(paid?'Paid':'Unpaid')+(money?' · '+(positive?'+':'−')+money:'');
+  const label=(paid?'Paid':unpaid?'Unpaid':'Transaction')+(money?' · '+(positive?'+':'−')+money:'');
   // Paid activity is dated by transaction; unpaid is dated by due date when available.
   const when=paid?(f.date||f.paidAt||f.dueDate):(f.dueDate||f.date);
   push('finance',f,when,title,label,f.time||f.paymentTime,false,
     money?(positive?'+':'−')+money:'');
-  const last=out[out.length-1];
-  if(last&&last.kind==='finance'&&last.id===String(f.id||f.itemId||title)){
-    last.paid=paid;
-  }
+  const date=dateKey(when),id=String(f?.id||f?.itemId||title);
+  const matching=date&&out.findLast(row=>row.kind==='finance'&&row.id===id&&row.date===date);
+  if(matching)matching.paid=paid?true:unpaid?false:null;
  }
  for(const d of snapshot.documents||[]){
   push('documents',d,d.expiresAt||d.expiryDate||d.expirationDate,
