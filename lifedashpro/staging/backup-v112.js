@@ -16,6 +16,7 @@ const E=(tag,cls,value)=>{
 const content=$('#content'),app=$('#appView');if(!content||!app)return;
 const bridge=()=>window.LifeDashBackupBridge;
 const FORMAT_VERSION=2,MAX_ROWS=5000,MAX_FILE_BYTES=25*1024*1024;
+const ALLOWED_SOURCES=new Set(['server','local-first']); // server RPC and Android local-first sync snapshots
 const statusText=msg=>String(msg??'').slice(0,550);
 let user='',backups=[],loading=false,selected=null,origin='',currentRows=null,plan=null;
 let verified=null,previewPending=false,confirmation=false,overwriteText='';
@@ -53,10 +54,14 @@ function resetSelection(){
  selected=null;origin='';currentRows=null;plan=null;verified=null;previewPending=false;confirmation=false;overwriteText='';
 }
 function jsonCheck(snapshot,owner){
- if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot)||
-    snapshot.schemaVersion!==FORMAT_VERSION||snapshot.source!=='server'||
-    snapshot.ownerUserId!==owner||!Array.isArray(snapshot.rows))
-   throw new Error('Invalid backup format, version, or account owner. No records changed.');
+ if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot)||!Array.isArray(snapshot.rows))
+   throw new Error('Invalid backup structure. No records changed.');
+ if(snapshot.schemaVersion!==FORMAT_VERSION)
+   throw new Error('Unsupported backup schema version. No records changed.');
+ if(!ALLOWED_SOURCES.has(snapshot.source))
+   throw new Error('Unsupported backup source. No records changed.');
+ if(snapshot.ownerUserId!==owner)
+   throw new Error('Backup belongs to another account. No records changed.');
  if(snapshot.rows.length>MAX_ROWS)
    throw new Error('Snapshot exceeds the 5,000-row safety limit; no records changed.');
  const seen=new Set(),safe=new Set(bridge()?.availableKinds()||[]);
