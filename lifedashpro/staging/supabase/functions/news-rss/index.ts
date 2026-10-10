@@ -125,7 +125,7 @@ function normalizedLink(value:unknown):string {
   try{const u=new URL(src);return u.protocol==="https:"?u.toString():""}catch{return ""}
 }
 function parseFeed(xml:string):Article[] {
- if(xml.length>MAX_XML||/<!DOCTYPE/i.test(xml)||!/<(?:rss|rdf:RDF|feed)[\\s>]/i.test(xml))
+ if(xml.length>MAX_XML||/<!DOCTYPE/i.test(xml)||!/<(?:rss|rdf:RDF|feed)[\s>]/i.test(xml))
    throw new Error("Invalid or oversized RSS feed");
  const parsed=parser.parse(xml);
  const channel=parsed?.rss?.channel||parsed?.RDF?.channel||parsed?.feed||{};
@@ -146,7 +146,7 @@ function parseFeed(xml:string):Article[] {
    seen.add(title.toLowerCase());
    const date=new Date(String(row.pubDate||row.published||row.updated||row.date||""));
    const description=String(row.description?.["#text"]||row.description||row.summary?.["#text"]||row.summary||"");
-   const summary=/<(?:ol|li|table)\\b/i.test(description)?"":plain(description,320);
+   const summary=/<(?:ol|li|table)\b/i.test(description)?"":plain(description,320);
    const id=plain(row.guid?.["#text"]||row.guid||row.id||url,150);
    result.push({id,title,source,publishedAt:Number.isFinite(date.getTime())?date.toISOString():"",summary:summary===title?"":summary,url});
    if(result.length>=24)break;
