@@ -6,5 +6,5 @@ window.LIFEDASH_CONFIG = {
   publishableKey: 'sb_publishable_Wf4GdnVWLRlvYpQxGzqIag_jYbp05Uv',
   basePath: '/lifedashpro/staging/',
   contractVersion: 'user_data + profiles (verified 2026-10-09)',
-  webVersion: '1.18.0-staging'
+  webVersion: '1.19.0-staging'
 };
