@@ -14,6 +14,20 @@
 #androidDashboardParityV119 .ldp119-today{grid-column:1/-1}
 #androidDashboardParityV119 .ldp119-around{grid-column:span 6}
 #androidDashboardParityV119 .ldp119-world{grid-column:span 6}
+#androidDashboardParityV119 .ldp119-news{grid-column:1/-1}
+#androidDashboardParityV119 .ldp119-icon-news{
+ background:rgba(67,147,239,.12);color:#a6cfff;border-color:rgba(67,147,239,.24);
+}
+#androidDashboardParityV119 .ldp119-news-countries{display:flex;gap:8px;flex-wrap:wrap}
+#androidDashboardParityV119 .ldp119-country-chip{
+ min-width:70px;min-height:46px;padding:10px 13px;
+ border:1px solid var(--ldp119-line);border-radius:13px;
+ background:rgba(110,117,172,.09);color:var(--text);
+ font-size:12px;font-weight:850;
+}
+#androidDashboardParityV119 .ldp119-country-chip:hover{
+ border-color:var(--primary);background:rgba(111,105,239,.16);
+}
 #androidDashboardParityV119 .ldp119-route{grid-column:1/-1}
 #androidDashboardParityV119 .ldp119-head,
 #androidDashboardParityV119 .ldp119-heading{
