@@ -228,10 +228,10 @@ const BACKUP_SAFE_KINDS=Object.freeze([
   'weather_saved_cities','app_preferences','car_mode_preferences'
 ]);
 function backupReady(){
-  return Boolean(state.client&&state.user&&state.session&&state.syncReady&&!state.loading);
+  return Boolean(state.client&&state.user&&state.session&&state.syncReady);
 }
 function backupClient(){
-  if(!backupReady())throw new Error('Wait for authenticated secure sync before backups or restore.');
+  if(!backupReady()||state.loading)throw new Error('Wait for the current secure sync to finish before backups or restore.');
   return {client:state.client,userId:state.user.id};
 }
 window.LifeDashBackupBridge=Object.freeze({
