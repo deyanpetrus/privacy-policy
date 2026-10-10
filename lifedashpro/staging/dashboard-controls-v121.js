@@ -127,7 +127,8 @@ function notesCard(host){
  allButton.type='button';allButton.addEventListener('click',navNotes);
  heading.append(allButton);card.append(heading);
  const filters=E('div','ldp121-filters');
- const prefs=read(prefPrefix+owner,{});
+ const stored=read(prefPrefix+owner,{});
+ const prefs=stored&&typeof stored==='object'&&!Array.isArray(stored)?stored:{};
  const state={
   sort:['newest','oldest','due','az'].includes(prefs.sort)?prefs.sort:'newest',
   filter:['all','today','next','overdue','undated'].includes(prefs.filter)?prefs.filter:'all',
