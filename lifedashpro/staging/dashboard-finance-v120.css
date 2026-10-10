@@ -1,0 +1,63 @@
+/* Web v1.20: Android-first Dashboard. Old modules stay available on demand. */
+#content.dashboard-view.ldp120-dashboard-compact .dash-grid,
+#content.dashboard-view.ldp120-dashboard-compact .dash-stats,
+#content.dashboard-view.ldp120-dashboard-compact .widget-layout-toolbar,
+#content.dashboard-view.ldp120-dashboard-compact .organizer-hub,
+#content.dashboard-view.ldp120-dashboard-compact .widget-layout-feedback{display:none!important}
+#androidDashboardParityV119 .ldp120-dashboard-budget,
+#androidDashboardParityV119 .ldp120-detail-toggle{grid-column:1/-1;min-width:0}
+#androidDashboardParityV119 .ldp120-detail-toggle{
+ width:100%;min-height:46px;cursor:pointer;border:1px solid var(--line);
+ border-radius:13px;background:var(--panel2);color:var(--primary2);
+ padding:12px;font-size:13px;font-weight:850
+}
+#androidDashboardParityV119 .ldp120-detail-toggle:hover{border-color:var(--primary)}
+.ldp120-budget-panel{
+ padding:clamp(18px,2vw,26px);background:var(--panel);
+ border:1px solid var(--line);border-radius:22px;
+ min-width:0;box-sizing:border-box;box-shadow:0 8px 24px rgba(0,0,0,.05)
+}
+.ldp120-budget-header{display:flex;align-items:center;gap:13px;margin:0 0 18px}
+.ldp120-budget-header>div{flex:1;min-width:0}
+.ldp120-budget-header h3{margin:0 0 4px;font-size:clamp(18px,2.1vw,23px)}
+.ldp120-budget-header small{font-size:12px;color:var(--muted)}
+.ldp120-budget-icon{display:grid;place-items:center;width:45px;height:45px;
+ border-radius:14px;background:rgba(38,180,128,.14);color:#28ad81;font-size:22px}
+.ldp120-open-finance{border:1px solid var(--line);border-radius:11px;
+ background:var(--panel2);color:var(--primary2);padding:10px 12px;
+ cursor:pointer;font-size:12px;font-weight:850}
+.ldp120-green{
+ background:linear-gradient(130deg,#28b07c,#2fb787 70%,#219d78);
+ color:white;border-radius:19px;padding:clamp(18px,3vw,30px)
+}
+.ldp120-budget-values{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.ldp120-budget-cell{display:flex;flex-direction:column;gap:7px;min-width:0}
+.ldp120-budget-cell span{font-size:12px;opacity:.84}
+.ldp120-budget-cell strong{
+ font-size:clamp(17px,2.8vw,31px);line-height:1.2;font-weight:900;
+ letter-spacing:-.5px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums
+}
+.ldp120-budget-expense strong{color:#ffe4e5}
+.ldp120-budget-forecast{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+ margin-top:23px;padding-top:15px;border-top:1px solid rgba(255,255,255,.24);font-size:11px}
+.ldp120-budget-forecast strong{font-size:12px}
+.ldp120-budget-note{font-size:11px;line-height:1.6;color:var(--muted);margin:12px 0 0}
+.ldp120-year{margin-top:18px;padding:19px;border-radius:17px;
+ border:1px solid var(--line);background:var(--panel2)}
+.ldp120-year h4{margin:0 0 16px;font-size:15px}
+.ldp120-year-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.ldp120-year-stats>div{display:flex;flex-direction:column;gap:8px;min-width:0}
+.ldp120-year-stats span{font-size:11px;color:var(--muted)}
+.ldp120-year-stats b{font-size:clamp(14px,2vw,22px);overflow-wrap:anywhere}
+.ldp120-currencies{border:1px solid var(--line);border-radius:9px;
+ background:var(--panel2);color:var(--text);padding:9px 12px;margin:0 0 12px}
+#financeMonthCardV120{margin-bottom:18px}
+#financeMonthCardV120:empty,#financeMonthDashV120:empty{display:none}
+@media(max-width:670px){
+ .ldp120-budget-panel{padding:16px}
+ .ldp120-budget-values{grid-template-columns:1fr 1fr;gap:18px}
+ .ldp120-budget-balance{grid-column:1/-1}
+ .ldp120-budget-cell strong{font-size:24px}
+ .ldp120-year-stats{grid-template-columns:1fr}
+ .ldp120-year-stats>div{flex-direction:row;justify-content:space-between}
+}
