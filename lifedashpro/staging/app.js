@@ -4,7 +4,7 @@ const cfg=window.LIFEDASH_CONFIG||{};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const state={client:null,session:null,user:null,profile:null,page:'dashboard',data:{},editor:null,loading:false,syncReady:false,lastSync:null,deviceId:localStorage.getItem('lifedash_web_device_id')||`web-${crypto.randomUUID?.()||Date.now()}`};
 localStorage.setItem('lifedash_web_device_id',state.deviceId);
-const KINDS=['notes','finance_transactions','family_tasks','documents','vehicles','journey_plans_beta','manual_reminders','travel','radio_favorites','family_members'];
+const KINDS=['notes','finance_transactions','finance_goals','family_tasks','documents','vehicles','journey_plans_beta','manual_reminders','travel','radio_favorites','family_members'];
 const TITLES={dashboard:'Dashboard',today:'Today & Next 5',calendar:'Personal Calendar',notes:'Notes Pro',tasks:'Tasks',documents:'Documents',finance:'Finance',vehicles:'Vehicles',journey:'Journey',radio:'World Radio',world:'World Live',profile:'Profile & Settings'};
 
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
@@ -203,6 +203,19 @@ async function invokeWorldSecure(slug,body){
 // Calendar displays the same Android records; no new table, alarms or mutations.
 // Web v1.9.1: read-only Documents Pro bridge. Private attachments are downloaded
 // only on explicit user action using existing authenticated Storage RLS.
+// Web v1.9.2: additive read-only finance analytics. Use the existing canonical
+// Android user_data collections; never create recurring occurrences or edit records.
+window.LifeDashFinanceBridge=Object.freeze({
+  ready:()=>Boolean(state.user&&state.session&&state.syncReady),
+  identity:()=>state.user?.id||null,
+  snapshot:()=>{
+    if(!state.user||!state.session||!state.syncReady)return null;
+    return {
+      transactions:(state.data.finance_transactions||[]).map(row=>({...row})),
+      goals:(state.data.finance_goals||[]).map(row=>({...row}))
+    };
+  }
+});
 window.LifeDashDocumentsBridge=Object.freeze({
   ready:()=>Boolean(state.user&&state.session&&state.syncReady),
   identity:()=>state.user?.id||null,
