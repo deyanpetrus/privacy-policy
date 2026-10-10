@@ -255,10 +255,10 @@ $$('[data-page]').forEach(b=>b.onclick=()=>setPage(b.dataset.page));
 // World Live Edge requests: recover once from a stale authenticated web token.
 // The Edge Functions keep verify_jwt=true, user validation and per-user throttling.
 let worldAuthRefreshPromise=null;
-async function invokeWorldSecure(slug,body){
+async function invokeWorldSecure(slug,body,signal){
   if(!state.user||!state.session||!state.client)throw new Error('Sign in first.');
   const userId=state.user.id;
-  let response=await state.client.functions.invoke(slug,{body});
+  let response=await state.client.functions.invoke(slug,signal?{body,signal}:{body});
   if(response.error&&Number(response.error?.context?.status)===401){
     // One shared refresh avoids concurrent FIRMS / ADS-B token rotation races.
     if(!worldAuthRefreshPromise){
@@ -274,7 +274,7 @@ async function invokeWorldSecure(slug,body){
        renewed.data.session.user?.id!==userId||
        state.user?.id!==userId)
       throw new Error('Login session expired. Please sign out and sign in again.');
-    response=await state.client.functions.invoke(slug,{body});
+    response=await state.client.functions.invoke(slug,signal?{body,signal}:{body});
   }
   if(response.error){
     const status=Number(response.error?.context?.status)||0;
@@ -537,9 +537,9 @@ window.LifeDashNewsBridge=Object.freeze({
  identity:()=>state.user?.id||null,
  profileCountry:()=>String(state.profile?.country||state.user?.user_metadata?.country||'DE'),
  profileLanguage:()=>String(state.profile?.language||state.user?.user_metadata?.language||'en'),
- news:async(country,category)=>{
+ news:async(country,category,signal)=>{
    if(!state.user||!state.syncReady)throw new Error('Sign in and complete secure sync first.');
-   const data=await invokeWorldSecure('news-rss',{country,category});
+   const data=await invokeWorldSecure('news-rss',{country,category},signal);
    if(!Array.isArray(data.items)||data.items.length>40)throw new Error('News source returned an invalid response.');
    return data;
  }

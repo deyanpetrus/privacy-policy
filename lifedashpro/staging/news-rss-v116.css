@@ -178,3 +178,46 @@ html[data-ld-theme="light"] .news-reader-close,html[data-ld-theme="light"] .news
  #newsRssV116 .news-story{transition:none}
  #newsRssV116 .news-shimmer{animation:none}
 }
+
+/* Web v1.16.1 compact News layout: the workspace top bar already has the title. */
+#newsRssV116 .news-filterbar{
+ display:grid;grid-template-columns:auto minmax(0,1fr) auto;
+ align-items:center;gap:13px;
+ margin:0 0 9px;padding:10px 13px;border-radius:14px;
+}
+#newsRssV116 .news-compact-label{
+ display:inline-flex;align-items:center;white-space:nowrap;gap:5px;
+ font-size:11px;font-weight:850;color:#99e5cb;
+ background:rgba(37,192,149,.10);border:1px solid rgba(58,212,165,.24);
+ padding:8px 10px;border-radius:999px;
+}
+#newsRssV116 .news-country-label{
+ display:flex;flex-direction:row;align-items:center;
+ flex:1 1 auto;max-width:none;gap:10px;min-width:0;white-space:nowrap;
+ font-size:11px;color:var(--nr-muted);
+}
+#newsRssV116 .news-country-select{
+ max-width:480px;min-height:39px;height:39px;padding:8px 13px;font-size:13px;
+}
+#newsRssV116 .news-refresh{min-height:39px;padding:7px 15px;font-size:12px}
+#newsRssV116 .news-category-tabs{gap:6px;padding:2px 0 8px}
+#newsRssV116 .news-category{padding:8px 12px;font-size:11px;border-radius:10px}
+#newsRssV116 .news-info-line{margin:0 0 10px;font-size:11px}
+#newsRssV116 .news-article-grid{gap:11px}
+#newsRssV116 .news-story{gap:9px;padding:16px;border-radius:16px}
+#newsRssV116 .news-story h3{font-size:15px}
+#newsRssV116 .news-story-description{font-size:11.5px}
+html[data-ld-theme="light"] #newsRssV116 .news-compact-label{
+ color:#167b67;background:#e5f8f1;border-color:#c6ebdf;
+}
+@media(max-width:700px){
+ #newsRssV116 .news-filterbar{grid-template-columns:minmax(0,1fr) auto;gap:8px}
+ #newsRssV116 .news-compact-label{grid-column:1/-1;width:max-content}
+ #newsRssV116 .news-country-label{min-width:0;gap:6px}
+ #newsRssV116 .news-country-select{min-width:0;max-width:none}
+ #newsRssV116 .news-refresh{width:auto;padding:7px 11px}
+}
+@media(max-width:420px){
+ #newsRssV116 .news-country-label{display:grid;gap:5px}
+ #newsRssV116 .news-compact-label{padding:5px 9px}
+}

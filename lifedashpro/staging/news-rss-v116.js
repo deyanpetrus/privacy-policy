@@ -26,6 +26,7 @@ const KEY_PREFIX='lifedash_web_news_country_v116_';
 const cache=new Map();
 const TTL_MS=8*60*1000;
 let currentHost=null,requestCounter=0,currentUser='';
+let activeNewsRequest=null;
 function el(tag,cls,text){
  const element=document.createElement(tag);if(cls)element.className=cls;
  if(text!==undefined)element.textContent=text;return element;
@@ -102,13 +103,6 @@ function regionDropdown(select,country){
 }
 function intro(host,owner){
  host.replaceChildren();
- const hero=el('section','news-hero');
- const h=el('div');
- h.append(el('p','news-kicker','LIFEDASHPRO · NEWS INTELLIGENCE'),el('h2','','News & RSS'));
- h.append(el('p','news-hero-lead','Latest headlines by country, with a worldwide fallback. No background scanning or notifications.'));
- const right=el('span','news-live-tag','◉ On-demand RSS');
- hero.append(h,right);
- host.append(hero);
  const bar=el('section','news-filterbar');
  const label=el('label','news-country-label','Country / Region');
  const dropdown=el('select','news-country-select');dropdown.id='newsCountryV116';
@@ -116,7 +110,8 @@ function intro(host,owner){
  regionDropdown(dropdown,savedCountry(owner));label.append(dropdown);
  const refresh=el('button','news-refresh','↻ Refresh');refresh.type='button';
  refresh.id='newsRefreshV116';
- bar.append(label,refresh);host.append(bar);
+ const mini=el('span','news-compact-label','◉ RSS · Headlines');
+ bar.append(mini,label,refresh);host.append(bar);
  const categories=el('nav','news-category-tabs');
  categories.setAttribute('aria-label','News categories');
  categories.id='newsCategoriesV116';host.append(categories);
@@ -126,7 +121,7 @@ function intro(host,owner){
  const count=el('span','news-count','');count.id='newsCountV116';
  info.append(notice,count);host.append(info);
  const list=el('section','news-article-grid');list.id='newsArticlesV116';host.append(list);
- const footer=el('p','news-footnote','Powered by Google News RSS. Article links and summaries belong to their publishers. Full articles are available from the original source.');
+ const footer=el('p','news-footnote','Headlines from regional and international RSS publishers. Article rights belong to their sources; read full stories at the original publisher.');
  host.append(footer);
  return {dropdown,refresh,categories,notice,count,list};
 }
@@ -166,7 +161,7 @@ function renderArticles(ui,data){
  const items=Array.isArray(data.items)?data.items:[];
  const country=countryName(data.country||ui.dropdown.value);
  ui.count.textContent=String(items.length)+' article'+(items.length===1?'':'s');
- const mode=data.fallbackUsed?'Worldwide fallback':'Country feed';
+ const mode=data.country==='GLOBAL'?'World feed':data.fallbackUsed?'Worldwide fallback':'Regional feed';
  ui.notice.textContent=country+' · '+mode+' · Updated '+fmtDate(data.updatedAt)+(data.cached?' · Cached':'');
  if(!items.length){list.append(el('div','news-empty','No headlines found for this selection. Try another category or country.'));return}
  for(const item of items){
@@ -194,33 +189,47 @@ function placeholders(list){
 }
 async function load(host,ui,owner,country,category,force=false){
  const ticket=++requestCounter;
- for(const btn of ui.categories.querySelectorAll('button'))btn.setAttribute('aria-pressed',String(btn.dataset.category===category));
+ // Switching a country/category cancels the previous request immediately.
+ // Never disable country selection or tabs during a slow publisher response.
+ if(activeNewsRequest)activeNewsRequest.abort();
+ const controller=new AbortController();
+ activeNewsRequest=controller;
+ const deadline=setTimeout(()=>controller.abort(),13200);
+ for(const btn of ui.categories.querySelectorAll('button'))
+   btn.setAttribute('aria-pressed',String(btn.dataset.category===category));
  const key=owner+'|'+country+'|'+category;
  const cached=cache.get(key);
- const now=Date.now();
- if(!force&&cached&&now-cached.at<TTL_MS){renderArticles(ui,cached.data);return}
- ui.refresh.disabled=true;ui.dropdown.disabled=true;
- ui.notice.textContent='Loading headlines for '+countryName(country)+'…';ui.count.textContent='';
- placeholders(ui.list);
  try{
-  const data=await bridge().news(country,category);
+  if(!force&&cached&&Date.now()-cached.at<TTL_MS){
+   renderArticles(ui,cached.data);return;
+  }
+  ui.notice.textContent='Checking '+countryName(country)+' headlines…';
+  ui.count.textContent='';
+  placeholders(ui.list);
+  const data=await bridge().news(country,category,controller.signal);
   if(!isCurrent(host,owner)||ticket!==requestCounter)return;
-  if(data.country!==country||data.category!==category)throw new Error('Unexpected country or category in news response.');
+  if(data.country!==country||data.category!==category)
+    throw new Error('News server returned an unexpected country/category.');
   cache.set(key,{at:Date.now(),data});
   if(cache.size>70)cache.delete(cache.keys().next().value);
   renderArticles(ui,data);
  }catch(e){
   if(!isCurrent(host,owner)||ticket!==requestCounter)return;
   ui.list.replaceChildren();
-  if(cached&&cached.data?.items?.length){
+  if(cached?.data?.items?.length){
    renderArticles(ui,cached.data);
-   ui.notice.textContent='Live source unavailable — showing last received headlines. '+String(e?.message||'');
+   ui.notice.textContent='Publisher temporarily unavailable · Showing last headlines';
   }else{
-   ui.notice.textContent='News temporarily unavailable. You can retry or choose another region.';
-   ui.list.append(el('div','news-error',String(e?.message||'RSS feed request failed.')));
+   const timedOut=controller.signal.aborted;
+   ui.notice.textContent=timedOut?'RSS timed out · Choose another region or retry':
+    'News source temporarily unavailable · Choose another region or retry';
+   const errorText=timedOut?'Request stopped after 13 seconds. Country and category selection remain available.':
+     String(e?.message||'RSS feed request failed.');
+   ui.list.append(el('div','news-error',errorText));
   }
  }finally{
-  if(isCurrent(host,owner)&&ticket===requestCounter){ui.refresh.disabled=false;ui.dropdown.disabled=false}
+  clearTimeout(deadline);
+  if(activeNewsRequest===controller)activeNewsRequest=null;
  }
 }
 function mount(host){
@@ -254,11 +263,11 @@ function mount(host){
 function observe(){
  const host=root.querySelector('#newsRssV116');
  if(!valid()){
-  if(currentUser){currentUser='';cache.clear();requestCounter++}
+  if(currentUser){currentUser='';cache.clear();requestCounter++;activeNewsRequest?.abort();activeNewsRequest=null}
   currentHost=null;return;
  }
  if(host&&!host.dataset.newsReady)mount(host);
- if(!host&&currentHost){currentHost=null;requestCounter++}
+ if(!host&&currentHost){currentHost=null;requestCounter++;activeNewsRequest?.abort();activeNewsRequest=null}
 }
 new MutationObserver(observe).observe(root,{childList:true});
 new MutationObserver(observe).observe(shell,{attributes:true,attributeFilter:['class']});
