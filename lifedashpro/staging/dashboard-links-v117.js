@@ -68,7 +68,7 @@
     });
   }
   function decorate(){
-    if(shell.classList.contains('hidden')||location.hash!=='#dashboard')return;
+    if(shell.classList.contains('hidden')||document.querySelector('#pageTitle')?.textContent?.trim()!=='Dashboard')return;
     const grid=root.querySelector('.dash-grid');
     if(grid){
       for(const conf of cfg){
