@@ -120,27 +120,27 @@ function renderProfile(){
  const first=String(p.first_name||full.split(/\s+/)[0]||'').trim();
  const last=String(p.last_name!=null?p.last_name:full.split(/\s+/).slice(1).join(' ')).trim();
  return pageWrap('Profile & Settings','Manage your LifeDashPro identity and account security.',`
-<section class='card span-12 profile-card'><div class='profile-avatar'>${esc((first||state.user?.email||'U').charAt(0).toUpperCase())}</div><div>
-<h3>Profile information</h3><div class='form-grid'>
+<section class='card span-12 profile-card ldp-profile-section ldp-profile-personal'><div class='profile-avatar'>${esc((first||state.user?.email||'U').charAt(0).toUpperCase())}</div><div>
+<div class='ldp-profile-heading'><span class='ldp-profile-icon' aria-hidden='true'>◉</span><div><h3>Personal information</h3><p>Your identity and preferences, synced with LifeDashPro.</p></div></div><div class='form-grid'>
 <label>First name (required)<input id='profileFirstName' autocomplete='given-name' maxlength='80' required value='${esc(first)}'></label>
 <label>Last name (optional)<input id='profileLastName' autocomplete='family-name' maxlength='80' value='${esc(last)}'></label>
 <label>Email (account)<input value='${esc(state.user?.email||'')}' disabled></label>
 <label>City<input id='profileCity' value='${esc(p.city||'')}'></label>
 <label>Country<input id='profileCountry' value='${esc(p.country||'')}'></label>
 <label>Language<input id='profileLanguage' value='${esc(p.language||'en')}'></label></div>
-<div style='display:flex;gap:8px;margin-top:16px;flex-wrap:wrap'><button type='button' class='primary' id='saveProfile'>Save profile</button><button type='button' class='secondary' id='logoutBtn'>Sign out</button></div></div></section>
-<section class='card span-12'><h3>Change email</h3><p>Supabase may send confirmation messages to both your current and new email. Your sign-in address stays unchanged until the required confirmations are completed.</p>
+<div class='ldp-profile-actions'><button type='button' class='primary' id='saveProfile'>Save changes</button><button type='button' class='secondary' id='logoutBtn'>Sign out</button></div></div></section>
+<section class='card span-12 ldp-profile-section ldp-profile-email'><div class='ldp-profile-heading'><span class='ldp-profile-icon' aria-hidden='true'>✉</span><div><h3>Change email address</h3><p>Keep your sign-in email up to date.</p></div></div><p class='ldp-profile-description'>You may need to confirm messages at both your old and new email addresses. The current email remains active until verification is complete.</p>
 <div class='form-grid'><label>New email address<input id='profileNewEmail' type='email' autocomplete='email' maxlength='254' placeholder='new@example.com'></label></div>
-<div style='margin-top:12px'><button id='requestEmailChangeBtn' type='button' class='secondary'>Request email change</button></div>
+<div class='ldp-profile-actions'><button id='requestEmailChangeBtn' type='button' class='secondary'>Send verification request</button></div>
 <p id='accountEmailMessage' class='message' role='status' aria-live='polite'></p></section>
-<section class='card span-12'><h3>Change password</h3><p>Confirm your current password. If your account requires additional verification or you use a passwordless sign-in, request a one-time code and enter it below. Your credentials are never stored in LifeDashPro data.</p>
+<section class='card span-12 ldp-profile-section ldp-profile-password'><div class='ldp-profile-heading'><span class='ldp-profile-icon' aria-hidden='true'>✧</span><div><h3>Password & security</h3><p>Protect your LifeDashPro account.</p></div></div><p class='ldp-profile-description'>Enter your current password or use an email verification code. Your password is handled by Supabase Auth and is not stored in LifeDashPro records.</p>
 <div class='form-grid'><label>Current password<input id='profileCurrentPassword' type='password' autocomplete='current-password'></label>
 <label>New password<input id='profileNewPassword' type='password' autocomplete='new-password' minlength='12'></label>
 <label>Confirm new password<input id='profileConfirmPassword' type='password' autocomplete='new-password' minlength='12'></label>
 <label>One-time verification code (when used)<input id='profileReauthCode' type='text' inputmode='numeric' autocomplete='one-time-code' maxlength='12'></label></div>
-<div style='display:flex;gap:8px;margin-top:12px;flex-wrap:wrap'><button id='sendAccountNonceBtn' type='button' class='secondary'>Send verification code</button><button id='changeAccountPasswordBtn' type='button' class='primary'>Update password</button></div>
+<div class='ldp-profile-actions'><button id='sendAccountNonceBtn' type='button' class='secondary'>Send verification code</button><button id='changeAccountPasswordBtn' type='button' class='primary'>Update password</button></div>
 <p id='accountPasswordMessage' class='message' role='status' aria-live='polite'></p></section>
-<section id='accountDeletionV114' class='account-deletion-v114' aria-label='Delete My Data or Delete Account'></section>
+<section id='accountDeletionV114' class='account-deletion-v114 ldp-profile-danger-zone' aria-label='Delete My Data or Delete Account'></section>
 <section class='card span-12'><p class='eyebrow'>SYNC CONTRACT</p><p>Web version <b>${esc(cfg.webVersion||'safe-sync')}</b> · Android data contract <b>${esc(cfg.contractVersion||'v38.13')}</b>. Native Android alarms, background navigation, Car Mode and other native services are not recreated by the browser.</p></section>`);
 }
 function pageWrap(title,desc,body){return `<div class="section-head"><div><p class="eyebrow">LIFEDASHPRO WEB</p><h2>${esc(title)}</h2><p>${esc(desc)}</p></div></div>${body}`}
