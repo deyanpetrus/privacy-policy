@@ -14,7 +14,7 @@
   const content=$('#content'),app=$('#appView'),bridge=()=>window.LifeDashFinanceBridge;
   if(!content||!app)return;
   const MONTH_PREF='lifedash_web_finance_month_v192';
-  let owner='',selectedMonth='',currency='',categoryMode='expense',tab='overview',tx=[],goals=[];
+  let owner='',selectedMonth='',currency='',categoryMode='expense',view='expected',tx=[],goals=[];
   const todayMonth=()=>monthFromDate(new Date());
   function monthFromDate(d){return String(d.getFullYear())+'-'+String(d.getMonth()+1).padStart(2,'0')}
   function parseDate(raw){
@@ -83,6 +83,45 @@
     }
     result.balance=result.income-result.expense;
     return result;
+  }
+  // Derived-only monthly plan. Never write synthetic transactions to Supabase.
+  // Group source templates with the same Android recurring identity; when there is
+  // no sourceId, choose the most recent matching description/type/category record.
+  // Existing saved month entries always count once. Recognize an exact matching
+  // posted transaction in the target month rather than counting it twice.
+  function sourceKey(row){
+    const external=row.sourceId?row.source+'|'+row.sourceId:
+      row.description.trim().toLocaleLowerCase()+'|'+row.category.trim().toLocaleLowerCase();
+    return row.currency+'|'+row.type+'|'+external;
+  }
+  function recurringOccurrences(month=selectedMonth,c=currency){
+    const grouped=new Map();
+    for(const row of validRows()){
+      if(row.currency!==c||row.periodicity!=='monthly'||row.date.slice(0,7)>month)continue;
+      const key=sourceKey(row),old=grouped.get(key);
+      if(!old||row.date>old.date)grouped.set(key,row);
+    }
+    const saved=rowsForMonth(month,c);
+    return [...grouped.values()].map(row=>{
+      const due=monthOccurrence(row,month);
+      const exists=saved.some(t=>t.id===row.id||
+        (t.currency===row.currency&&t.type===row.type&&t.amount===row.amount&&
+         t.description.trim().toLocaleLowerCase()===row.description.trim().toLocaleLowerCase()&&
+         (!row.sourceId||t.sourceId===row.sourceId)));
+      return {...row,due,exists,forecastOnly:!exists};
+    }).filter(row=>Boolean(row.due)).sort((a,b)=>a.due.localeCompare(b.due));
+  }
+  function monthOverview(month=selectedMonth,c=currency){
+    const saved=rowsForMonth(month,c),actual=aggregate(saved);
+    const occurrences=recurringOccurrences(month,c);
+    const added=occurrences.filter(x=>x.forecastOnly);
+    const monthly=aggregate(added);
+    return {actual,forecast:{
+      ...actual,income:actual.income+monthly.income,
+      expense:actual.expense+monthly.expense,
+      balance:actual.balance+monthly.balance,
+      count:actual.count+added.length
+    },occurrences,added,monthly};
   }
   function shiftMonth(delta){selectedMonth=plusMonths(selectedMonth,delta);savePref();draw();}
   function button(label,cls,click){
@@ -164,43 +203,42 @@
     const anchor=Number(row.date.slice(8,10));
     return month+'-'+String(Math.min(anchor,daysInMonth(month))).padStart(2,'0');
   }
-  function renderRecurrence(root){
-    const section=node('section','finance-plus-panel finance-plus-wide');
-    section.append(sectionTitle('Recurring income & expenses',
-      'Informational schedule from existing Android monthly records — not automatically posted on Web.'));
-    const templates=validRows().filter(x=>x.currency===currency&&x.recurring);
-    const monthly=templates.filter(x=>x.periodicity==='monthly').sort((a,b)=>a.description.localeCompare(b.description));
-    const other=templates.filter(x=>x.periodicity!=='monthly');
-    const head=node('div','finance-plus-schedule-head');
-    head.append(node('strong','',monthly.length+' monthly source records'),
-      node('span','','Original entries remain untouched'));
-    section.append(head);
-    const note=node('p','finance-plus-recurring-note',
-      'Due dates are indicative based on each saved monthly record. Multiple source records may represent the same series; Web does not merge, create, pay or duplicate transactions. Only actual saved records contribute to monthly totals.');
-    section.append(note);
+  function renderRecurrence(root,overview=monthOverview()){
+    const section=node('section','finance-plus-panel finance-plus-wide finance-plus-recurring-main');
+    section.append(sectionTitle('Monthly income & expenses · including repeats',
+      'Live calculation from your actual Android monthly source entries. No synthetic records are saved.'));
+    const occurrences=overview.occurrences;
+    const sums=overview.monthly;
+    const totals=node('div','finance-plus-recurring-totals');
+    for(const [label,val]of [['Additional planned income',sums.income],
+                              ['Additional planned expenses',sums.expense]]){
+      const tile=node('div','finance-plus-recurring-total');
+      tile.append(node('span','',label),node('strong','',money(val,currency)));
+      totals.append(tile);
+    }
+    section.append(totals);
+    section.append(node('p','finance-plus-recurring-note',
+      occurrences.length+' recurring source(s) active in '+monthTitle(selectedMonth)+
+      ' · '+overview.added.length+' not already represented by a saved entry in this month. '+
+      'Matches are checked by source ID or identical description, amount and type. '+
+      'This is an estimate: verify each series if Android has separate recurring rules.'));
     const list=node('div','finance-plus-recurring-list');
-    const currentSaved=rowsForMonth();
-    let displayed=0;
-    for(const item of monthly){
-      const due=monthOccurrence(item,selectedMonth);
-      if(!due)continue;
-      displayed++;
-      const originalThisMonth=item.date.slice(0,7)===selectedMonth;
+    if(!occurrences.length)list.append(node('p','finance-plus-empty',
+      'No monthly source records active in this month. Choose a later month or check Android recurrence settings.'));
+    for(const item of occurrences){
       const row=node('div','finance-plus-recurring-item');
       const icon=node('span','finance-plus-recurring-icon',item.type==='income'?'＋':'−');
       const description=node('div','finance-plus-recurring-info');
       description.append(node('strong','',item.description),
-        node('small','',item.category+' · '+due+' · '+(originalThisMonth?'Saved original record':'Schedule only')));
+        node('small','',item.category+' · '+item.due+' · '+
+          (item.exists?'Already included in saved records':'Added to monthly estimate')));
       const amount=node('strong','finance-plus-amount',money(item.amount,currency));
       row.append(icon,description,amount);
       list.append(row);
     }
-    if(!displayed)list.append(node('p','finance-plus-empty','No monthly recurring source records active for this month and currency.'));
-    if(other.length){
-      const note=node('p','finance-plus-muted',
-        other.length+' other recurring source record(s) use a schedule not projected by this monthly view.');
-      list.append(note);
-    }
+    const others=validRows().filter(x=>x.currency===currency&&x.recurring&&x.periodicity!=='monthly').length;
+    if(others)list.append(node('p','finance-plus-muted',
+      others+' other recurring source(s) have unsupported cadence; not projected.'));
     section.append(list);root.append(section);
   }
   function renderGoals(root){
@@ -269,20 +307,38 @@
     actions.append(button('Export CSV','secondary finance-plus-export',reportCsv));
     title.append(labels,actions);root.append(title);
     const records=rowsForMonth();
-    const kpis=aggregate(records);
+    const overview=monthOverview();
+    const kpis=view==='expected'?overview.forecast:overview.actual;
+    const toggle=node('div','finance-plus-view-toggle');
+    for(const [key,label] of [['expected','With monthly repeats'],['recorded','Saved only']]){
+      const select=button(label,'finance-plus-tab'+(view===key?' active':''),()=>{view=key;draw()});
+      select.setAttribute('aria-pressed',String(view===key));
+      toggle.append(select);
+    }
+    root.append(toggle);
+    const heading=node('p','finance-plus-report-explainer',view==='expected'?
+      'ESTIMATED MONTHLY TOTALS · saved entries plus missing monthly repeats (not posted to the ledger)':
+      'SAVED TRANSACTIONS ONLY · amounts actually present in Supabase, regardless of Paid status');
+    root.append(heading);
     renderKpis(root,kpis);
+    const breakdown=node('div','finance-plus-month-breakdown');
+    breakdown.append(node('span','','Saved: '+money(overview.actual.income,currency)+' income / '+
+      money(overview.actual.expense,currency)+' expenses'));
+    breakdown.append(node('span','','Extra monthly repeats: '+money(overview.monthly.income,currency)+
+      ' income / '+money(overview.monthly.expense,currency)+' expenses'));
+    root.append(breakdown);
     const subtitle=node('div','finance-plus-countline');
     const undated=normalize().filter(x=>!x.date||x.amount===null||!x.type).length;
     subtitle.append(node('span','',records.length+' saved transaction'+(records.length===1?'':'s')+
       ' in '+monthTitle(selectedMonth)+' · '+currency));
     if(undated)subtitle.append(node('span','finance-plus-warning',undated+' record(s) with invalid or missing date/amount/type not included'));
     root.append(subtitle);
+    renderRecurrence(root,overview);
     const grid=node('div','finance-plus-analytics-grid');
     renderTrend(grid);renderCategories(grid);root.append(grid);
-    renderRecurrence(root);
     renderGoals(root);
     const footer=node('p','finance-plus-disclaimer',
-      'Recorded means saved in your LifeDashPro transaction history, not necessarily paid. Existing Paid/Unpaid controls and Android-managed protection remain in the original Finance list below. No future installments are added to income, expenses or balance.');
+      'With monthly repeats is an estimated plan, not bank balance or confirmed payments. Saved only is the canonical ledger. Repeat estimates are never written as transactions, and CSV exports saved entries only. Existing Paid/Unpaid and Android-managed safeguards remain unchanged.');
     root.append(footer);
   }
   function mount(){
