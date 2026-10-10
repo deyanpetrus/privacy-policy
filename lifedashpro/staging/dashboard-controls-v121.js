@@ -112,6 +112,12 @@ function visibleRows(records,settings){
  });
  return {all:rows,shown:rows.slice(0,settings.limit==='all'?1000:Number(settings.limit)||3)};
 }
+function showDate(iso){
+ const key=keyDate(iso);if(!key)return '';
+ const [y,m,d]=key.split('-').map(Number);
+ try{return new Intl.DateTimeFormat(i18n()?.locale?.()||'en',{day:'numeric',month:'short',year:'numeric'}).format(new Date(y,m-1,d,12))}
+ catch{return key}
+}
 function navNotes(){document.querySelector('#nav [data-page="notes"]')?.click()}
 function notesCard(host){
  if($(CLS.notes,host))return;
@@ -169,8 +175,8 @@ function notesCard(host){
    const icon=E('span','ldp121-note-icon','✎');
    const body=E('span','ldp121-note-body');
    body.append(E('strong','',n.title));
-   const detail=n.due?tr('dueSoon','Due')+' · '+n.due:
-    (n.changed||tr('noDate','No date'));
+   const detail=n.due?tr('dueSoon','Due')+' · '+showDate(n.due):
+    (n.changed?showDate(n.changed):tr('noDate','No date'));
    body.append(E('small','',detail));
    item.append(icon,body,E('span','ldp121-note-arrow','›'));
    item.addEventListener('click',navNotes);
