@@ -158,7 +158,7 @@ function todayCard(host,snapshot){
  const section=el('section','ldp119-panel ldp119-today');
  const h=el('header','ldp119-head');
  const heading=el('div','ldp119-heading');heading.append(icon('today','◷'),el('h2','',t('Денес · Следни · Чекаат','Today · Next · Waiting')));
- h.append(heading,button(t('Сите →','All →'),'ldp119-more',()=>nav('today')));section.append(h);
+ h.append(heading,button(t('Сите →','All →'),'ldp119-more',()=>{expanded=true;refresh()}));section.append(h);
  const tabs=el('div','ldp119-tabs');tabs.setAttribute('role','group');tabs.setAttribute('aria-label','Choose timeline period');
  const rows=el('div','ldp119-rows');
  const menu=[
