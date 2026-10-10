@@ -57,7 +57,7 @@ function normalizePlace(x){
 function setOrigin(next){
  if(!next||!Number.isFinite(next.lat)||!Number.isFinite(next.lon))return;
  origin={lat:next.lat,lon:next.lon,label:next.label||'Selected location',presetId:next.presetId||''};
- epoch++;results=[];source='';error='';checkedAt=0;
+ epoch++;waiting=false;results=[];source='';error='';checkedAt=0;
  const label=$('#exploreCenterLabel');if(label)label.textContent=origin.label;
  const picker=$('#exploreCitySelect');
  if(picker)picker.value=origin.presetId||'custom';
@@ -264,7 +264,7 @@ function render(){
  const radios=el('select','explore-select');radios.id='exploreRadius';
  for(const km of [2,5,10,20]){const o=el('option','',km+' km');o.value=String(km);radios.append(o)}
  radios.value=String(radius);
- radios.addEventListener('change',()=>{radius=Number(radios.value);epoch++;results=[];error='';updateMap();updateList();search()});
+ radios.addEventListener('change',()=>{radius=Number(radios.value);epoch++;waiting=false;results=[];error='';updateMap();updateList();search()});
  radiusWrap.append(radios);
  const gps=el('button','secondary explore-gps','⌖ Use my location');gps.type='button';gps.id='exploreUseGps';gps.addEventListener('click',useGps);
  const refresh=el('button','secondary explore-refresh','↻ Refresh');refresh.type='button';refresh.id='exploreRefresh';refresh.addEventListener('click',()=>search(true));
@@ -283,7 +283,7 @@ function render(){
    b.type='button';b.dataset.exploreCategory=key;b.setAttribute('aria-pressed',String(key===category));
    b.addEventListener('click',()=>{
      if(category===key)return;
-     category=key;epoch++;results=[];error='';
+     category=key;epoch++;waiting=false;results=[];error='';
      host.querySelectorAll('[data-explore-category]').forEach(btn=>{
        const active=btn.dataset.exploreCategory===key;
        btn.classList.toggle('selected',active);btn.setAttribute('aria-pressed',String(active));
@@ -311,11 +311,11 @@ function render(){
 function observe(){
  const page=$('#exploreAroundPage',content);
  if(!ready()){
-   if(identity){identity='';cache.clear();attempts.clear();epoch++;results=[];clearMap()}
+   if(identity){identity='';cache.clear();attempts.clear();epoch++;waiting=false;results=[];clearMap()}
    return;
  }
  const user=String(bridge().identity()||'');
- if(user!==identity){identity=user;cache.clear();attempts.clear();epoch++;results=[];clearMap();origin=null}
+ if(user!==identity){identity=user;cache.clear();attempts.clear();epoch++;waiting=false;results=[];clearMap();origin=null}
  if(!page){if(map)clearMap();return}
  if(!origin){const c=preset();origin={lat:c[2],lon:c[3],label:c[1],presetId:c[0]}}
  render();
