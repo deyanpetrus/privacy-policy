@@ -173,7 +173,7 @@ function openEditor(mode,id){
   if(!state.syncReady)return msg('Wait until all cloud data is loaded.','error');
   const kind={notes:'notes',finance:'finance_transactions',tasks:'family_tasks'}[mode];if(!kind)return;
   const item=(state.data[kind]||[]).find(x=>String(x.id)===String(id))||null;state.editor={mode,kind,item};$('#editorDialog').classList.toggle('note-pro-v118',mode==='notes');
-  $('#editorEyebrow').textContent=item?'EDIT':'NEW';$('#editorTitle').textContent=mode==='notes'?(item?'Edit Note':'Add Note'):mode==='finance'?'Transaction':'Task';$('#editorDelete').classList.toggle('hidden',!item||isProtectedFinance(item));$('#editorSave').classList.toggle('hidden',isProtectedFinance(item));
+  $('#editorEyebrow').textContent=item?'EDIT':'NEW';$('#editorTitle').textContent=mode==='notes'?(item?'Edit Note':'Add Note'):mode==='finance'?'Transaction':'Task';$('#editorDelete').classList.toggle('hidden',!item||(mode==='finance'&&isProtectedFinance(item)));$('#editorSave').classList.toggle('hidden',mode==='finance'&&isProtectedFinance(item));
   $('#editorFields').innerHTML=mode==='notes'?noteFields(item):mode==='finance'?financeFields(item):taskFields(item);$('#editorDialog').showModal();
 }
 function val(id){return document.getElementById(id)?.value?.trim()||''}function checked(id){return !!document.getElementById(id)?.checked}
@@ -236,7 +236,7 @@ function financeFields(t={}){return `<div class="form-grid"><label class="wide">
 function taskFields(t={}){return `<div class="form-grid"><label class="wide">Title<input id="fTitle" value="${esc(t?.title||'')}"></label><label>Assigned to<input id="fAssigned" value="${esc(t?.assignedTo||'Me')}"></label><label>Due date<input id="fDue" type="date" value="${esc(t?.dueDate||today())}"></label><label>Priority<select id="fPriority"><option ${t?.priority==='high'?'selected':''}>high</option><option ${!t?.priority||t?.priority==='medium'?'selected':''}>medium</option><option ${t?.priority==='low'?'selected':''}>low</option></select></label><label style="display:flex;align-items:center;grid-template-columns:auto 1fr;gap:8px"><input id="fDone" type="checkbox" ${t?.done?'checked':''} style="width:auto"> Completed</label></div>`}
 function isProtectedFinance(t){return !!(t&&t.sourceModule&&t.sourceModule!=='web')}
 async function saveEditor(){
-  const e=state.editor;if(!e)return;if(isProtectedFinance(e.item))return msg('Android-managed transactions are read-only on Web.','error');const old=e.item||{},now=isoNow();let item;
+  const e=state.editor;if(!e)return;if(e.mode==='finance'&&isProtectedFinance(e.item))return msg('Android-managed transactions are read-only on Web.','error');const old=e.item||{},now=isoNow();let item;
   if(e.mode==='notes'){
   const title=val('fTitle');
   if(!title||title.length>220)return msg('A title is required (max 220 characters).','error');
@@ -308,7 +308,7 @@ async function saveEditor(){
   if(e.mode==='tasks'){const title=val('fTitle');if(!title)return msg('Task title is required.','error');item={...old,id:old.id||`web-task-${Date.now()}`,title,assignedTo:val('fAssigned')||'Me',done:checked('fDone'),priority:val('fPriority')||'medium',dueDate:val('fDue')||undefined,createdAt:old.createdAt||now,updatedAt:now}}
   try{$('#editorSave').disabled=true;await upsertRecord(e.kind,item);$('#editorDialog').close();msg('Saved and synchronized.','good')}catch(x){msg(`Save failed: ${x.message}`,'error')}finally{$('#editorSave').disabled=false}
 }
-async function deleteEditor(){const e=state.editor;if(!e?.item||isProtectedFinance(e.item))return;if(!confirm('Delete this item? This will synchronize the deletion to the same LifeDashPro account.'))return;try{await tombstoneRecord(e.kind,e.item.id);$('#editorDialog').close();msg('Deleted with synchronized tombstone.','good')}catch(x){msg(`Delete failed: ${x.message}`,'error')}}
+async function deleteEditor(){const e=state.editor;if(!e?.item||(e.mode==='finance'&&isProtectedFinance(e.item)))return;if(!confirm('Delete this item? This will synchronize the deletion to the same LifeDashPro account.'))return;try{await tombstoneRecord(e.kind,e.item.id);$('#editorDialog').close();msg('Deleted with synchronized tombstone.','good')}catch(x){msg(`Delete failed: ${x.message}`,'error')}}
 async function saveProfile(){
  const first=String($('#profileFirstName')?.value||'').trim();
  const last=String($('#profileLastName')?.value||'').trim();
