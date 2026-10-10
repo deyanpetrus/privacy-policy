@@ -173,7 +173,7 @@ function openEditor(mode,id){
   if(!state.syncReady)return msg('Wait until all cloud data is loaded.','error');
   const kind={notes:'notes',finance:'finance_transactions',tasks:'family_tasks'}[mode];if(!kind)return;
   const item=(state.data[kind]||[]).find(x=>String(x.id)===String(id))||null;state.editor={mode,kind,item};$('#editorDialog').classList.toggle('note-pro-v118',mode==='notes');
-  $('#editorEyebrow').textContent=item?'EDIT':'NEW';$('#editorTitle').textContent=mode==='notes'?'Note':mode==='finance'?'Transaction':'Task';$('#editorDelete').classList.toggle('hidden',!item||isProtectedFinance(item));$('#editorSave').classList.toggle('hidden',isProtectedFinance(item));
+  $('#editorEyebrow').textContent=item?'EDIT':'NEW';$('#editorTitle').textContent=mode==='notes'?(item?'Edit Note':'Add Note'):mode==='finance'?'Transaction':'Task';$('#editorDelete').classList.toggle('hidden',!item||isProtectedFinance(item));$('#editorSave').classList.toggle('hidden',isProtectedFinance(item));
   $('#editorFields').innerHTML=mode==='notes'?noteFields(item):mode==='finance'?financeFields(item):taskFields(item);$('#editorDialog').showModal();
 }
 function val(id){return document.getElementById(id)?.value?.trim()||''}function checked(id){return !!document.getElementById(id)?.checked}
