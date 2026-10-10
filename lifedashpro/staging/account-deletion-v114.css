@@ -1,0 +1,16 @@
+/* Account erasure — isolated Web staging controls (v1.14) */
+#accountDeletionV114{display:grid;gap:16px;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;margin:18px 0 0}
+#accountDeletionV114 .ldp-delete-pane{min-width:0;padding:20px;border:1px solid var(--border,rgba(127,127,127,.24));border-radius:14px}
+#accountDeletionV114 .ldp-delete-pane h3{margin:0 0 12px;font-size:1.1rem}
+#accountDeletionV114 .ldp-delete-pane p{line-height:1.55;font-size:.9rem;margin:0 0 12px}
+#accountDeletionV114 .ldp-delete-pane label{display:grid;gap:6px;margin-top:14px;font-size:.9rem;font-weight:600}
+#accountDeletionV114 .ldp-delete-pane input[type=email],
+#accountDeletionV114 .ldp-delete-pane input[type=text]{width:100%;max-width:100%;box-sizing:border-box}
+#accountDeletionV114 .ldp-delete-ack{display:flex!important;align-items:flex-start;gap:8px;line-height:1.45;font-weight:500!important}
+#accountDeletionV114 .ldp-delete-ack input{width:auto;min-width:16px;margin-top:4px}
+#accountDeletionV114 .ldp-delete-caution,#accountDeletionV114 .ldp-delete-note{opacity:.85}
+#accountDeletionV114 .danger{margin-top:16px;min-height:42px}
+#accountDeletionV114 .danger:disabled{opacity:.43;cursor:not-allowed}
+#accountDeletionV114 .ldp-delete-result{min-height:20px;margin-top:12px!important;overflow-wrap:anywhere}
+#accountDeletionV114 .ldp-delete-note{grid-column:1/-1;line-height:1.5;margin:0 2px 10px;font-size:.86rem}
+@media(max-width:800px){#accountDeletionV114{grid-template-columns:1fr}}
