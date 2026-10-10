@@ -127,7 +127,7 @@ function world(kind){
  if(!nav('world'))return;
  if(!kind)return;
  const target={
-  fires:'.world-live-card[data-type="fires"]',quakes:'.world-live-card[data-type="quakes"]',
+  fires:'#worldLivePage .world-live-card[data-live-type="fires"]',quakes:'#worldLivePage .world-live-card[data-live-type="quakes"]',
   air:'#worldMobilitySection [data-mobility="air"]',road:'#worldMobilitySection [data-mobility="road"]'
  }[kind];
  if(!target)return;
