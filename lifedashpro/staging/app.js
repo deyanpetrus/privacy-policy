@@ -5,7 +5,7 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const state={client:null,session:null,user:null,profile:null,page:'dashboard',data:{},editor:null,loading:false,syncReady:false,lastSync:null,deviceId:localStorage.getItem('lifedash_web_device_id')||`web-${crypto.randomUUID?.()||Date.now()}`};
 localStorage.setItem('lifedash_web_device_id',state.deviceId);
 const KINDS=['notes','finance_transactions','finance_goals','family_tasks','documents','vehicles','journey_plans_beta','manual_reminders','travel','radio_favorites','family_members'];
-const TITLES={dashboard:'Dashboard',today:'Today & Next 5',calendar:'Personal Calendar',notes:'Notes Pro',tasks:'Tasks',documents:'Documents',finance:'Finance',explore:'Explore & Around Me',vehicles:'Vehicles',journey:'Journey',radio:'World Radio',world:'World Live',profile:'Profile & Settings'};
+const TITLES={dashboard:'Dashboard',today:'Today & Next 5',calendar:'Personal Calendar',notes:'Notes Pro',tasks:'Tasks',documents:'Documents',finance:'Finance',explore:'Explore & Around Me',vehicles:'Vehicles',journey:'Journey',radio:'World Radio',world:'World Live',backup:'Backup & Restore',profile:'Profile & Settings'};
 
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function fmtMoney(v,c='EUR'){try{return new Intl.NumberFormat(undefined,{style:'currency',currency:c||'EUR'}).format(Number(v)||0)}catch{return `${Number(v||0).toFixed(2)} ${c||'EUR'}`}}
@@ -100,7 +100,7 @@ async function tombstoneRecord(kind,id){
 }
 function updateCounts(){const d=state.data;$('#navNotes').textContent=(d.notes||[]).length;$('#navTasks').textContent=(d.family_tasks||[]).filter(x=>!x.done).length;$('#navDocs').textContent=(d.documents||[]).length;$('#navVehicles').textContent=(d.vehicles||[]).length;$('#navJourneys').textContent=(d.journey_plans_beta||[]).length}
 function setPage(page){state.page=page;location.hash=page;$$('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));$('#pageTitle').textContent=TITLES[page]||'LifeDashPro';$('#quickAddBtn').classList.toggle('hidden',!['notes','finance','tasks','dashboard'].includes(page));render()}
-function render(){if(!state.session)return;const c=$('#content');if(!state.syncReady){c.innerHTML='<section class="card span-12"><h3>Checking secure sync…</h3><p>Could not verify all cloud records yet. No records have been changed. Use Refresh (↻) when your connection is available.</p></section>';$('#quickAddBtn').disabled=true;return;}$('#quickAddBtn').disabled=false;const fn={dashboard:renderDashboard,today:renderToday,calendar:()=>'<section id="personalCalendar" class="personal-calendar" aria-label="Personal Organizer Calendar"></section>',notes:renderNotes,tasks:renderTasks,documents:()=>'<section id="documentsProPage" class="documents-pro-page" aria-label="Documents Pro"></section>',finance:renderFinance,explore:()=>'<section id="exploreAroundPage" class="explore-around-page" aria-label="Explore and Around Me"></section>',vehicles:()=>'<section id="vehicleManagerV111" class="mobility-v111" aria-label="Vehicle Manager"></section>',journey:()=>'<section id="journeyManagerV111" class="mobility-v111" aria-label="Journey Manager"></section>',profile:renderProfile,radio:()=>'<section id="worldRadioPage" class="radio-page-shell" aria-label="World Radio"></section>',world:()=>'<section id="worldLivePage" class="world-live-page" aria-label="World Live"></section>'}[state.page]||renderDashboard;c.innerHTML=fn();wirePageRows()}
+function render(){if(!state.session)return;const c=$('#content');if(!state.syncReady){c.innerHTML='<section class="card span-12"><h3>Checking secure sync…</h3><p>Could not verify all cloud records yet. No records have been changed. Use Refresh (↻) when your connection is available.</p></section>';$('#quickAddBtn').disabled=true;return;}$('#quickAddBtn').disabled=false;const fn={dashboard:renderDashboard,today:renderToday,calendar:()=>'<section id="personalCalendar" class="personal-calendar" aria-label="Personal Organizer Calendar"></section>',notes:renderNotes,tasks:renderTasks,documents:()=>'<section id="documentsProPage" class="documents-pro-page" aria-label="Documents Pro"></section>',finance:renderFinance,explore:()=>'<section id="exploreAroundPage" class="explore-around-page" aria-label="Explore and Around Me"></section>',vehicles:()=>'<section id="vehicleManagerV111" class="mobility-v111" aria-label="Vehicle Manager"></section>',journey:()=>'<section id="journeyManagerV111" class="mobility-v111" aria-label="Journey Manager"></section>',backup:()=>'<section id="backupRestoreV112" class="backup-v112" aria-label="Backup and Restore"></section>',profile:renderProfile,radio:()=>'<section id="worldRadioPage" class="radio-page-shell" aria-label="World Radio"></section>',world:()=>'<section id="worldLivePage" class="world-live-page" aria-label="World Live"></section>'}[state.page]||renderDashboard;c.innerHTML=fn();wirePageRows()}
 function financeStats(){const tx=state.data.finance_transactions||[];let inc=0,exp=0;const currencies=new Set();for(const x of tx){const currency=String(x.currency||x.baseCurrencyAtEntry||'EUR').toUpperCase();currencies.add(currency);const a=Number(x.amount)||0;if(x.type==='income')inc+=a;else exp+=a}return{inc,exp,bal:inc-exp,currency:[...currencies][0]||'EUR',mixed:currencies.size>1}}
 function fmtTotal(stats,key){return stats.mixed?'Multiple currencies':fmtMoney(stats[key],stats.currency)}
 function timelineItems(){const out=[];for(const n of state.data.notes||[]){if(n.dueDate&&n.status!=='completed'&&n.status!=='archived')out.push({date:n.dueDate,time:n.dueTime||'',type:'Note',title:n.title||'Note'})}for(const t of state.data.family_tasks||[]){if(t.dueDate&&!t.done)out.push({date:t.dueDate,time:t.reminderTime||'',type:'Task',title:t.title||'Task'})}for(const r of state.data.manual_reminders||[]){const d=r.dueDate||r.date||String(r.scheduledFor||'').slice(0,10);if(d)out.push({date:d,time:r.time||r.reminderTime||'',type:'Reminder',title:r.title||r.text||'Reminder'})}return out.sort((a,b)=>`${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`)).slice(0,12)}
@@ -218,6 +218,123 @@ window.LifeDashFinanceBridge=Object.freeze({
 });
 // Web v1.11: read-only vehicle / journey adapter to Android's exact RLS-scoped
 // user_data records. Does not modify native navigation, service alarms, or SAR.
+// Web v1.12: server snapshots through existing per-user RLS backup APIs.
+// Never store passwords, auth tokens, or unsafe silent overwrite actions here.
+const BACKUP_SAFE_KINDS=Object.freeze([
+  'notes','notes_contacts','notes_settings','finance_transactions','finance_goals',
+  'family_tasks','manual_reminders','documents','vehicles','journey_plans_beta',
+  'travel','radio_favorites','family_members','family_events','family_moments',
+  'habits','habit_entries','home_utility_meters','home_utility_readings',
+  'weather_saved_cities','app_preferences','car_mode_preferences'
+]);
+function backupReady(){
+  return Boolean(state.client&&state.user&&state.session&&state.syncReady&&!state.loading);
+}
+function backupClient(){
+  if(!backupReady())throw new Error('Wait for authenticated secure sync before backups or restore.');
+  return {client:state.client,userId:state.user.id};
+}
+window.LifeDashBackupBridge=Object.freeze({
+  ready:backupReady,
+  identity:()=>state.user?.id||null,
+  availableKinds:()=>BACKUP_SAFE_KIN.slice(),
+  list:async()=>{
+    const {client,userId}=backupClient();
+    const {data,error}=await client.from('user_data_backups')
+      .select('id,reason,row_count,created_at')
+      .eq('user_id',userId).order('created_at',{ascending:false}).limit(50);
+    if(error)throw error;
+    return data||[];
+  },
+  create:async reason=>{
+    backupClient();
+    const {data,error}=await state.client.rpc('create_user_data_backup',{
+      p_reason:String(reason||'manual:web-v1.12').slice(0,100)
+    });
+    if(error)throw error;
+    if(!Number.isSafeInteger(Number(data))||Number(data)<=0)throw new Error('Unexpected backup creation response.');
+    return Number(data);
+  },
+  read:async backupId=>{
+    const {client,userId}=backupClient();
+    if(!Number.isSafeInteger(Number(backupId))||Number(backupId)<=0)throw new Error('Invalid backup identifier.');
+    const {data,error}=await client.from('user_data_backups')
+      .select('id,user_id,reason,row_count,created_at,snapshot')
+      .eq('user_id',userId).eq('id',Number(backupId)).maybeSingle();
+    if(error)throw error;
+    if(!data||data.user_id!==userId)throw new Error('Backup not found or not owned by current user.');
+    return data;
+  },
+  currentIndex:async()=>{
+    const {client,userId}=backupClient(),rows=[];
+    for(let offset=0;offset<10000;offset+=500){
+      if(state.user?.id!==userId||!state.syncReady)throw new Error('Session changed while reading live data.');
+      const {data,error}=await client.from('user_data')
+        .select('kind,item_id,deleted_at').eq('user_id',userId)
+        .order('kind',{ascending:true}).order('item_id',{ascending:true})
+        .range(offset,offset+499);
+      if(error)throw error;
+      rows.push(...(data||[]));
+      if(!data||data.length<500)return rows;
+    }
+    throw new Error('Live dataset exceeds the supported 10,000-row preview limit. No records changed.');
+  },
+  restoreMissing:async (rows,expectedOwner)=>{
+    const {client,userId}=backupClient();
+    if(expectedOwner!==userId)throw new Error('Backup belongs to a different account.');
+    if(!Array.isArray(rows)||!rows.length||rows.length>5000)
+      throw new Error('Invalid or oversized missing-row selection.');
+    const safe=new Set(BACKUP_SAFE_KIN),known=new Set();
+    // Validate every row before creating a pre-restore snapshot.
+    for(const r of rows){
+      const key=String(r?.kind||'')+'|'+String(r?.item_id||'');
+      if(!r||!safe.has(r.kind)||typeof r.item_id!=='string'||
+        !r.item_id||r.item_id.length>180||r.item_id.includes('|')||
+        !r.payload||typeof r.payload!=='object'||Array.isArray(r.payload)||
+        (r.payload.id!=null&&String(r.payload.id)!==r.item_id)||
+        r.deleted_at!=null||known.has(key))throw new Error('Invalid or duplicate restore record. Nothing changed.');
+      known.add(key);
+    }
+    const {data:snapshotId,error:backupError}=await client.rpc('create_user_data_backup',{
+      p_reason:'pre-restore-missing:web-v1.12'
+    });
+    if(backupError||!Number(snapshotId))throw backupError||new Error('Safety backup failed. Restore cancelled.');
+    let inserted=0;
+    // Small batches: onConflict do nothing. Active AND soft-deleted rows are
+    // preserved. Server constraints enforce uniqueness atomically with every batch.
+    for(let i=0;i<rows.length;i+=25){
+      if(!backupReady()||state.user?.id!==userId)
+        throw new Error('Restore stopped: login/sync state changed. '+inserted+' rows may have been created.');
+      const batch=rows.slice(i,i+25).map(r=>({
+        user_id:userId,kind:r.kind,item_id:r.item_id,payload:r.payload,
+        deleted_at:null,device_id:state.deviceId,updated_at:new Date().toISOString()
+      }));
+      const {data,error}=await client.from('user_data')
+        .upsert(batch,{onConflict:'user_id,kind,item_id',ignoreDuplicates:true})
+        .select('item_id');
+      if(error)throw new Error('Restore stopped after '+inserted+' new rows. '+error.message);
+      inserted+=(data||[]).length;
+    }
+    return {inserted,preBackupId:Number(snapshotId)};
+  },
+  // The existing server RPC OVERWRITES matching active records and resurrects
+  // soft-deleted rows. UI must show exact risk and require explicit typed consent.
+  restoreFullMerge:async backupId=>{
+    backupClient();
+    if(!Number.isSafeInteger(Number(backupId))||Number(backupId)<=0)
+      throw new Error('Invalid restore backup ID.');
+    const {data,error}=await state.client.rpc('restore_user_data_backup_merge',{
+      p_backup_id:Number(backupId)
+    });
+    if(error)throw error;
+    return Number(data)||0;
+  },
+  refresh:async()=>{
+    backupClient();
+    await refreshAll();
+    return state.syncReady;
+  }
+});
 window.LifeDashMobilityBridge=Object.freeze({
   ready:()=>Boolean(state.user&&state.session&&state.syncReady),
   identity:()=>state.user?.id||null,
