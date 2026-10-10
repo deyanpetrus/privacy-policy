@@ -200,7 +200,7 @@ function draw(){
  const side=E('aside','mob111-chooser');
  side.append(E('strong','','Saved vehicles'));
  for(const v of vehicles){
-   const item=action(display(v),'mob111-choice',()=>{selected=String(v.id);section='overview';draw()});
+   const item=action(display(v),()=>{selected=String(v.id);section='overview';draw()},'mob111-choice');
    item.classList.toggle('active',String(v.id)===selected);
    item.setAttribute('aria-pressed',String(v.id)===selected);
    const second=E('small','',txt(v.licensePlate)||txt(v.fuelType)||'Vehicle');
@@ -213,7 +213,7 @@ function draw(){
  panel.append(info);
  const tabs=E('div','mob111-tabs');
  for(const [key,label]of [['overview','Overview'],['services','Services'],['fuel','Fuel'],['documents','Documents']]){
-   const tab=action(label,'mob111-tab',()=>{section=key;draw()});
+   const tab=action(label,()=>{section=key;draw()},'mob111-tab');
    tab.classList.toggle('active',section===key);tab.setAttribute('aria-pressed',String(section===key));tabs.append(tab);
  }
  panel.append(tabs);
