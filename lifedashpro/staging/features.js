@@ -43,12 +43,17 @@
     wrap.appendChild(select);
     return wrap;
   }
-  function dateKey(row){
-    var value=row.dataset.uiDate||'';
-    var match=/^(\d{4}-\d{2})(?:-\d{2})?/.exec(value);
-    return match?match[1]:'';
+  // Accept valid Android dates YYYY-M-D, YYYY MM DD and normal ISO dates.
+  // Normalize in memory only; never change the canonical transaction payload.
+  function datePart(raw){
+    var m=String(raw||'').trim().match(/^(\d{4})[- ](\d{1,2})[- ](\d{1,2})(?:[T\s].*)?$/);
+    if(!m)return '';
+    var y=Number(m[1]),month=Number(m[2]),day=Number(m[3]);
+    var d=new Date(y,month-1,day,12);
+    if(d.getFullYear()!==y||d.getMonth()+1!==month||d.getDate()!==day)return '';
+    return m[1]+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0');
   }
-  function datePart(raw){return /^\d{4}-\d{2}-\d{2}/.test(raw)?raw.slice(0,10):''}
+  function dateKey(row){return datePart(row.dataset.uiDate||'').slice(0,7)}
   function dueDate(row){return datePart(row.dataset.uiDue||'')}
   function entryDate(row){return datePart(row.dataset.uiDate||'')}
   function build(page,list){
