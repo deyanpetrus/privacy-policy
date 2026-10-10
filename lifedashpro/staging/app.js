@@ -199,6 +199,8 @@ function noteFields(n={}){
  const otherStatus=statuses.some(x=>x[0]===status)?'':option(status,'Existing: '+status,status);
  const otherDirection=['pay','receive'].includes(direction)?'':option(direction,'Existing: '+direction,direction);
  const count=Array.isArray(item.attachments)?item.attachments.length:0;
+ const oldDue=String(item.dueDate||'');
+ const displayDue=/^\d{4}-\d{2}-\d{2}/.test(oldDue)?oldDue.slice(0,10):'';
  return '<div class="notes-editor-v118">'+
   '<p class="n118-description">Basic Note · Existing Android fields and attachments are preserved when saving.</p>'+
   '<div class="n118-grid">'+
@@ -210,7 +212,7 @@ function noteFields(n={}){
   input('fContactName','Contact name','contactName')+input('fPhone','Phone','phone','tel')+
   input('fEmail','Email','email','email')+input('fLink','Link','link','url','https://')+
   '<h4 class="n118-wide">Dates & reminders</h4>'+
-  input('fDue','Due date','dueDate','date')+input('fDueTime','Due time','dueTime','time')+
+  '<label>Due date<input id="fDue" type="date" value="'+esc(displayDue)+'"></label>'+input('fDueTime','Due time','dueTime','time')+
   check('fReminderEnabled','Reminder enabled',item.reminderEnabled!==false)+
   '<label>Remind before<select id="fReminderBefore">'+reminders.map(x=>option(x[0],x[1],before)).join('')+otherBefore+'</select></label>'+
   '<p class="n118-hint n118-wide">Reminder preferences are synchronized. Android schedules the actual notification when this note has a due date.</p>'+
@@ -262,12 +264,16 @@ async function saveEditor(){
   if(newSub)subDescriptions.push(newSub);
   const timestamp=typeof crypto!=='undefined'&&crypto.randomUUID?
    crypto.randomUUID():String(Date.now())+'-'+Math.random().toString(36).slice(2,10);
+  const originalDue=String(old.dueDate||'');
+  const shownDue=/^\d{4}-\d{2}-\d{2}/.test(originalDue)?originalDue.slice(0,10):'';
+  const typedDue=val('fDue');
+  const dueDate=typedDue===shownDue?old.dueDate:(typedDue||undefined);
   const direction=val('fFinanceDirection')||old.financeDirection||'pay';
   const paid=checked('fNotePaid');
   item={...old,id:old.id||'web-note-'+timestamp,
    type:old.type||'note',title,description:val('fDescription'),
    subDescriptions,contactName:val('fContactName'),phone:val('fPhone'),
-   email,link,dueDate:val('fDue')||undefined,dueTime:val('fDueTime')||undefined,
+   email,link,dueDate,dueTime:val('fDueTime')||undefined,
    reminderEnabled:checked('fReminderEnabled'),
    reminderBefore:val('fReminderBefore')||old.reminderBefore||'1day',
    status:val('fStatus')||old.status||'active',pinned:checked('fPinned'),
