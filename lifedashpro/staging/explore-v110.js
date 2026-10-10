@@ -185,7 +185,7 @@ function updateList(){
  if(meta)meta.textContent=waiting?'Searching provider…':error?'Unavailable · '+error:
    checkedAt?'Source: '+source+' · Checked '+fmtTime(checkedAt):'Choose a category to search nearby';
  list.replaceChildren();
- if(error&&!results.length)list.append(el('p','explore-empty','Could not load nearby places. Try Refresh or another category.'));
+ if(error&&!results.length)list.append(el('p','explore-empty','Nearby places unavailable: '+error+' · Try again after 60 seconds, or choose another category.'));
  else if(!results.length)list.append(el('p','explore-empty',waiting?
    'Searching within '+radius+' km…':'No places returned for this category within '+radius+' km.'));
  results.forEach((x,i)=>{
