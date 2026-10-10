@@ -87,3 +87,14 @@
  .finance-plus-amount{margin-left:39px}
 }
 @media(prefers-reduced-motion:reduce){.finance-plus-bar{transition:none!important}}
+
+/* v1.9.3: separate ledger vs forecast and surface repeating items near the top. */
+.finance-plus-view-toggle{display:flex;flex-wrap:wrap;gap:7px;margin:4px 0 11px}
+.finance-plus-report-explainer{font-size:10px;color:var(--muted);line-height:1.5;letter-spacing:.025em;font-weight:750;margin:0 0 10px}
+.finance-plus-month-breakdown{display:flex;justify-content:space-between;gap:7px 16px;flex-wrap:wrap;padding:10px 13px;margin:9px 0 12px;border:1px solid var(--line);border-radius:11px;font-size:11px;color:var(--muted)}
+.finance-plus-recurring-main{margin:12px 0 16px}
+.finance-plus-recurring-totals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.finance-plus-recurring-total{display:grid;gap:6px;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:11px}
+.finance-plus-recurring-total span{font-size:10px;color:var(--muted)}
+.finance-plus-recurring-total strong{font-size:17px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+@media(max-width:600px){.finance-plus-recurring-totals{grid-template-columns:minmax(0,1fr)}}
