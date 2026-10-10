@@ -260,13 +260,47 @@ function routeCard(host){
  section.append(el('small','ldp119-footnote',t('Веб-верзијата засега прикажува зачувани патувања; активната навигација и Search Along Route остануваат во Android.','Web currently shows saved itineraries; active navigation and Search Along Route remain Android-only.')));
  host.append(section);
 }
+function openNews(country){
+ if(!nav('news'))return;
+ if(!country)return;
+ const selectCountry=()=>{
+  const select=$('#newsRssV116 #newsCountryV116');
+  if(!select)return false;
+  select.value=country;
+  if(select.value!==country)return true;
+  select.dispatchEvent(new Event('change',{bubbles:true}));return true;
+ };
+ if(selectCountry())return;
+ const mo=new MutationObserver(()=>{if(selectCountry())mo.disconnect()});
+ mo.observe(content,{childList:true,subtree:true});
+ setTimeout(()=>mo.disconnect(),1700);
+}
+function newsCard(host,profile){
+ const section=el('section','ldp119-panel ldp119-news');
+ const h=el('header','ldp119-head'),left=el('div','ldp119-heading');
+ left.append(icon('news','▤'),el('h2','',t('Вести · RSS','News · RSS')));
+ h.append(left,button(t('Отвори →','Open →'),'ldp119-more',()=>nav('news')));
+ section.append(h);
+ const chips=el('div','ldp119-news-countries');
+ const first=/^[A-Z]{2}$/.test(String(profile.country||'').toUpperCase())?
+  String(profile.country).toUpperCase():'DE';
+ const regions=[['GLOBAL','🌐','ALL'],['MK','🇲🇰','MK'],['RS','🇷🇸','RS'],
+  ['DE','🇩🇪','DE'],['BG','🇧🇬','BG'],['GR','🇬🇷','GR'],['AL','🇦🇱','AL']];
+ if(!regions.some(x=>x[0]===first))regions.splice(1,0,[first,'📍',first]);
+ for(const [country,flag,label] of regions){
+  chips.append(button(flag+' '+label,'ldp119-country-chip',()=>openNews(country)));
+ }
+ section.append(chips);
+ section.append(el('p','ldp119-footnote',t('Вестите се вчитуваат само по изборот, преку постојниот News & RSS модул.','Headlines load only after selecting a country, through the existing News & RSS page.')));
+ host.append(section);
+}
 function draw(host){
  const bridge=B();if(!bridge?.ready())return;
  const snapshot=bridge.snapshot();if(!snapshot)return;
  const user=bridge.identity();if(!user)return;
  host.dataset.readyFor=user;host.replaceChildren();
  const profile=bridge.profile();
- todayCard(host,snapshot);aroundCard(host,profile);worldCard(host);routeCard(host);
+ todayCard(host,snapshot);aroundCard(host,profile);worldCard(host);routeCard(host);newsCard(host,profile);
 }
 function sync(){
  if(app.classList.contains('hidden')||!B()?.ready())return;
