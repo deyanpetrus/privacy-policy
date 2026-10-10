@@ -238,7 +238,7 @@ function backupClient(write=false){
 window.LifeDashBackupBridge=Object.freeze({
   ready:backupReady,
   identity:()=>state.user?.id||null,
-  availableKinds:()=>BACKUP_SAFE_KIN.slice(),
+  availableKinds:()=>BACKUP_SAFE_KINDS.slice(),
   list:async()=>{
     const {client,userId}=backupClient();
     const {data,error}=await client.from('user_data_backups')
@@ -285,7 +285,7 @@ window.LifeDashBackupBridge=Object.freeze({
     if(expectedOwner!==userId)throw new Error('Backup belongs to a different account.');
     if(!Array.isArray(rows)||!rows.length||rows.length>5000)
       throw new Error('Invalid or oversized missing-row selection.');
-    const safe=new Set(BACKUP_SAFE_KIN),known=new Set();
+    const safe=new Set(BACKUP_SAFE_KINDS),known=new Set();
     // Validate every row before creating a pre-restore snapshot.
     for(const r of rows){
       const key=String(r?.kind||'')+'|'+String(r?.item_id||'');
