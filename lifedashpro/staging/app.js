@@ -100,7 +100,7 @@ async function tombstoneRecord(kind,id){
 }
 function updateCounts(){const d=state.data;$('#navNotes').textContent=(d.notes||[]).length;$('#navTasks').textContent=(d.family_tasks||[]).filter(x=>!x.done).length;$('#navDocs').textContent=(d.documents||[]).length;$('#navVehicles').textContent=(d.vehicles||[]).length;$('#navJourneys').textContent=(d.journey_plans_beta||[]).length}
 function setPage(page){state.page=page;location.hash=page;$$('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));$('#pageTitle').textContent=TITLES[page]||'LifeDashPro';$('#quickAddBtn').classList.toggle('hidden',!['notes','finance','tasks','dashboard'].includes(page));render()}
-function render(){if(!state.session)return;const c=$('#content');if(!state.syncReady){c.innerHTML='<section class="card span-12"><h3>Checking secure sync…</h3><p>Could not verify all cloud records yet. No records have been changed. Use Refresh (↻) when your connection is available.</p></section>';$('#quickAddBtn').disabled=true;return;}$('#quickAddBtn').disabled=false;const fn={dashboard:renderDashboard,today:renderToday,calendar:()=>'<section id="personalCalendar" class="personal-calendar" aria-label="Personal Organizer Calendar"></section>',notes:renderNotes,tasks:renderTasks,documents:()=>'<section id="documentsProPage" class="documents-pro-page" aria-label="Documents Pro"></section>',finance:renderFinance,explore:()=>'<section id="exploreAroundPage" class="explore-around-page" aria-label="Explore and Around Me"></section>',vehicles:()=>renderReadOnly('vehicles','Vehicles','◈'),journey:renderJourney,profile:renderProfile,radio:()=>'<section id="worldRadioPage" class="radio-page-shell" aria-label="World Radio"></section>',world:()=>'<section id="worldLivePage" class="world-live-page" aria-label="World Live"></section>'}[state.page]||renderDashboard;c.innerHTML=fn();wirePageRows()}
+function render(){if(!state.session)return;const c=$('#content');if(!state.syncReady){c.innerHTML='<section class="card span-12"><h3>Checking secure sync…</h3><p>Could not verify all cloud records yet. No records have been changed. Use Refresh (↻) when your connection is available.</p></section>';$('#quickAddBtn').disabled=true;return;}$('#quickAddBtn').disabled=false;const fn={dashboard:renderDashboard,today:renderToday,calendar:()=>'<section id="personalCalendar" class="personal-calendar" aria-label="Personal Organizer Calendar"></section>',notes:renderNotes,tasks:renderTasks,documents:()=>'<section id="documentsProPage" class="documents-pro-page" aria-label="Documents Pro"></section>',finance:renderFinance,explore:()=>'<section id="exploreAroundPage" class="explore-around-page" aria-label="Explore and Around Me"></section>',vehicles:()=>'<section id="vehicleManagerV111" class="mobility-v111" aria-label="Vehicle Manager"></section>',journey:()=>'<section id="journeyManagerV111" class="mobility-v111" aria-label="Journey Manager"></section>',profile:renderProfile,radio:()=>'<section id="worldRadioPage" class="radio-page-shell" aria-label="World Radio"></section>',world:()=>'<section id="worldLivePage" class="world-live-page" aria-label="World Live"></section>'}[state.page]||renderDashboard;c.innerHTML=fn();wirePageRows()}
 function financeStats(){const tx=state.data.finance_transactions||[];let inc=0,exp=0;const currencies=new Set();for(const x of tx){const currency=String(x.currency||x.baseCurrencyAtEntry||'EUR').toUpperCase();currencies.add(currency);const a=Number(x.amount)||0;if(x.type==='income')inc+=a;else exp+=a}return{inc,exp,bal:inc-exp,currency:[...currencies][0]||'EUR',mixed:currencies.size>1}}
 function fmtTotal(stats,key){return stats.mixed?'Multiple currencies':fmtMoney(stats[key],stats.currency)}
 function timelineItems(){const out=[];for(const n of state.data.notes||[]){if(n.dueDate&&n.status!=='completed'&&n.status!=='archived')out.push({date:n.dueDate,time:n.dueTime||'',type:'Note',title:n.title||'Note'})}for(const t of state.data.family_tasks||[]){if(t.dueDate&&!t.done)out.push({date:t.dueDate,time:t.reminderTime||'',type:'Task',title:t.title||'Task'})}for(const r of state.data.manual_reminders||[]){const d=r.dueDate||r.date||String(r.scheduledFor||'').slice(0,10);if(d)out.push({date:d,time:r.time||r.reminderTime||'',type:'Reminder',title:r.title||r.text||'Reminder'})}return out.sort((a,b)=>`${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`)).slice(0,12)}
@@ -214,6 +214,19 @@ window.LifeDashFinanceBridge=Object.freeze({
       transactions:(state.data.finance_transactions||[]).map(row=>({...row})),
       goals:(state.data.finance_goals||[]).map(row=>({...row}))
     };
+  }
+});
+// Web v1.11: read-only vehicle / journey adapter to Android's exact RLS-scoped
+// user_data records. Does not modify native navigation, service alarms, or SAR.
+window.LifeDashMobilityBridge=Object.freeze({
+  ready:()=>Boolean(state.user&&state.session&&state.syncReady),
+  identity:()=>state.user?.id||null,
+  snapshot:()=>{
+    if(!state.user||!state.session||!state.syncReady)return null;
+    const kinds=['vehicles','journey_plans_beta','documents'];
+    return Object.fromEntries(kinds.map(kind=>[
+      kind,(state.data[kind]||[]).map(item=>({...item}))
+    ]));
   }
 });
 window.LifeDashDocumentsBridge=Object.freeze({
