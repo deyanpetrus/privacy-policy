@@ -230,8 +230,9 @@ const BACKUP_SAFE_KINDS=Object.freeze([
 function backupReady(){
   return Boolean(state.client&&state.user&&state.session&&state.syncReady);
 }
-function backupClient(){
-  if(!backupReady()||state.loading)throw new Error('Wait for the current secure sync to finish before backups or restore.');
+function backupClient(write=false){
+  if(!backupReady()||(write&&state.loading))
+    throw new Error('Wait for authenticated sync to finish before modifying backups or restoring records.');
   return {client:state.client,userId:state.user.id};
 }
 window.LifeDashBackupBridge=Object.freeze({
@@ -247,7 +248,7 @@ window.LifeDashBackupBridge=Object.freeze({
     return data||[];
   },
   create:async reason=>{
-    backupClient();
+    backupClient(true);
     const {data,error}=await state.client.rpc('create_user_data_backup',{
       p_reason:String(reason||'manual:web-v1.12').slice(0,100)
     });
@@ -280,7 +281,7 @@ window.LifeDashBackupBridge=Object.freeze({
     throw new Error('Live dataset exceeds the supported 10,000-row preview limit. No records changed.');
   },
   restoreMissing:async (rows,expectedOwner)=>{
-    const {client,userId}=backupClient();
+    const {client,userId}=backupClient(true);
     if(expectedOwner!==userId)throw new Error('Backup belongs to a different account.');
     if(!Array.isArray(rows)||!rows.length||rows.length>5000)
       throw new Error('Invalid or oversized missing-row selection.');
@@ -320,7 +321,7 @@ window.LifeDashBackupBridge=Object.freeze({
   // The existing server RPC OVERWRITES matching active records and resurrects
   // soft-deleted rows. UI must show exact risk and require explicit typed consent.
   restoreFullMerge:async backupId=>{
-    backupClient();
+    backupClient(true);
     if(!Number.isSafeInteger(Number(backupId))||Number(backupId)<=0)
       throw new Error('Invalid restore backup ID.');
     const {data,error}=await state.client.rpc('restore_user_data_backup_merge',{
@@ -330,7 +331,7 @@ window.LifeDashBackupBridge=Object.freeze({
     return Number(data)||0;
   },
   refresh:async()=>{
-    backupClient();
+    backupClient(true);
     await refreshAll();
     return state.syncReady;
   }
