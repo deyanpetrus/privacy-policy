@@ -172,12 +172,66 @@ function wirePageRows(){
 function openEditor(mode,id){
   if(!state.syncReady)return msg('Wait until all cloud data is loaded.','error');
   const kind={notes:'notes',finance:'finance_transactions',tasks:'family_tasks'}[mode];if(!kind)return;
-  const item=(state.data[kind]||[]).find(x=>String(x.id)===String(id))||null;state.editor={mode,kind,item};
+  const item=(state.data[kind]||[]).find(x=>String(x.id)===String(id))||null;state.editor={mode,kind,item};$('#editorDialog').classList.toggle('note-pro-v118',mode==='notes');
   $('#editorEyebrow').textContent=item?'EDIT':'NEW';$('#editorTitle').textContent=mode==='notes'?'Note':mode==='finance'?'Transaction':'Task';$('#editorDelete').classList.toggle('hidden',!item||isProtectedFinance(item));$('#editorSave').classList.toggle('hidden',isProtectedFinance(item));
   $('#editorFields').innerHTML=mode==='notes'?noteFields(item):mode==='finance'?financeFields(item):taskFields(item);$('#editorDialog').showModal();
 }
 function val(id){return document.getElementById(id)?.value?.trim()||''}function checked(id){return !!document.getElementById(id)?.checked}
-function noteFields(n={}){return `<div class="form-grid"><label class="wide">Title<input id="fTitle" value="${esc(n?.title||'')}"></label><label class="wide">Description<textarea id="fDescription">${esc(n?.description||'')}</textarea></label><label>Due date<input id="fDue" type="date" value="${esc(n?.dueDate||'')}"></label><label>Status<select id="fStatus"><option ${n?.status==='active'?'selected':''}>active</option><option ${n?.status==='pending_payment'?'selected':''}>pending_payment</option><option ${n?.status==='completed'?'selected':''}>completed</option><option ${n?.status==='archived'?'selected':''}>archived</option></select></label></div>`}
+function noteFields(n={}){
+ const item=n||{};
+ const input=(id,label,key,type='text',placeholder='')=>
+  '<label>'+esc(label)+'<input id="'+id+'" type="'+type+'" value="'+esc(item[key]??'')+'" placeholder="'+esc(placeholder)+'"></label>';
+ const check=(id,label,on)=>
+  '<label class="n118-check"><input type="checkbox" id="'+id+'" '+(on?'checked':'')+'>'+esc(label)+'</label>';
+ const option=(value,label,selected)=>
+  '<option value="'+esc(value)+'" '+(String(value)===String(selected)?'selected':'')+'>'+esc(label)+'</option>';
+ const before=String(item.reminderBefore||'1day');
+ const status=String(item.status||'active');
+ const direction=String(item.financeDirection||'pay');
+ const reminders=[['atdue','At due time'],['15min','15 minutes'],['30min','30 minutes'],
+   ['1hour','1 hour'],['3hour','3 hours'],['1day','1 day'],['2day','2 days'],['1week','1 week']];
+ const statuses=[['active','Active'],['pending_payment','Waiting for payment'],['completed','Completed'],['archived','Archived']];
+ const subs=Array.isArray(item.subDescriptions)?item.subDescriptions:[];
+ const details=subs.map((entry,index)=>typeof entry==='string'
+  ?'<label class="n118-wide">Sub-description '+(index+1)+'<textarea class="n118-sub" data-sub-index="'+index+'" rows="2">'+esc(entry)+'</textarea></label>'
+  :'<p class="n118-hint n118-wide">Structured detail preserved; edit it in Android.</p>').join('');
+ const otherBefore=reminders.some(x=>x[0]===before)?'':option(before,'Existing: '+before,before);
+ const otherStatus=statuses.some(x=>x[0]===status)?'':option(status,'Existing: '+status,status);
+ const otherDirection=['pay','receive'].includes(direction)?'':option(direction,'Existing: '+direction,direction);
+ const count=Array.isArray(item.attachments)?item.attachments.length:0;
+ return '<div class="notes-editor-v118">'+
+  '<p class="n118-description">Basic Note · Existing Android fields and attachments are preserved when saving.</p>'+
+  '<div class="n118-grid">'+
+  '<label class="n118-wide">Title *<input id="fTitle" maxlength="220" required value="'+esc(item.title||'')+'"></label>'+
+  '<label class="n118-wide">Description<textarea id="fDescription" maxlength="20000" rows="5">'+esc(item.description||'')+'</textarea></label>'+
+  details+
+  '<label class="n118-wide">Add sub-description<textarea id="fExtraSub" rows="2" maxlength="4000" placeholder="Additional detail (optional)"></textarea></label>'+
+  '<h4 class="n118-wide">Contact & links</h4>'+
+  input('fContactName','Contact name','contactName')+input('fPhone','Phone','phone','tel')+
+  input('fEmail','Email','email','email')+input('fLink','Link','link','url','https://')+
+  '<h4 class="n118-wide">Dates & reminders</h4>'+
+  input('fDue','Due date','dueDate','date')+input('fDueTime','Due time','dueTime','time')+
+  check('fReminderEnabled','Reminder enabled',item.reminderEnabled!==false)+
+  '<label>Remind before<select id="fReminderBefore">'+reminders.map(x=>option(x[0],x[1],before)).join('')+otherBefore+'</select></label>'+
+  '<p class="n118-hint n118-wide">Reminder preferences are synchronized. Android schedules the actual notification when this note has a due date.</p>'+
+  '<h4 class="n118-wide">Status & payment</h4>'+
+  '<label>Status<select id="fStatus">'+statuses.map(x=>option(x[0],x[1],status)).join('')+otherStatus+'</select></label>'+
+  check('fPinned','Pin note',item.pinned===true)+
+  '<label>Pay / receive<select id="fFinanceDirection">'+option('pay','Pay',direction)+option('receive','Receive',direction)+otherDirection+'</select></label>'+
+  '<label>Amount<input id="fNoteAmount" type="number" min="0" step="0.01" value="'+esc(item.amount??'')+'"></label>'+
+  '<label>Currency<input id="fNoteCurrency" maxlength="3" value="'+esc(String(item.currency||'EUR').toUpperCase())+'"></label>'+
+  check('fNotePaid','Paid / Received',item.isPaid===true)+
+  '<p class="n118-hint n118-wide">Existing Finance links stay unchanged. No new Finance transaction is created automatically from Web.</p>'+
+  '<details class="n118-advanced n118-wide" id="noteV118Advanced"><summary>Advanced (optional) · Budget / VAT</summary>'+
+  '<div class="n118-grid">'+
+  '<label>Budget / planned<input id="fNoteBudget" type="number" min="0" step="0.01" value="'+esc(item.budget??'')+'"></label>'+
+  '<label>Expense<input id="fNoteExpense" type="number" min="0" step="0.01" value="'+esc(item.expense??'')+'"></label>'+
+  '<label>VAT %<input id="fNoteVat" type="number" min="0" max="100" step="0.01" value="'+esc(item.vatPercent??item.ddvPercent??'')+'"></label>'+
+  '<label>VAT mode<select id="fNoteVatMode">'+option('included','Included',item.vatMode||'included')+option('add','Add VAT',item.vatMode||'included')+'</select></label>'+
+  '</div></details>'+
+  '<p class="n118-hint n118-wide">Saved attachments: '+count+'. Categories, tags, linked contacts and private attachments remain intact. Manage them in Android until Web upload parity is verified.</p>'+
+  '</div></div>';
+}
 function financeFields(t={}){return `<div class="form-grid"><label class="wide">Description<input id="fDescription" value="${esc(t?.description||'')}"></label><label>Type<select id="fType"><option value="expense" ${t?.type!=='income'?'selected':''}>Expense</option><option value="income" ${t?.type==='income'?'selected':''}>Income</option></select></label><label>Amount<input id="fAmount" type="number" step="0.01" min="0" value="${esc(t?.amount??'')}"></label><label>Currency<input id="fCurrency" maxlength="3" value="${esc(t?.currency||'EUR')}"></label><label>Category<input id="fCategory" value="${esc(t?.category||'other')}"></label><label>Date<input id="fDate" type="date" value="${esc(t?.date||today())}"></label><label style="display:flex;align-items:center;grid-template-columns:auto 1fr;gap:8px"><input id="fPaid" type="checkbox" ${t?.isPaid?'checked':''} style="width:auto"> Paid</label>${isProtectedFinance(t)?'<p class="wide message">This transaction is managed by another Android module. Web editing and deletion are disabled.</p>':''}</div>`}
 function taskFields(t={}){return `<div class="form-grid"><label class="wide">Title<input id="fTitle" value="${esc(t?.title||'')}"></label><label>Assigned to<input id="fAssigned" value="${esc(t?.assignedTo||'Me')}"></label><label>Due date<input id="fDue" type="date" value="${esc(t?.dueDate||today())}"></label><label>Priority<select id="fPriority"><option ${t?.priority==='high'?'selected':''}>high</option><option ${!t?.priority||t?.priority==='medium'?'selected':''}>medium</option><option ${t?.priority==='low'?'selected':''}>low</option></select></label><label style="display:flex;align-items:center;grid-template-columns:auto 1fr;gap:8px"><input id="fDone" type="checkbox" ${t?.done?'checked':''} style="width:auto"> Completed</label></div>`}
 function isProtectedFinance(t){return !!(t&&t.sourceModule&&t.sourceModule!=='web')}
