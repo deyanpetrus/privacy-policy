@@ -1,0 +1,99 @@
+/* LifeDashPro v1.18 Notes Pro — safe Add/Edit Note visual parity.
+   Scoped to the existing dialog only while Notes mode is active. */
+#editorDialog.note-pro-v118{
+ width:min(920px,calc(100vw - 26px));max-width:920px;
+ height:min(840px,calc(100dvh - 30px));max-height:calc(100dvh - 30px);
+ border-radius:19px;overflow:hidden;
+}
+#editorDialog.note-pro-v118 form{
+ height:100%;min-height:0;display:flex;flex-direction:column;
+}
+#editorDialog.note-pro-v118 .dialog-head{
+ flex:none;padding:15px 24px;
+}
+#editorDialog.note-pro-v118 .dialog-head h3{font-size:23px;font-weight:900}
+#editorDialog.note-pro-v118 .dialog-body{
+ padding:20px 24px 26px;display:block;overflow-y:auto;flex:1;min-height:0;
+ overscroll-behavior:contain;
+}
+#editorDialog.note-pro-v118 .dialog-actions{
+ flex:none;position:relative;z-index:1;
+ padding:14px 24px;background:var(--panel,#0c1a2d);border-top:1px solid var(--line);
+}
+#editorDialog.note-pro-v118 .notes-editor-v118{width:100%;max-width:100%}
+#editorDialog.note-pro-v118 .n118-description{
+ color:var(--muted);font-size:12px;line-height:1.65;margin:0 0 18px;
+}
+#editorDialog.note-pro-v118 .n118-grid{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:15px 18px;
+}
+#editorDialog.note-pro-v118 .n118-wide{grid-column:1/-1}
+#editorDialog.note-pro-v118 .n118-grid h4{
+ font-size:13px;letter-spacing:.4px;font-weight:850;
+ margin:10px 0 0;padding:12px 0 7px;border-bottom:1px solid var(--line);
+ color:var(--text);
+}
+#editorDialog.note-pro-v118 .n118-grid label{
+ display:flex;flex-direction:column;gap:8px;font-size:12px;
+ font-weight:750;color:var(--text);min-width:0;letter-spacing:.05px;
+}
+#editorDialog.note-pro-v118 .n118-grid input:not([type=checkbox]),
+#editorDialog.note-pro-v118 .n118-grid textarea,
+#editorDialog.note-pro-v118 .n118-grid select{
+ appearance:none;box-sizing:border-box;min-width:0;width:100%;
+ min-height:46px;background:#0d2035;border:1px solid #2b435e;
+ border-radius:12px;color:var(--text);padding:12px 13px;
+ outline:none;font:inherit;font-size:13px;line-height:1.45;
+}
+#editorDialog.note-pro-v118 .n118-grid textarea{min-height:88px;resize:vertical}
+#editorDialog.note-pro-v118 .n118-grid #fDescription{min-height:135px}
+#editorDialog.note-pro-v118 .n118-grid input:focus-visible,
+#editorDialog.note-pro-v118 .n118-grid textarea:focus-visible,
+#editorDialog.note-pro-v118 .n118-grid select:focus-visible{
+ border-color:#746cfc;box-shadow:0 0 0 3px rgba(109,100,255,.16);
+}
+#editorDialog.note-pro-v118 .n118-grid .n118-check{
+ display:flex;align-items:center;flex-direction:row;gap:10px;
+ padding:11px 12px;min-height:46px;border:1px solid var(--line);
+ border-radius:12px;background:rgba(110,127,148,.07);
+}
+#editorDialog.note-pro-v118 .n118-check input{
+ width:18px;height:18px;flex:none;accent-color:#6555e4;
+}
+#editorDialog.note-pro-v118 .n118-hint{
+ color:var(--muted);font-size:11.5px;line-height:1.55;
+ margin:0;padding:11px 13px;border-radius:10px;border:1px solid var(--line);
+ background:rgba(110,127,148,.06);
+}
+#editorDialog.note-pro-v118 .n118-advanced{
+ border-radius:14px;border:1px solid rgba(130,121,244,.37);
+ background:rgba(106,100,236,.07);min-width:0;
+}
+#editorDialog.note-pro-v118 .n118-advanced summary{
+ padding:14px 16px;color:var(--text);
+ font-weight:850;font-size:13px;cursor:pointer;list-style:disclosure-closed;
+}
+#editorDialog.note-pro-v118 .n118-advanced[open] summary{
+ border-bottom:1px solid rgba(130,121,244,.26);
+}
+#editorDialog.note-pro-v118 .n118-adv-grid,#editorDialog.note-pro-v118 .n118-advanced > .n118-grid{
+ padding:15px;
+}
+html[data-ld-theme="light"] #editorDialog.note-pro-v118{
+ background:#fff;color:var(--text);border-color:var(--line);
+}
+html[data-ld-theme="light"] #editorDialog.note-pro-v118 .dialog-actions{background:#fff}
+html[data-ld-theme="light"] #editorDialog.note-pro-v118 .n118-grid input:not([type=checkbox]),
+html[data-ld-theme="light"] #editorDialog.note-pro-v118 .n118-grid textarea,
+html[data-ld-theme="light"] #editorDialog.note-pro-v118 .n118-grid select{
+ background:#f9fbff;border-color:#ccdaeb;color:var(--text);
+}
+@media(max-width:640px){
+ #editorDialog.note-pro-v118{width:calc(100vw - 12px);height:calc(100dvh - 12px);max-height:calc(100dvh - 12px);border-radius:14px}
+ #editorDialog.note-pro-v118 .dialog-head,#editorDialog.note-pro-v118 .dialog-actions{padding:13px 15px}
+ #editorDialog.note-pro-v118 .dialog-body{padding:17px 15px 25px}
+ #editorDialog.note-pro-v118 .n118-grid{grid-template-columns:1fr;gap:14px}
+ #editorDialog.note-pro-v118 .n118-wide{grid-column:1}
+ #editorDialog.note-pro-v118 .dialog-actions button{min-height:44px}
+}
