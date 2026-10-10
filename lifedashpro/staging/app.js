@@ -237,8 +237,74 @@ function taskFields(t={}){return `<div class="form-grid"><label class="wide">Tit
 function isProtectedFinance(t){return !!(t&&t.sourceModule&&t.sourceModule!=='web')}
 async function saveEditor(){
   const e=state.editor;if(!e)return;if(isProtectedFinance(e.item))return msg('Android-managed transactions are read-only on Web.','error');const old=e.item||{},now=isoNow();let item;
-  if(e.mode==='notes'){const title=val('fTitle');if(!title)return msg('Note title is required.','error');item={...old,id:old.id||`web-note-${Date.now()}`,type:old.type||'note',title,description:val('fDescription'),dueDate:val('fDue')||undefined,createdAt:old.createdAt||now,updatedAt:now,status:val('fStatus')||old.status||'active'}}
-  if(e.mode==='finance'){const d=val('fDescription'),rawAmount=val('fAmount'),amount=Number(rawAmount);if(!d||!rawAmount||!Number.isFinite(amount)||amount<0)return msg('Description and valid amount are required.','error');item={...old,id:old.id||`web-tx-${Date.now()}`,type:val('fType')==='income'?'income':'expense',amount,currency:(val('fCurrency')||'EUR').toUpperCase(),description:d,category:val('fCategory')||'other',date:val('fDate')||today(),createdAt:old.createdAt||now,updatedAt:now,periodicity:old.periodicity||'once',isPaid:checked('fPaid'),sourceModule:old.sourceModule||'web',sourceId:old.sourceId}}
+  if(e.mode==='notes'){
+  const title=val('fTitle');
+  if(!title||title.length>220)return msg('A title is required (max 220 characters).','error');
+  const email=val('fEmail'),link=val('fLink');
+  if(email&&(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254))
+    return msg('Enter a valid contact email address.','error');
+  if(link){
+    try{const u=new URL(link);if(!['https:','http:'].includes(u.protocol))throw new Error()}
+    catch(_){return msg('Use a valid http/https link.','error')}
+  }
+  const currency=(val('fNoteCurrency')||'EUR').toUpperCase();
+  if(!/^[A-Z]{3}$/.test(currency))return msg('Use a 3-letter currency code.','error');
+  const amountInput=val('fNoteAmount'),amount=amountInput===''?null:Number(amountInput);
+  if(amount!==null&&(!Number.isFinite(amount)||amount<0))
+    return msg('Amount must be a non-negative number.','error');
+  const oldSubs=Array.isArray(old.subDescriptions)?old.subDescriptions:[];
+  const subDescriptions=oldSubs.map((part,i)=>{
+   if(typeof part!=='string')return part;
+   const control=document.querySelector('.note-pro-v118 .n118-sub[data-sub-index="'+i+'"]');
+   return control?control.value:part;
+  }).filter(x=>typeof x==='string'?x.trim().length>0:true);
+  const newSub=val('fExtraSub');
+  if(newSub)subDescriptions.push(newSub);
+  const timestamp=typeof crypto!=='undefined'&&crypto.randomUUID?
+   crypto.randomUUID():String(Date.now())+'-'+Math.random().toString(36).slice(2,10);
+  const direction=val('fFinanceDirection')||old.financeDirection||'pay';
+  const paid=checked('fNotePaid');
+  item={...old,id:old.id||'web-note-'+timestamp,
+   type:old.type||'note',title,description:val('fDescription'),
+   subDescriptions,contactName:val('fContactName'),phone:val('fPhone'),
+   email,link,dueDate:val('fDue')||undefined,dueTime:val('fDueTime')||undefined,
+   reminderEnabled:checked('fReminderEnabled'),
+   reminderBefore:val('fReminderBefore')||old.reminderBefore||'1day',
+   status:val('fStatus')||old.status||'active',pinned:checked('fPinned'),
+   createdAt:old.createdAt||now,updatedAt:now};
+  // Do not synthesize Finance transactions or reinterpret old payment links.
+  if(amount!==null||old.amount!==undefined){
+   if(amount!==null)item.amount=amount;else delete item.amount;
+   item.currency=currency;item.financeDirection=direction;
+   item.isPaid=paid;item.pendingPayment=amount!==null&&!paid;
+   item.isIncome=direction==='receive';
+  }
+  const advanced=document.getElementById('noteV118Advanced');
+  if(advanced?.open){
+    const parseAdvanced=(field,label,upper=Infinity)=>{
+      const raw=val(field);if(raw==='')return null;
+      const num=Number(raw);
+      if(!Number.isFinite(num)||num<0||num>upper)throw new Error(label+' must be between 0 and '+(Number.isFinite(upper)?upper:'a valid number'));
+      return num;
+    };
+    try{
+      const planned=parseAdvanced('fNoteBudget','Budget');
+      const expense=parseAdvanced('fNoteExpense','Expense');
+      const vat=parseAdvanced('fNoteVat','VAT',100);
+      if(planned!==null)item.budget=planned;else delete item.budget;
+      if(expense!==null)item.expense=expense;else delete item.expense;
+      if(vat!==null){
+        item.vatPercent=vat;
+        if(old.ddvPercent!==undefined)item.ddvPercent=vat;
+      }else{
+        delete item.vatPercent;
+        if(old.ddvPercent!==undefined)delete item.ddvPercent;
+      }
+      item.vatMode=val('fNoteVatMode')||old.vatMode||'included';
+    }catch(err){return msg(String(err?.message||'Invalid Advanced amount'),'error')}
+  }
+ }
+ if(e.mode==='finance'){const d=val('fDescription'),rawAmount=val('fAmount'),amount=Number(rawAmount);if(!d||!rawAmount||!Number.isFinite(amount)||amount<0)return msg('Description and valid amount are required.','error');item={...old,id:old.id||`web-tx-${Date.now()}`,type:val('fType')==='income'?'income':'expense',amount,currency:(val('fCurrency')||'EUR').toUpperCase(),description:d,category:val('fCategory')||'other',date:val('fDate')||today(),createdAt:old.createdAt||now,updatedAt:now,periodicity:old.periodicity||'once',isPaid:checked('fPaid'),sourceModule:old.sourceModule||'web',sourceId:old.sourceId}}
   if(e.mode==='tasks'){const title=val('fTitle');if(!title)return msg('Task title is required.','error');item={...old,id:old.id||`web-task-${Date.now()}`,title,assignedTo:val('fAssigned')||'Me',done:checked('fDone'),priority:val('fPriority')||'medium',dueDate:val('fDue')||undefined,createdAt:old.createdAt||now,updatedAt:now}}
   try{$('#editorSave').disabled=true;await upsertRecord(e.kind,item);$('#editorDialog').close();msg('Saved and synchronized.','good')}catch(x){msg(`Save failed: ${x.message}`,'error')}finally{$('#editorSave').disabled=false}
 }
