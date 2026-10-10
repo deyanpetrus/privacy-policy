@@ -140,6 +140,7 @@ function renderProfile(){
 <label>One-time verification code (when used)<input id='profileReauthCode' type='text' inputmode='numeric' autocomplete='one-time-code' maxlength='12'></label></div>
 <div style='display:flex;gap:8px;margin-top:12px;flex-wrap:wrap'><button id='sendAccountNonceBtn' type='button' class='secondary'>Send verification code</button><button id='changeAccountPasswordBtn' type='button' class='primary'>Update password</button></div>
 <p id='accountPasswordMessage' class='message' role='status' aria-live='polite'></p></section>
+<section id='accountDeletionV114' class='account-deletion-v114' aria-label='Delete My Data or Delete Account'></section>
 <section class='card span-12'><p class='eyebrow'>SYNC CONTRACT</p><p>Web version <b>${esc(cfg.webVersion||'safe-sync')}</b> · Android data contract <b>${esc(cfg.contractVersion||'v38.13')}</b>. Native Android alarms, background navigation, Car Mode and other native services are not recreated by the browser.</p></section>`);
 }
 function pageWrap(title,desc,body){return `<div class="section-head"><div><p class="eyebrow">LIFEDASHPRO WEB</p><h2>${esc(title)}</h2><p>${esc(desc)}</p></div></div>${body}`}
@@ -329,6 +330,44 @@ function backupClient(write=false){
     throw new Error('Wait for authenticated sync to finish before modifying backups or restoring records.');
   return {client:state.client,userId:state.user.id};
 }
+// Web v1.14 isolated erasure adapter; only existing JWT-protected functions can delete.
+window.LifeDashAccountDeletionBridge=Object.freeze({
+ ready:()=>Boolean(state.client&&state.session&&state.user&&state.syncReady),
+ status:async()=>{
+   if(!state.client||!state.session||!state.user||!state.syncReady)
+     throw new Error('Sign in and finish syncing before deleting.');
+   const uid=state.user.id;
+   const {data,error}=await state.client.auth.getUser();
+   if(error||!data?.user||data.user.id!==uid||state.user?.id!==uid)
+     throw new Error('Session changed. Sign in again.');
+   return {userId:uid,email:String(data.user.email||''),lastSignInAt:String(data.user.last_sign_in_at||'')};
+ },
+ execute:async mode=>{
+   if(!['data','account'].includes(mode))throw new Error('Unsupported deletion mode.');
+   const identity=await window.LifeDashAccountDeletionBridge.status();
+   if(!identity.email)throw new Error('An account email is required.');
+   const last=Date.parse(identity.lastSignInAt);
+   if(!Number.isFinite(last)||Date.now()-last>15*60*1000||last>Date.now()+60000)
+     throw new Error('Recent sign-in required. Sign out and sign in again, then try within 15 minutes.');
+   const slug=mode==='data'?'delete-user-data':'delete-account';
+   const confirm=mode==='data'?'DELETE DATA':'DELETE';
+   const {data,error}=await state.client.functions.invoke(slug,{body:{confirm}});
+   if(error)throw new Error('Server completion not confirmed. Partial deletion is possible; contact support before retrying.');
+   if(data?.ok!==true)throw new Error(String(data?.error||'Deletion not confirmed; partial deletion is possible.').slice(0,240));
+   return {deletedFiles:Number(data.deletedFiles)||0};
+ },
+ clearSession:async()=>{
+   const client=state.client;
+   state.data={};state.profile=null;state.syncReady=false;state.lastSync=null;
+   if(client){
+     try{
+       const result=await client.auth.signOut({scope:'global'});
+       if(result?.error)await client.auth.signOut({scope:'local'});
+     }catch(_){try{await client.auth.signOut({scope:'local'})}catch(__){}}
+   }
+   state.session=null;state.user=null;showAuthShell(false);
+ }
+});
 window.LifeDashBackupBridge=Object.freeze({
   ready:backupReady,
   identity:()=>state.user?.id||null,
