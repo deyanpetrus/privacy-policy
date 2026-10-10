@@ -183,11 +183,16 @@ async function restoreMissing(){
      ' missing records? Existing and soft-deleted entries stay untouched. A pre-restore server backup is created first.'))return;
    show('Creating safety snapshot and restoring missing records…');
    const saved=await bridge().restoreMissing(updated.missing,user);
-   show('Restore completed: '+saved.inserted+' new records · pre-restore backup #'+saved.preBackupId+
-     '. Existing and soft-deleted records were preserved.','success');
    resetSelection();
-   await bridge().refresh();
-   backups=await bridge().list();
+   const refreshed=await bridge().refresh();
+   if(refreshed){
+     try{backups=await bridge().list()}catch(_){}
+     show('Restore completed: '+saved.inserted+' new records · pre-restore backup #'+saved.preBackupId+
+       '. Existing and soft-deleted records were preserved.','success');
+   }else{
+     show('Restore committed: '+saved.inserted+' new records, safety backup #'+saved.preBackupId+
+       '. Refresh could not finish; reload the page to verify counts.','error');
+   }
  }catch(e){show('Restore stopped: '+oneLine(e)+'. Review backups before retrying.','error')}
  finally{loading=false;confirmation=false;draw()}
 }
@@ -204,10 +209,14 @@ async function restoreFull(){
    const id=Number(selected.id);
    show('Running confirmed server merge restore. Do not close this tab…');
    const count=await bridge().restoreFullMerge(id);
-   show('Full merge restored '+count+' backup rows. The server created a safety snapshot first.','success');
    resetSelection();
-   await bridge().refresh();
-   backups=await bridge().list();
+   const refreshed=await bridge().refresh();
+   if(refreshed){
+     try{backups=await bridge().list()}catch(_){}
+     show('Full merge completed: '+count+' backup rows. An automatic server safety snapshot was created.','success');
+   }else{
+     show('Full merge completed on server: '+count+' rows, but refreshing the web list failed. Reload and inspect the new safety backup.','error');
+   }
  }catch(e){show('Full merge failed: '+oneLine(e)+'. No retry without reviewing backup history.','error')}
  finally{loading=false;confirmation=false;overwriteText='';draw()}
 }
