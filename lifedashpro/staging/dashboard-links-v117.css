@@ -1,0 +1,27 @@
+/* Dashboard v1.17: add accessible card navigation and compact quick actions. */
+#content.dashboard-view .dash-card-linkable{cursor:pointer;transition:border-color .17s ease,transform .17s ease}
+#content.dashboard-view .dash-card-linkable:hover{border-color:var(--primary)}
+#content.dashboard-view .dash-card-linkable:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
+#content.dashboard-view .dash-card-linkable .dash-card-actions{
+ display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;padding-top:11px;
+ border-top:1px solid var(--line);
+}
+#content.dashboard-view .dash-card-action{
+ appearance:none;cursor:pointer;padding:8px 12px;min-height:35px;
+ border:1px solid var(--line);border-radius:10px;
+ background:var(--panel2);color:var(--text);font-size:11px;font-weight:800;
+}
+#content.dashboard-view .dash-card-action:hover{border-color:var(--primary);color:var(--primary2)}
+#content.dashboard-view .dash-card-action:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+#content.dashboard-view .widget-layout-edit .dash-card-linkable{cursor:grab}
+#content.dashboard-view .dash-stat-linkable{cursor:pointer;transition:transform .15s ease,border-color .15s ease}
+#content.dashboard-view .dash-stat-linkable:hover{transform:translateY(-2px);border-color:var(--primary)}
+#content.dashboard-view .dash-stat-linkable:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+#content .dash-finance-explain{margin:11px 0 0;font-size:11px;line-height:1.55;color:var(--muted);padding-top:9px;border-top:1px solid var(--line)}
+@media(max-width:640px){
+ #content.dashboard-view .dash-card-actions{gap:6px}
+ #content.dashboard-view .dash-card-action{flex:1 1 auto}
+}
+@media(prefers-reduced-motion:reduce){
+ #content.dashboard-view .dash-card-linkable,#content.dashboard-view .dash-stat-linkable{transition:none}
+}
