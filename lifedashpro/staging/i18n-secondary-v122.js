@@ -68,7 +68,6 @@ function finance(){
  ['withRepeats','savedOnly'].forEach((key,i)=>{
   if(tabs[i]&&tabs[i].textContent!==t(key))tabs[i].textContent=t(key);
  });
- const kpis=c.querySelectorAll('.finance-plus-kpi .finance-plus-kpi-grid');
  for(const pair of [
   ['.finance-plus-recurring-main .finance-plus-panel-title','recurringTitle'],
   ['.finance-plus-panel h3','lastSix']
@@ -102,8 +101,8 @@ function news(){
 function explore(){
  const c=root.querySelector('#exploreAroundPage');if(!c)return;
  assign('.explore-header h2','exploreNearby',c);
- headText('.explore-controls .explore-field:nth-child(1)','location',c);
- headText('.explore-controls .explore-field:nth-child(2)','radius',c);
+ assign('.explore-controls .explore-field:nth-child(1) > span','location',c);
+ assign('.explore-controls .explore-field:nth-child(2) > span','radius',c);
  assign('#exploreUseGps','useGps',c);
  const r=c.querySelector('#exploreRefresh');
  if(r&&['↻ Refresh',...WORDS.refresh].includes(r.textContent.trim()))r.textContent=t('refresh');
