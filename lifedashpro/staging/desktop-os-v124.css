@@ -275,3 +275,9 @@ html.ldp-os-embedded #authView{padding:18px!important}
  .ldp124-window.ldp124-interacting:after{inset:44px 0 0}
 }
 @media(prefers-reduced-motion:reduce){.ldp124-os *, .ldp124-os *:before,.ldp124-os *:after{transition:none!important}}
+
+.ldp124-widget-order{margin-left:auto;display:inline-flex;align-items:center;gap:4px}
+.ldp124-widget-arrow{display:grid;place-items:center;width:27px;height:29px;
+ background:#ffffff17;border:1px solid #ffffff2c;border-radius:7px;
+ color:#fff;font-size:15px;cursor:pointer}
+.ldp124-widget-arrow:disabled{opacity:.3;cursor:not-allowed}
