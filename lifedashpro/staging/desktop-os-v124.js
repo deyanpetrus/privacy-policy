@@ -25,6 +25,9 @@ const PREF='ldp_web_os_v124_';
 const COLOURS=['aurora','dawn','forest','charcoal'];
 const LOCALE={"en":{"start":"Start","apps":"All applications","search":"Search apps…","windows":"Open windows","desktop":"Desktop","classic":"Classic","customize":"Customize","widgets":"Widgets","background":"Background","restore":"Restore workspace","empty":"No open windows","hint":"Open an application from Start or a desktop icon.","weather":"Weather","waiting":"Upcoming","noEvents":"No upcoming dated items","save":"Saving workspace…","saved":"Workspace saved ✓","offline":"Saved on this device · cloud unavailable","max":"Up to 8 apps can stay open at once.","close":"Close","min":"Minimize","maximize":"Maximize","again":"Restore","show":"Show","hide":"Hide","pin":"Pin","unpin":"Unpin"},"mk":{"start":"Старт","apps":"Сите апликации","search":"Пребарај апликации…","windows":"Отворени прозорци","desktop":"Десктоп","classic":"Класичен","customize":"Прилагоди","widgets":"Виџети","background":"Позадина","restore":"Врати работен простор","empty":"Нема отворени прозорци","hint":"Отвори апликација од Старт или преку икона.","weather":"Време","waiting":"Претстојни","noEvents":"Нема претстојни записи со датум","save":"Се зачувува работниот простор…","saved":"Работниот простор е зачуван ✓","offline":"Зачувано на уредот · нема cloud","max":"Може да останат отворени до 8 апликации.","close":"Затвори","min":"Минимизирај","maximize":"Максимизирај","again":"Врати","show":"Прикажи","hide":"Сокриј","pin":"Закачи","unpin":"Откачи"},"de":{"start":"Start","apps":"Alle Apps","search":"Apps suchen…","windows":"Offene Fenster","desktop":"Desktop","classic":"Klassisch","customize":"Anpassen","widgets":"Widgets","background":"Hintergrund","restore":"Arbeitsbereich wiederherstellen","empty":"Keine offenen Fenster","hint":"App über Start oder Desktop-Symbol öffnen.","weather":"Wetter","waiting":"Demnächst","noEvents":"Keine bevorstehenden Termine","save":"Arbeitsbereich speichern…","saved":"Arbeitsbereich gespeichert ✓","offline":"Lokal gespeichert · Cloud nicht verfügbar","max":"Bis zu 8 Apps können gleichzeitig geöffnet sein.","close":"Schließen","min":"Minimieren","maximize":"Maximieren","again":"Wiederherstellen","show":"Anzeigen","hide":"Verbergen","pin":"Anheften","unpin":"Lösen"},"sr":{"start":"Start","apps":"Sve aplikacije","search":"Pretraži aplikacije…","windows":"Otvoreni prozori","desktop":"Desktop","classic":"Klasično","customize":"Prilagodi","widgets":"Vidžeti","background":"Pozadina","restore":"Vrati radni prostor","empty":"Nema otvorenih prozora","hint":"Otvori aplikaciju iz Start menija ili sa radne površine.","weather":"Vreme","waiting":"Predstojeće","noEvents":"Nema predstojećih zapisa","save":"Čuvanje radnog prostora…","saved":"Radni prostor je sačuvan ✓","offline":"Sačuvano lokalno · oblak nije dostupan","max":"Najviše 8 aplikacija može biti otvoreno.","close":"Zatvori","min":"Minimizuj","maximize":"Uvećaj","again":"Vrati","show":"Prikaži","hide":"Sakrij","pin":"Zakači","unpin":"Otkači"},"hr":{"start":"Start","apps":"Sve aplikacije","search":"Pretraži aplikacije…","windows":"Otvoreni prozori","desktop":"Radna površina","classic":"Klasično","customize":"Prilagodi","widgets":"Widgeti","background":"Pozadina","restore":"Vrati radni prostor","empty":"Nema otvorenih prozora","hint":"Otvori aplikaciju iz Start izbornika ili s radne površine.","weather":"Vrijeme","waiting":"Nadolazeće","noEvents":"Nema nadolazećih stavki","save":"Spremanje radnog prostora…","saved":"Radni prostor je spremljen ✓","offline":"Spremljeno na uređaju · oblak nije dostupan","max":"Može biti otvoreno najviše 8 aplikacija.","close":"Zatvori","min":"Minimiziraj","maximize":"Povećaj","again":"Vrati","show":"Prikaži","hide":"Sakrij","pin":"Prikvači","unpin":"Otkvači"},"bs":{"start":"Start","apps":"Sve aplikacije","search":"Pretraži aplikacije…","windows":"Otvoreni prozori","desktop":"Desktop","classic":"Klasično","customize":"Prilagodi","widgets":"Vidžeti","background":"Pozadina","restore":"Vrati radni prostor","empty":"Nema otvorenih prozora","hint":"Otvori aplikaciju iz Start menija ili s radne površine.","weather":"Vrijeme","waiting":"Predstojeće","noEvents":"Nema predstojećih zapisa","save":"Čuvanje radnog prostora…","saved":"Radni prostor je sačuvan ✓","offline":"Sačuvano lokalno · oblak nije dostupan","max":"Može biti otvoreno najviše 8 aplikacija.","close":"Zatvori","min":"Minimiziraj","maximize":"Povećaj","again":"Vrati","show":"Prikaži","hide":"Sakrij","pin":"Zakači","unpin":"Otkači"},"cnr":{"start":"Start","apps":"Sve aplikacije","search":"Pretraži aplikacije…","windows":"Otvoreni prozori","desktop":"Desktop","classic":"Klasično","customize":"Prilagodi","widgets":"Vidžeti","background":"Pozadina","restore":"Vrati radni prostor","empty":"Nema otvorenih prozora","hint":"Otvori aplikaciju iz Start menija ili s radne površine.","weather":"Vrijeme","waiting":"Predstojeće","noEvents":"Nema predstojećih zapisa","save":"Čuvanje radnog prostora…","saved":"Radni prostor je sačuvan ✓","offline":"Sačuvano na uređaju · oblak nije dostupan","max":"Može biti otvoreno najviše 8 aplikacija.","close":"Zatvori","min":"Minimiziraj","maximize":"Povećaj","again":"Vrati","show":"Prikaži","hide":"Sakrij","pin":"Zakači","unpin":"Otkači"},"sl":{"start":"Start","apps":"Vse aplikacije","search":"Poišči aplikacije…","windows":"Odprta okna","desktop":"Namizje","classic":"Klasično","customize":"Prilagodi","widgets":"Pripomočki","background":"Ozadje","restore":"Obnovi delovni prostor","empty":"Ni odprtih oken","hint":"Odpri aplikacijo iz menija Start ali z namizja.","weather":"Vreme","waiting":"Prihajajoče","noEvents":"Ni prihajajočih vnosov","save":"Shranjevanje delovnega prostora…","saved":"Delovni prostor shranjen ✓","offline":"Shranjeno lokalno · oblak ni na voljo","max":"Odprtih je lahko največ 8 aplikacij.","close":"Zapri","min":"Pomanjšaj","maximize":"Povečaj","again":"Obnovi","show":"Prikaži","hide":"Skrij","pin":"Pripni","unpin":"Odpni"},"bg":{"start":"Старт","apps":"Всички приложения","search":"Търси приложения…","windows":"Отворени прозорци","desktop":"Работен плот","classic":"Класически","customize":"Персонализирай","widgets":"Уиджети","background":"Фон","restore":"Възстанови работния плот","empty":"Няма отворени прозорци","hint":"Отвори приложение от Старт или икона на работния плот.","weather":"Време","waiting":"Предстоящи","noEvents":"Няма предстоящи записи","save":"Запазване на работното пространство…","saved":"Работното пространство е запазено ✓","offline":"Запазено на устройството · облакът е недостъпен","max":"Могат да бъдат отворени до 8 приложения.","close":"Затвори","min":"Минимизирай","maximize":"Максимизирай","again":"Възстанови","show":"Покажи","hide":"Скрий","pin":"Закачи","unpin":"Откачи"},"sq":{"start":"Start","apps":"Të gjitha aplikacionet","search":"Kërko aplikacione…","windows":"Dritare të hapura","desktop":"Desktop","classic":"Klasike","customize":"Personalizo","widgets":"Miniaplikacione","background":"Sfondi","restore":"Rikthe hapësirën e punës","empty":"Nuk ka dritare të hapura","hint":"Hap aplikacionin nga Start ose ikona në desktop.","weather":"Moti","waiting":"Në vijim","noEvents":"Nuk ka ngjarje të ardhshme","save":"Duke ruajtur hapësirën e punës…","saved":"Hapësira e punës u ruajt ✓","offline":"Ruajtur në pajisje · reja nuk është e disponueshme","max":"Mund të jenë të hapura deri në 8 aplikacione.","close":"Mbyll","min":"Minimizo","maximize":"Maksimizo","again":"Rikthe","show":"Shfaq","hide":"Fshih","pin":"Fikso","unpin":"Hiq fiksimin"},"el":{"start":"Έναρξη","apps":"Όλες οι εφαρμογές","search":"Αναζήτηση εφαρμογών…","windows":"Ανοιχτά παράθυρα","desktop":"Επιφάνεια εργασίας","classic":"Κλασική προβολή","customize":"Προσαρμογή","widgets":"Γραφικά στοιχεία","background":"Φόντο","restore":"Επαναφορά χώρου εργασίας","empty":"Δεν υπάρχουν ανοιχτά παράθυρα","hint":"Άνοιξε μια εφαρμογή από την Έναρξη ή το εικονίδιο.","weather":"Καιρός","waiting":"Προσεχώς","noEvents":"Δεν υπάρχουν προσεχή συμβάντα","save":"Αποθήκευση χώρου εργασίας…","saved":"Ο χώρος εργασίας αποθηκεύτηκε ✓","offline":"Τοπική αποθήκευση · το cloud δεν είναι διαθέσιμο","max":"Μπορούν να είναι ανοιχτές έως 8 εφαρμογές.","close":"Κλείσιμο","min":"Ελαχιστοποίηση","maximize":"Μεγιστοποίηση","again":"Επαναφορά","show":"Εμφάνιση","hide":"Απόκρυψη","pin":"Καρφίτσωμα","unpin":"Ξεκαρφίτσωμα"},"ro":{"start":"Start","apps":"Toate aplicațiile","search":"Caută aplicații…","windows":"Ferestre deschise","desktop":"Desktop","classic":"Clasic","customize":"Personalizează","widgets":"Widgeturi","background":"Fundal","restore":"Restaurează spațiul de lucru","empty":"Nu sunt ferestre deschise","hint":"Deschide o aplicație din Start sau de pe desktop.","weather":"Vremea","waiting":"Urmează","noEvents":"Nu există evenimente viitoare","save":"Se salvează spațiul de lucru…","saved":"Spațiul de lucru a fost salvat ✓","offline":"Salvat local · cloud indisponibil","max":"Se pot deschide până la 8 aplicații.","close":"Închide","min":"Minimizează","maximize":"Maximizează","again":"Restaurează","show":"Arată","hide":"Ascunde","pin":"Fixează","unpin":"Anulează fixarea"}};
 let owner='',data=null,ui=null,saving=0,saveRun=Promise.resolve(),z=50,focusId='',drag=null;
+const startQueue=[],runningWindows=new Set(),loadTimers=new Map();
+const MAX_PARALLEL_STARTS=2;
+let loadSerial=0;
 function lang(){return String(window.LifeDashWebI18n?.locale?.()||'en').toLowerCase().split('-')[0]}
 function t(key){return (LOCALE[lang()]||LOCALE.en)[key]||LOCALE.en[key]||key}
 function active(){return !!bridge()?.ready?.()&&!$('#appView')?.classList.contains('hidden')&&$('#appView')?.classList.contains('ldp123-desktop-shell')}
@@ -267,12 +270,91 @@ function clamp(w){
  return {...w,...size,x:Math.max(0,Math.min(w.x||0,area.width-size.w)),
   y:Math.max(0,Math.min(w.y||0,area.height-size.h))};
 }
-function urlFor(id){
+function urlFor(id,token=''){
  const u=new URL('./index.html',location.href);
  u.searchParams.set('ldpWindow',id);
+ if(token)u.searchParams.set('ldpLoad',token);
  u.hash=id;
  return u.href;
 }
+function forgetStart(id){
+ const index=startQueue.indexOf(id);
+ if(index>=0)startQueue.splice(index,1);
+ const timer=loadTimers.get(id);
+ if(timer!==undefined){clearTimeout(timer);loadTimers.delete(id)}
+ runningWindows.delete(id);
+}
+function clearStarts(){
+ for(const id of [...runningWindows,...startQueue])forgetStart(id);
+ startQueue.length=0;
+}
+function setWindowStatus(node,text,failed=false){
+ const message=$('.ldp125-loading-text',node),retry=$('.ldp125-loading-retry',node);
+ if(message)message.textContent=text;
+ if(retry)retry.hidden=!failed;
+ node.dataset.osState=failed?'stalled':'loading';
+}
+function pumpStarts(){
+ if(!active()||!data||!ui||ui.hidden)return;
+ while(runningWindows.size<MAX_PARALLEL_STARTS&&startQueue.length){
+  const id=startQueue.shift(),w=data.windows[id];
+  const node=$('#ldp124Windows [data-app="'+id+'"]',ui);
+  if(!w||w.min||!node||node.dataset.frameStarted==='true')continue;
+  const frame=$('.ldp124-frame',node);if(!frame)continue;
+  const token=String(++loadSerial);
+  node.dataset.frameStarted='true';node.dataset.loadToken=token;
+  setWindowStatus(node,t('starting'));
+  runningWindows.add(id);
+  loadTimers.set(id,setTimeout(()=>{
+   if(node.isConnected&&node.dataset.loadToken===token&&node.dataset.osState!=='ready'){
+    setWindowStatus(node,t('stalled'),true);
+   }
+   finishStart(id,token);
+  },26000));
+  frame.src=urlFor(id,token);
+ }
+}
+function finishStart(id,token){
+ const node=$('#ldp124Windows [data-app="'+id+'"]',ui);
+ if(!node||node.dataset.loadToken!==token)return;
+ const timer=loadTimers.get(id);
+ if(timer!==undefined){clearTimeout(timer);loadTimers.delete(id)}
+ runningWindows.delete(id);
+ pumpStarts();
+}
+function scheduleStart(id,priority=false){
+ if(!data?.windows[id]||data.windows[id].min||!active())return;
+ const node=$('#ldp124Windows [data-app="'+id+'"]',ui);
+ if(!node||node.dataset.frameStarted==='true'||runningWindows.has(id))return;
+ if(!startQueue.includes(id))priority?startQueue.unshift(id):startQueue.push(id);
+ pumpStarts();
+}
+function retryWindow(id){
+ if(!data?.windows[id]||!active())return;
+ const node=$('#ldp124Windows [data-app="'+id+'"]',ui);
+ if(!node)return;
+ forgetStart(id);
+ // Stop only this app instance; all other windows, data and audio stay intact.
+ const frame=$('.ldp124-frame',node);
+ if(frame)frame.src='about:blank';
+ node.dataset.frameStarted='false';node.dataset.loadToken='';
+ setWindowStatus(node,t('starting'));
+ if(data.windows[id].min)data.windows[id].min=false;
+ position(node,data.windows[id]);
+ scheduleStart(id,true);
+ raise(id);
+}
+window.addEventListener('message',event=>{
+ if(event.origin!==location.origin||event.data?.type!=='ldp-os-ready-v125')return;
+ const id=event.data.app,token=String(event.data.load||'');
+ if(!INFO[id]||!active()||!data?.windows[id])return;
+ const node=$('#ldp124Windows [data-app="'+id+'"]',ui);
+ const frame=$('.ldp124-frame',node);
+ if(!node||!frame||frame.contentWindow!==event.source||
+  node.dataset.loadToken!==token)return;
+ node.dataset.osState='ready';
+ finishStart(id,token);
+});
 function openApp(id){
  if(!INFO[id]||!active())return;
  hideStart();closeSettings();
@@ -301,13 +383,15 @@ function makeWindow(id){
  const label=mk('div','ldp124-window-label');
  label.append(mk('span','ldp124-window-icon',INFO[id].icon),mk('strong','',displayName(id)));
  const actions=mk('div','ldp124-window-actions');
+ const reload=button('↻','ldp125-window-reload',()=>retryWindow(id));
+ reload.title=t('reload');reload.setAttribute('aria-label',t('reload'));
  const mini=button('−','ldp124-window-mini',()=>minimize(id));
  mini.title=t('min');mini.setAttribute('aria-label',t('min'));
  const max=button('□','ldp124-window-max',()=>maximize(id));
  max.title=t('maximize');max.setAttribute('aria-label',t('maximize'));
  const close=button('×','ldp124-window-close',()=>closeWindow(id));
  close.title=t('close');close.setAttribute('aria-label',t('close'));
- actions.append(mini,max,close);bar.append(label,actions);
+ actions.append(reload,mini,max,close);bar.append(label,actions);
  bar.addEventListener('dblclick',e=>{if(!e.target.closest('button'))maximize(id)});
  bar.addEventListener('pointerdown',e=>startDrag(e,id,node,bar));
  const frame=mk('iframe','ldp124-frame');
@@ -315,7 +399,6 @@ function makeWindow(id){
  frame.setAttribute('loading','eager');frame.setAttribute('referrerpolicy','same-origin');
  // Same-origin iframe deliberately preserves complete existing auth, event and
  // module isolation, including the Radio audio element when minimized.
- frame.src=urlFor(id);
  frame.addEventListener('load',()=>{
   node.classList.add('ldp124-loaded');
   // Same-origin child app clicks must raise their owning Desktop window.
@@ -325,7 +408,14 @@ function makeWindow(id){
  grip.setAttribute('role','separator');grip.setAttribute('aria-label','Resize '+displayName(id));
  grip.addEventListener('pointerdown',e=>startResize(e,id,node,grip));
  node.addEventListener('pointerdown',()=>raise(id));
- node.append(bar,frame,grip);return node;
+ const loading=mk('div','ldp125-loading');
+ loading.setAttribute('role','status');
+ const message=mk('span','ldp125-loading-text',t('starting'));
+ const retry=button('↻ '+t('reload'),'ldp125-loading-retry',()=>retryWindow(id));
+ retry.hidden=true;
+ loading.append(mk('span','ldp125-loading-spinner','◌'),message,retry);
+ node.dataset.frameStarted='false';node.dataset.osState='loading';
+ node.append(bar,frame,loading,grip);return node;
 }
 function position(node,w){
  const b=clamp(w);
@@ -346,7 +436,9 @@ function mountWindow(id){
  const host=$('#ldp124Windows',ui);
  let node=host?.querySelector('[data-app="'+id+'"]');
  if(!node){node=makeWindow(id);host.append(node)}
- position(node,w);return node;
+ position(node,w);
+ if(!w.min)scheduleStart(id);
+ return node;
 }
 function raise(id){
  if(!data.windows[id])return;
@@ -366,7 +458,10 @@ function restore(id){
 }
 function minimize(id){
  const w=data.windows[id];if(!w)return;
- w.min=true;position(mountWindow(id),w);focusId='';drawTaskbar();persist();
+ w.min=true;
+ const queued=startQueue.indexOf(id);
+ if(queued>=0)startQueue.splice(queued,1);
+ position(mountWindow(id),w);focusId='';drawTaskbar();persist();
 }
 function maximize(id){
  const w=data.windows[id];if(!w)return;
@@ -374,7 +469,9 @@ function maximize(id){
 }
 function closeWindow(id,saveChange=true){
  const node=$('#ldp124Windows [data-app="'+id+'"]',ui);
+ forgetStart(id);
  if(node)node.remove();
+ pumpStarts();
  delete data.windows[id];
  if(focusId===id)focusId='';
  drawTaskbar();if(saveChange)persist();
@@ -522,6 +619,7 @@ function activate(){
  if(!next)return;
  if(owner!==next){
   // Never reuse an embedded app from a previous signed-in account.
+  clearStarts();
   if(ui)$('#ldp124Windows',ui)?.replaceChildren();
   if(saving){clearTimeout(saving);saving=0}
   owner=next;
@@ -530,12 +628,16 @@ function activate(){
   if(!cloud&&!local)data=base();
  }
  shell();ui.hidden=false;wallpaper();drawIcons();drawWidgets();
+ document.documentElement.classList.add('ldp-os-running');
+ document.documentElement.classList.remove('ldp-os-launch-pending');
  updateWindows();drawTaskbar();updateClock();
  // Keep classic mode and existing dashboard alive underneath for safe rollback.
 }
 function deactivate(){
  if(ui&&!ui.hidden){
   ui.hidden=true;hideStart();closeSettings();
+  document.documentElement.classList.remove('ldp-os-running');
+  clearStarts();
   // Leaving Desktop stops iframe work (including playing radio) without
   // deleting saved window positions, so re-entering restores the workspace.
   $('#ldp124Windows',ui)?.replaceChildren();
