@@ -4,6 +4,7 @@
  */
 (()=>{
 'use strict';
+if(document.documentElement.classList.contains('ldp-os-embedded'))return;
 const root=document.querySelector('#content');
 const app=document.querySelector('#appView');
 const sidebar=document.querySelector('#nav');
