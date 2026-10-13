@@ -656,7 +656,7 @@ window.LifeDashDashboardBridge=Object.freeze({
  snapshot:()=>{
    if(!state.client||!state.session||!state.user||!state.syncReady)return null;
    return Object.fromEntries([
-     'notes','family_tasks','manual_reminders','documents','finance_transactions'
+     'notes','family_tasks','manual_reminders','documents','finance_transactions','vehicles','journey_plans_beta'
    ].map(k=>[k,(state.data[k]||[]).map(row=>({...row}))]));
  }
 });
