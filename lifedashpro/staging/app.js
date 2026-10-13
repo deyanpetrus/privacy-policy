@@ -658,6 +658,24 @@ window.LifeDashDashboardBridge=Object.freeze({
    return Object.fromEntries([
      'notes','family_tasks','manual_reminders','documents','finance_transactions','vehicles','journey_plans_beta'
    ].map(k=>[k,(state.data[k]||[]).map(row=>({...row}))]));
+ },
+ desktopPrefs:()=>state.user&&state.syncReady?state.profile?.web_desktop_prefs||null:null,
+ saveDesktopPrefs:async input=>{
+   if(!state.client||!state.session||!state.user||!state.syncReady)
+     throw new Error('Sign in and sync before saving your layout.');
+   const uid=state.user.id;
+   if(!input||typeof input!=='object'||Array.isArray(input))
+     throw new Error('Invalid desktop preferences.');
+   const raw=JSON.stringify(input);
+   if(raw.length>4500)throw new Error('Desktop settings are too large.');
+   const {data,error}=await state.client.from('profiles')
+     .update({web_desktop_prefs:input}).eq('id',uid)
+     .select('id,web_desktop_prefs').single();
+   if(error)throw error;
+   if(!data||data.id!==uid||state.user?.id!==uid)
+     throw new Error('Profile session changed while saving.');
+   if(state.profile)state.profile.web_desktop_prefs=data.web_desktop_prefs;
+   return true;
  }
 });
 window.LifeDashCalendarBridge=Object.freeze({
