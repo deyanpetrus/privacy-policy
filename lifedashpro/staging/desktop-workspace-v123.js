@@ -11,6 +11,10 @@ if(!root||!app||!sidebar)return;
 const bridge=()=>window.LifeDashDashboardBridge;
 const loc=()=>window.LifeDashWebI18n?.locale?.()||'en';
 const baseT=(k,alt)=>window.LifeDashWebI18n?.tr?.(k)||alt;
+const dateLocale=()=>{
+ const k=String(loc()||'en').split('-')[0].toLowerCase();
+ return k==='cnr'||k==='me'?'sr-ME':k;
+};
 const PREFIX='lifedash_web_desktop_v123_';
 const IDS=['today','weather','calendar','notes','budget','around','world','news','radio','vehicles','route'];
 const SELECTORS={
@@ -168,11 +172,14 @@ function makeTop(){
   E('h2','',t('workspace')),E('p','ldp123-hero-subtitle',t('subtitle')));
  const clock=E('div','ldp123-clock');clock.id='ldp123Clock';
  const updateClock=()=>{
-  const lang=loc();
+  const lang=dateLocale();
   const now=new Date();
-  clock.replaceChildren(E('strong','',
-   new Intl.DateTimeFormat(lang,{hour:'2-digit',minute:'2-digit'}).format(now)),
-   E('small','',new Intl.DateTimeFormat(lang,{weekday:'long',month:'short',day:'numeric'}).format(now)));
+  let clockText='',dateText='';
+  try{
+   clockText=new Intl.DateTimeFormat(lang,{hour:'2-digit',minute:'2-digit'}).format(now);
+   dateText=new Intl.DateTimeFormat(lang,{weekday:'long',month:'short',day:'numeric'}).format(now);
+  }catch(_){clockText=now.toLocaleTimeString();dateText=now.toLocaleDateString()}
+  clock.replaceChildren(E('strong','',clockText),E('small','',dateText));
  };
  updateClock();
  hero.append(main,clock);
