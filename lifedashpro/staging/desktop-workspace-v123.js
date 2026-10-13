@@ -17,6 +17,11 @@ const dateLocale=()=>{
  return k==='cnr'||k==='me'?'sr-ME':k;
 };
 const PREFIX='lifedash_web_desktop_v123_';
+const DEVICE_MODE_KEY='lifedash_web_device_mode_v125';
+function rememberMode(mode){
+ try{if(['desktop','classic'].includes(mode))localStorage.setItem(DEVICE_MODE_KEY,mode)}catch(_){}
+ if(mode==='classic')document.documentElement.classList.remove('ldp-os-launch-pending');
+}
 const IDS=['today','weather','calendar','notes','budget','around','world','news','radio','vehicles','route'];
 const SELECTORS={
  today:'.ldp119-today',weather:'.ldp123-weather',calendar:'.ldp123-calendar',
@@ -181,7 +186,7 @@ function changeMode(mode){
  if(mode==='desktop'&&d?.classList.contains('ldp121-editing')){
   d.querySelector('#ldp121LayoutControls .ldp121-layout-button')?.click();
  }
- settings.mode=mode;editing=false;persist(false);syncModeUI();
+ settings.mode=mode;editing=false;persist(false);rememberMode(mode);syncModeUI();
  if(d){
   if(mode==='desktop')activate(d);
   else{
@@ -553,10 +558,12 @@ function sync(){
   // Most recently edited layout wins. Keep view mode local on each device.
   settings=normalize(cloud&&cloudTime>=localTime?cloud:local);
   settings.mode=['desktop','classic'].includes(local?.mode)?local.mode:defaults().mode;
+  rememberMode(settings.mode);
   host=null;top=null;editing=false;
  }
  const container=$('#androidDashboardParityV119',root);
  syncModeUI();
+ if(currentMode()==='classic')document.documentElement.classList.remove('ldp-os-launch-pending');
  if(!container||container.dataset.readyFor!==identity)return;
  if(currentMode()==='desktop'){
   if(host!==container){host=container;editing=false;activate(container)}
