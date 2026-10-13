@@ -1,0 +1,51 @@
+/* LifeDashPro Web v1.25 Desktop launch and per-window recovery.
+ * Desktop-only stabilization. Classic Mode and data modules stay unmodified.
+ */
+html.ldp-os-running,html.ldp-os-running body{
+ height:100%!important;overflow:hidden!important;overscroll-behavior:none;
+}
+html.ldp-os-launch-pending #appView:not(.hidden){visibility:hidden!important}
+html.ldp-os-launch-pending body:has(#appView:not(.hidden))::after{
+ content:"LD  ·  LifeDashPro Desktop";
+ position:fixed;inset:0;z-index:1000;
+ display:grid;place-items:center;pointer-events:none;
+ font:800 clamp(20px,3vw,29px)/1.3 system-ui,Arial,sans-serif;
+ letter-spacing:-.4px;color:#f0efff;
+ background:radial-gradient(ellipse at 76% 4%,rgba(137,76,203,.58),transparent 60%),
+ radial-gradient(ellipse at 12% 86%,rgba(28,128,214,.62),transparent 57%),
+ linear-gradient(135deg,#18132c,#101834,#21102c);
+}
+.ldp124-window .ldp125-loading{
+ position:absolute;inset:49px 0 0;z-index:5;
+ display:flex;flex-direction:column;justify-content:center;align-items:center;
+ gap:13px;padding:18px;background:rgba(18,24,40,.97);
+ color:#e8e7ff;text-align:center;font-size:13px;line-height:1.55;
+ box-sizing:border-box;
+}
+.ldp124-window[data-os-state="ready"]>.ldp125-loading{display:none!important}
+.ldp124-window .ldp125-loading-spinner{
+ display:grid;place-items:center;width:55px;height:55px;
+ border-radius:50%;color:#b4a7ff;font-size:43px;
+ border:2px solid rgba(168,151,242,.28);background:rgba(147,131,235,.08);
+ animation:ldp125spin 2.5s linear infinite;
+}
+.ldp124-window[data-os-state="stalled"] .ldp125-loading-spinner{animation:none}
+@keyframes ldp125spin{to{transform:rotate(360deg)}}
+.ldp124-window .ldp125-loading-text{max-width:310px;overflow-wrap:anywhere}
+.ldp124-window .ldp125-loading-retry{
+ border:1px solid rgba(161,153,236,.48);border-radius:12px;
+ padding:11px 16px;font:800 12px/1.3 system-ui,sans-serif;
+ color:white;background:linear-gradient(135deg,#6756d9,#397ec3);
+ cursor:pointer;
+}
+.ldp124-window .ldp125-loading-retry[hidden]{display:none!important}
+.ldp124-window-actions .ldp125-window-reload{
+ font-size:21px;line-height:1;
+}
+.ldp124-window-actions .ldp125-window-reload:hover{background:#6857b1}
+@media(max-width:650px){
+ .ldp124-window .ldp125-loading{inset:44px 0 0}
+}
+@media(prefers-reduced-motion:reduce){
+ .ldp124-window .ldp125-loading-spinner{animation:none}
+}
