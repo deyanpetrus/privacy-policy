@@ -59,6 +59,9 @@ const COPY={
  playing:['Radio player','Радио плеер','Radio plejer','Radio player','Radio player','Radio plejer','Radijski predvajalnik','Радио плеър','Radio','Ραδιόφωνο','Player radio','Radioplayer'],
  vehiclesTrips:['Vehicles & journeys','Возила и патувања','Vozila i putovanja','Vozila i putovanja','Vozila i putovanja','Vozila i putovanja','Vozila in potovanja','Превозни средства и пътувания','Automjete dhe udhëtime','Οχήματα και ταξίδια','Vehicule și călătorii','Fahrzeuge & Reisen'],
  fromAndroid:['Existing synced records','Постојни синхронизирани записи','Postojeći sinhronizovani zapisi','Postojeći sinkronizirani zapisi','Postojeći sinhronizovani zapisi','Postojeći sinhronizovani zapisi','Sinhronizirani zapisi','Синхронизирани записи','Regjistrime të sinkronizuara','Συγχρονισμένες εγγραφές','Înregistrări sincronizate','Synchronisierte Einträge'],
+ saving:['Saving to account…','Се зачувува на сметката…','Čuva se na nalogu…','Sprema se na račun…','Čuva se na računu…','Čuva se na nalogu…','Shranjevanje v račun…','Записва се в профила…','Duke ruajtur në llogari…','Αποθήκευση στον λογαριασμό…','Se salvează în cont…','Im Konto speichern…'],
+ saved:['Saved to account ✓','Зачувано на сметката ✓','Sačuvano na nalogu ✓','Spremljeno na računu ✓','Sačuvano na računu ✓','Sačuvano na nalogu ✓','Shranjeno v računu ✓','Запазено в профила ✓','Ruajtur në llogari ✓','Αποθηκεύτηκε ✓','Salvat în cont ✓','Im Konto gespeichert ✓'],
+ offline:['Saved locally · Cloud unavailable','Зачувано локално · Облакот не е достапен','Sačuvano lokalno · Oblak nije dostupan','Spremljeno lokalno · Oblak nije dostupan','Sačuvano lokalno · Oblak nije dostupan','Sačuvano lokalno · Oblak nije dostupan','Shranjeno lokalno · Oblak ni na voljo','Запазено локално · Облакът е недостъпен','Ruajtur lokalisht · Reja nuk është e disponueshme','Τοπική αποθήκευση · Χωρίς σύννεφο','Salvat local · Cloud indisponibil','Lokal gespeichert · Cloud nicht verfügbar'],
  weatherSource:['Source: Open-Meteo · on demand','Извор: Open-Meteo · по барање','Izvor: Open-Meteo · na zahtev','Izvor: Open-Meteo · na zahtjev','Izvor: Open-Meteo · na zahtjev','Izvor: Open-Meteo · na zahtjev','Vir: Open-Meteo · na zahtevo','Източник: Open-Meteo · при поискване','Burimi: Open-Meteo · sipas kërkesës','Πηγή: Open-Meteo · κατόπιν αιτήματος','Sursa: Open-Meteo · la cerere','Quelle: Open-Meteo · auf Abruf'],
 };
 const LANGS=['en','mk','sr','hr','bs','cnr','sl','bg','sq','el','ro','de'];
@@ -114,7 +117,7 @@ function persist(syncCloud=true){
  const owner=uid;
  const payload={order:settings.order.slice(),sizes:{...settings.sizes},
   hidden:settings.hidden.slice(),updatedAt:settings.updatedAt};
- cloudStatus('Saving to account…');
+ cloudStatus(t('saving'));
  saveTimer=setTimeout(()=>{
   saveTimer=null;
   if(owner!==uid||!ready()||typeof bridge()?.saveDesktopPrefs!=='function')return;
@@ -122,9 +125,9 @@ function persist(syncCloud=true){
    if(owner!==uid||!ready())return;
    try{
     await bridge().saveDesktopPrefs(payload);
-    if(owner===uid)cloudStatus('Saved to account ✓');
+    if(owner===uid)cloudStatus(t('saved'));
    }catch(_){
-    if(owner===uid)cloudStatus('Saved in this browser · Cloud unavailable');
+    if(owner===uid)cloudStatus(t('offline'));
    }
   });
  },650);
