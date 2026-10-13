@@ -98,9 +98,37 @@ function normalize(prefs){
    [...new Set(prefs.hidden.filter(k=>IDS.includes(k)))]:[]};
 }
 let uid='',settings=null,host=null,top=null,editing=false,dragged='',weatherState={};
+let saveTimer=null,saveChain=Promise.resolve();
 function ready(){return Boolean(bridge()?.ready())&&!app.classList.contains('hidden')}
 function stored(){return PREFIX+uid}
-function persist(){if(uid&&settings)save(stored(),settings)}
+function cloudStatus(message){
+ const text=$('#ldp123CloudStatus');
+ if(text)text.textContent=message;
+}
+function persist(syncCloud=true){
+ if(!uid||!settings)return;
+ if(syncCloud)settings.updatedAt=Date.now();
+ save(stored(),settings);
+ if(!syncCloud)return; // desktop/classic is a per-device choice
+ if(saveTimer!==null)clearTimeout(saveTimer);
+ const owner=uid;
+ const payload={order:settings.order.slice(),sizes:{...settings.sizes},
+  hidden:settings.hidden.slice(),updatedAt:settings.updatedAt};
+ cloudStatus('Saving to account…');
+ saveTimer=setTimeout(()=>{
+  saveTimer=null;
+  if(owner!==uid||!ready()||typeof bridge()?.saveDesktopPrefs!=='function')return;
+  saveChain=saveChain.catch(()=>{}).then(async()=>{
+   if(owner!==uid||!ready())return;
+   try{
+    await bridge().saveDesktopPrefs(payload);
+    if(owner===uid)cloudStatus('Saved to account ✓');
+   }catch(_){
+    if(owner===uid)cloudStatus('Saved in this browser · Cloud unavailable');
+   }
+  });
+ },650);
+}
 function currentMode(){return settings?.mode||'classic'}
 function navigate(page){
  const b=$('#nav button[data-page="'+page+'"]')||$('.mobile-nav button[data-page="'+page+'"]');
@@ -148,7 +176,7 @@ function changeMode(mode){
  if(mode==='desktop'&&d?.classList.contains('ldp121-editing')){
   d.querySelector('#ldp121LayoutControls .ldp121-layout-button')?.click();
  }
- settings.mode=mode;editing=false;persist();syncModeUI();
+ settings.mode=mode;editing=false;persist(false);syncModeUI();
  if(d){
   if(mode==='desktop')activate(d);
   else{
@@ -366,6 +394,7 @@ function makeControls(container){
  const title=E('div','ldp123-layout-title');
  title.append(E('strong','',t('workspace')),E('small','',t('subtitle')));
  const actions=E('div','ldp123-toolbar-actions');
+ const cloud=E('small','ldp123-cloud-status','');cloud.id='ldp123CloudStatus';
  const toggle=makeButton(t('customize'),'ldp123-customize',()=>{
   editing=!editing;container.classList.toggle('ldp123-customizing',editing);
   toggle.textContent=editing?t('finish'):t('customize');
@@ -382,7 +411,7 @@ function makeControls(container){
   persist();applyLayout(container);drawManager(container,settingsPanel);
  });
  actions.append(toggle,reset);
- toolbar.append(title,actions);
+ toolbar.append(title,actions,cloud);
  const settingsPanel=E('section','ldp123-manager');
  settingsPanel.id='ldp123Manager';settingsPanel.hidden=true;
  toolbar.append(settingsPanel);
@@ -499,6 +528,7 @@ function activate(container){
 function sync(){
  if(!ready()){
   if(uid){
+   if(saveTimer!==null){clearTimeout(saveTimer);saveTimer=null}
    uid='';settings=null;host=null;top=null;editing=false;dragged='';weatherState={};
    root.classList.remove('ldp123-desktop','ldp123-classic');
    app.classList.remove('ldp123-desktop-shell');
@@ -509,7 +539,16 @@ function sync(){
  const identity=bridge().identity();
  if(!identity)return;
  if(uid!==identity){
-  uid=identity;settings=normalize(safeRead(stored()));host=null;top=null;editing=false;
+  if(saveTimer!==null){clearTimeout(saveTimer);saveTimer=null}
+  uid=identity;
+  const local=safeRead(stored());
+  const cloud=bridge()?.desktopPrefs?.();
+  const localTime=Number(local?.updatedAt)||0;
+  const cloudTime=Number(cloud?.updatedAt)||0;
+  // Most recently edited layout wins. Keep view mode local on each device.
+  settings=normalize(cloud&&cloudTime>=localTime?cloud:local);
+  settings.mode=['desktop','classic'].includes(local?.mode)?local.mode:defaults().mode;
+  host=null;top=null;editing=false;
  }
  const container=$('#androidDashboardParityV119',root);
  syncModeUI();
