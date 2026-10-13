@@ -1,0 +1,211 @@
+/* LifeDashPro Web v1.26 — compact real app windows and maximized viewport.
+ * Strictly scoped to same-origin Desktop OS child windows; Classic unchanged.
+ */
+
+/* Use the existing LifeDashPro app icon, not an LD placeholder. */
+.ldp124-os .ldp126-brand-logo{
+ display:block;object-fit:contain;object-position:center;
+ width:39px!important;height:39px!important;flex:none;
+ padding:0!important;border:0!important;border-radius:11px;
+ background:transparent!important;box-shadow:0 5px 15px rgba(6,8,35,.26);
+}
+.ldp124-os .ldp126-start-logo{
+ display:block;width:32px;height:32px;object-fit:contain;
+ border-radius:9px;pointer-events:none;
+}
+
+/* Maximized app rises above desktop top strip, uses every available vertical
+ * pixel except the taskbar. Taskbar remains visible and usable. */
+.ldp124-os.ldp126-max-active .ldp124-windows{z-index:100!important}
+.ldp124-os .ldp124-window.ldp124-maximized:not([hidden]){
+ position:fixed!important;left:0!important;top:0!important;
+ width:100vw!important;height:calc(100vh - 70px)!important;
+ height:calc(100dvh - 70px)!important;
+ max-width:none!important;max-height:none!important;
+ margin:0!important;border-radius:0!important;
+ box-shadow:none!important;z-index:110!important;
+}
+.ldp124-os .ldp124-window.ldp124-maximized .ldp124-window-bar{
+ border-radius:0!important;min-height:45px;
+}
+.ldp124-os .ldp124-window.ldp124-maximized .ldp124-frame{
+ min-height:0!important;flex:1 1 auto!important;
+}
+.ldp124-os.ldp126-max-active .ldp124-taskbar{z-index:9000}
+.ldp124-os .ldp124-window-actions .ldp124-window-max{
+ font-size:18px;
+}
+
+/* Every iframe app has a compact, information-first view.
+ * Do not remove content sections, input fields, lists or action buttons.
+ * Hide only repetitive introductions; the OS title bar provides the title. */
+html.ldp-os-embedded #appView #content{
+ padding:10px 14px 20px!important;
+}
+html.ldp-os-embedded #appView #content > .section-head:first-child{
+ margin:0 0 10px!important;
+ padding:0 0 8px!important;
+ border-bottom:1px solid var(--line);
+ display:flex!important;flex-direction:row!important;
+ justify-content:space-between!important;align-items:center!important;
+ flex-wrap:wrap;gap:8px!important;
+}
+html.ldp-os-embedded #appView #content > .section-head:first-child .eyebrow{display:none!important}
+html.ldp-os-embedded #appView #content > .section-head:first-child h2{
+ font-size:17px!important;letter-spacing:-.2px!important;
+ line-height:1.25!important;margin:0!important;
+}
+html.ldp-os-embedded #appView #content > .section-head:first-child p:not(.eyebrow){
+ font-size:11px!important;line-height:1.35!important;
+ margin:2px 0 0!important;color:var(--muted)!important;
+}
+html.ldp-os-embedded #appView #content > .section-head:first-child > div{
+ display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+}
+html.ldp-os-embedded #appView #content > .section-head:first-child > div > p:not(.eyebrow){
+ max-width:620px;
+}
+html.ldp-os-embedded #appView .card{padding:12px!important;border-radius:14px!important}
+html.ldp-os-embedded #appView .card-head{margin-bottom:7px!important}
+html.ldp-os-embedded #appView .data-row{padding:7px 10px!important}
+html.ldp-os-embedded #appView .list{gap:6px!important}
+html.ldp-os-embedded #appView .info-tile{padding:11px!important}
+html.ldp-os-embedded #appView .section-head .toolbar{gap:6px!important}
+html.ldp-os-embedded #appView .section-head .toolbar button{min-height:36px!important}
+html.ldp-os-embedded #appView .empty{padding:20px!important}
+
+/* Radio: station search and player above the fold, headings condensed. */
+html.ldp-os-embedded .radio-page-heading{
+ display:flex;align-items:center;gap:12px;
+ margin:0 0 9px!important;
+}
+html.ldp-os-embedded .radio-page-heading .eyebrow,
+html.ldp-os-embedded .radio-page-description{display:none!important}
+html.ldp-os-embedded .radio-page-heading h2{
+ font-size:17px!important;line-height:1.3!important;
+ letter-spacing:-.2px!important;margin:0!important;
+}
+html.ldp-os-embedded .radio-toolbar{
+ gap:8px!important;padding:10px!important;
+ border-radius:12px!important;margin-bottom:9px!important;
+}
+html.ldp-os-embedded .radio-field{gap:4px!important}
+html.ldp-os-embedded .radio-field>span{font-size:10px!important}
+html.ldp-os-embedded .radio-select,
+html.ldp-os-embedded .radio-input,
+html.ldp-os-embedded .radio-country-trigger{
+ min-height:37px!important;height:37px!important;
+ font-size:12px!important;padding:7px 10px!important;
+}
+html.ldp-os-embedded .radio-filter-actions{gap:6px!important;flex-wrap:wrap}
+html.ldp-os-embedded .radio-filter-actions button{
+ min-height:37px!important;padding:7px 11px!important;
+ font-size:11px!important;
+}
+html.ldp-os-embedded .radio-current-card{
+ padding:12px!important;margin-bottom:9px!important;
+ border-radius:13px!important;
+}
+html.ldp-os-embedded .radio-current-info{gap:4px!important}
+html.ldp-os-embedded .radio-result-status{margin:8px 0!important}
+html.ldp-os-embedded .radio-station-grid{gap:8px!important}
+html.ldp-os-embedded .radio-station{padding:10px!important;border-radius:13px!important}
+
+/* Explore: first row for city, radius, GPS, search controls; map visible early. */
+html.ldp-os-embedded .explore-header{
+ display:flex!important;align-items:center!important;
+ margin:0 0 8px!important;gap:10px!important;
+}
+html.ldp-os-embedded .explore-header .eyebrow,
+html.ldp-os-embedded .explore-subtitle{display:none!important}
+html.ldp-os-embedded .explore-header h2{
+ font-size:17px!important;line-height:1.3!important;margin:0!important;
+}
+html.ldp-os-embedded .explore-controls{
+ gap:7px!important;margin-bottom:6px!important;
+ align-items:flex-end!important;
+}
+html.ldp-os-embedded .explore-field{gap:3px!important}
+html.ldp-os-embedded .explore-select,
+html.ldp-os-embedded .explore-search,
+html.ldp-os-embedded .explore-gps,
+html.ldp-os-embedded .explore-refresh,
+html.ldp-os-embedded .explore-city-search button{
+ min-height:37px!important;padding:7px 10px!important;
+ border-radius:9px!important;font-size:11px!important;
+}
+html.ldp-os-embedded #exploreCitySelect{min-width:155px!important}
+html.ldp-os-embedded .explore-categories{gap:5px!important;margin:8px 0!important}
+html.ldp-os-embedded .explore-category{
+ min-height:31px!important;padding:5px 9px!important;
+ font-size:10px!important;
+}
+html.ldp-os-embedded .explore-layout{gap:8px!important}
+html.ldp-os-embedded .explore-map-panel,
+html.ldp-os-embedded .explore-results-panel{
+ padding:10px!important;border-radius:13px!important;
+}
+
+/* Finance: financial values and budget remain authoritative and unchanged. */
+html.ldp-os-embedded .finance-plus-shell{
+ padding:12px!important;margin:7px 0 12px!important;
+ border-radius:13px!important;
+}
+html.ldp-os-embedded .finance-plus-titlebar{
+ margin:0 0 9px!important;gap:8px!important;
+ align-items:center!important;
+}
+html.ldp-os-embedded .finance-plus-titlebar .eyebrow,
+html.ldp-os-embedded .finance-plus-titlebar .finance-plus-muted{display:none!important}
+html.ldp-os-embedded .finance-plus-titlebar h3{
+ font-size:16px!important;margin:0!important;
+}
+html.ldp-os-embedded .finance-plus-actions{gap:5px!important}
+html.ldp-os-embedded .finance-plus-actions button{min-height:33px!important;padding:6px 9px!important}
+html.ldp-os-embedded .finance-plus-panel{padding:11px!important;border-radius:12px!important}
+html.ldp-os-embedded .finance-plus-section-heading{margin-bottom:7px!important}
+
+/* RSS: preserve categories and stories, condense introductory banner. */
+html.ldp-os-embedded #newsRssV116 .news-hero{
+ gap:10px!important;padding:12px 15px!important;
+ border-radius:14px!important;box-shadow:none!important;
+ align-items:center!important;
+}
+html.ldp-os-embedded #newsRssV116 .news-kicker,
+html.ldp-os-embedded #newsRssV116 .news-hero-lead{display:none!important}
+html.ldp-os-embedded #newsRssV116 .news-hero h2{
+ font-size:17px!important;margin:0!important;line-height:1.3!important;
+}
+html.ldp-os-embedded #newsRssV116 .news-filterbar{gap:7px!important;margin:8px 0!important}
+html.ldp-os-embedded #newsRssV116 .news-category-tabs{padding:3px 0 7px!important;gap:6px!important}
+html.ldp-os-embedded #newsRssV116 .news-category{padding:7px 9px!important;font-size:11px!important}
+
+/* Calendar and World Live: compact headers without losing action controls. */
+html.ldp-os-embedded .calendar-head{
+ margin-bottom:8px!important;gap:9px!important;align-items:center!important;
+}
+html.ldp-os-embedded .calendar-head .eyebrow,
+html.ldp-os-embedded .calendar-head .calendar-muted{display:none!important}
+html.ldp-os-embedded .calendar-head h2{font-size:17px!important;margin:0!important}
+html.ldp-os-embedded .calendar-top-controls button{min-height:34px!important;padding:6px 9px!important}
+html.ldp-os-embedded .calendar-view-tabs{padding:2px!important}
+html.ldp-os-embedded .calendar-tab{padding:6px 9px!important}
+html.ldp-os-embedded .world-live-page-head{margin-bottom:8px!important}
+html.ldp-os-embedded .world-live-page-head h2{font-size:17px!important}
+html.ldp-os-embedded .world-live-controls{gap:7px!important}
+
+/* Keep controls readable when an app window is narrow. */
+@media(max-width:760px){
+ html.ldp-os-embedded #appView #content{padding:9px 10px 15px!important}
+ html.ldp-os-embedded .radio-toolbar{grid-template-columns:1fr!important;gap:8px!important}
+ html.ldp-os-embedded .radio-filter-actions{justify-content:flex-start!important}
+ html.ldp-os-embedded .explore-layout{grid-template-columns:1fr!important}
+ html.ldp-os-embedded #appView #content > .section-head:first-child > div{gap:5px!important}
+ html.ldp-os-embedded #appView #content > .section-head:first-child p:not(.eyebrow){display:none!important}
+}
+@media(min-width:930px){
+ html.ldp-os-embedded .radio-toolbar{
+  grid-template-columns:minmax(150px,1fr) minmax(240px,1.8fr) auto!important;
+  align-items:end!important;
+ }
+}
