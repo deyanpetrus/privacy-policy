@@ -265,6 +265,7 @@ function sync(){
  if(JSON.stringify(present)!==JSON.stringify(wanted))reorder(host,order);
  updateMoveControls(host);
 }
+document.addEventListener('lifedash:mode-change',sync);
 new MutationObserver(sync).observe(root,{childList:true,subtree:true});
 new MutationObserver(sync).observe(app,{attributes:true,attributeFilter:['class']});
 document.addEventListener('lifedash:locale-change',()=>{
