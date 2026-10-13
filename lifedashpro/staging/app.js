@@ -53,7 +53,7 @@ async function enterApp(){
 }
 async function loadProfile(){
   if(!state.user)return;
-  const {data,error}=await state.client.from('profiles').select('id,name,first_name,last_name,city,country,language,avatar_url').eq('id',state.user.id).maybeSingle();
+  const {data,error}=await state.client.from('profiles').select('id,name,first_name,last_name,city,country,language,avatar_url,web_desktop_prefs').eq('id',state.user.id).maybeSingle();
   if(error){console.warn('profile',error)}
   state.profile=data||{id:state.user.id,name:state.user.user_metadata?.name||state.user.user_metadata?.full_name||'',city:'',country:state.user.user_metadata?.country||'',language:state.user.user_metadata?.language||'en',avatar_url:null};
   const initial=(state.profile?.name||state.user.email||'U').trim().charAt(0).toUpperCase()||'U';$('#avatar').textContent=initial;
