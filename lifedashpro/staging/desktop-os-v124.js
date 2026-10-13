@@ -313,7 +313,11 @@ function makeWindow(id){
  // Same-origin iframe deliberately preserves complete existing auth, event and
  // module isolation, including the Radio audio element when minimized.
  frame.src=urlFor(id);
- frame.addEventListener('load',()=>{node.classList.add('ldp124-loaded')});
+ frame.addEventListener('load',()=>{
+  node.classList.add('ldp124-loaded');
+  // Same-origin child app clicks must raise their owning Desktop window.
+  try{frame.contentDocument?.addEventListener('pointerdown',()=>raise(id),true)}catch(_){}
+ });
  const grip=mk('div','ldp124-resize-grip');
  grip.setAttribute('role','separator');grip.setAttribute('aria-label','Resize '+displayName(id));
  grip.addEventListener('pointerdown',e=>startResize(e,id,node,grip));
@@ -525,7 +529,12 @@ function activate(){
  // Keep classic mode and existing dashboard alive underneath for safe rollback.
 }
 function deactivate(){
- if(ui){ui.hidden=true;hideStart();closeSettings()}
+ if(ui&&!ui.hidden){
+  ui.hidden=true;hideStart();closeSettings();
+  // Leaving Desktop stops iframe work (including playing radio) without
+  // deleting saved window positions, so re-entering restores the workspace.
+  $('#ldp124Windows',ui)?.replaceChildren();
+ }
 }
 function switchClassic(){
  const choice=$('#ldp123ModeSwitch [data-mode="classic"]');
