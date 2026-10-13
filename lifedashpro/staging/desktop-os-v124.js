@@ -178,7 +178,7 @@ function startContents(){
  const display=(query='')=>{
   grid.replaceChildren();const match=query.toLocaleLowerCase();
   for(const [id,icon,title] of APPS){
-   if(!title.toLocaleLowerCase().includes(match)&&!id.includes(match))continue;
+   if(!title.toLocaleLowerCase().includes(match)&&!displayName(id).toLocaleLowerCase().includes(match)&&!id.includes(match))continue;
    const b=button('','ldp124-menu-app',()=>{hideStart();openApp(id)});
    b.append(mk('span','ldp124-menu-symbol',icon),mk('small','',displayName(id)));
    grid.append(b);
@@ -521,6 +521,8 @@ function activate(){
  const next=bridge().identity();
  if(!next)return;
  if(owner!==next){
+  // Never reuse an embedded app from a previous signed-in account.
+  if(ui)$('#ldp124Windows',ui)?.replaceChildren();
   if(saving){clearTimeout(saving);saving=0}
   owner=next;
   const local=readLocal(),cloud=bridge().prefs?.();
