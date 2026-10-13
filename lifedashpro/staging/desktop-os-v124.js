@@ -180,7 +180,7 @@ function startContents(){
   for(const [id,icon,title] of APPS){
    if(!title.toLocaleLowerCase().includes(match)&&!id.includes(match))continue;
    const b=button('','ldp124-menu-app',()=>{hideStart();openApp(id)});
-   b.append(mk('span','ldp124-menu-symbol',icon),mk('small','',title));
+   b.append(mk('span','ldp124-menu-symbol',icon),mk('small','',displayName(id)));
    grid.append(b);
   }
  };
@@ -456,8 +456,8 @@ function nearEvents(){
 }
 function widget(id){
  const box=mk('article','ldp124-widget');box.dataset.widget=id;
- const title={today:t('waiting'),weather:'Weather',calendar:'Calendar',finance:'Finance',
- world:'World Live',news:'News & RSS'}[id]||id;
+ const title={today:t('waiting'),weather:t('weather'),calendar:displayName('calendar'),
+ finance:displayName('finance'),world:displayName('world'),news:displayName('news')}[id]||id;
  const btn=button('↗','ldp124-widget-open',()=>openApp(id==='weather'?'world':id==='today'?'today':id));
  btn.setAttribute('aria-label','Open '+title);
  const heading=mk('div','ldp124-widget-head');
