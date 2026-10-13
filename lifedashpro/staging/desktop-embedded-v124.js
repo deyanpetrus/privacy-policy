@@ -17,7 +17,7 @@ if(value&&allowed.has(value)){
       !window.LifeDashDashboardBridge?.ready?.()||!content.children.length)return;
    done=true;
    clearInterval(checkTimer);clearTimeout(watchdog);
-   try{window.parent.postMessage({type:'ldp-os-ready-v125',app:value},location.origin)}catch(_){}
+   try{window.parent.postMessage({type:'ldp-os-ready-v125',app:value,load:new URLSearchParams(location.search).get('ldpLoad')||''},location.origin)}catch(_){}
   };
   const observer=new MutationObserver(()=>{signal();if(done)observer.disconnect()});
   observer.observe(app,{attributes:true,attributeFilter:['class']});
@@ -32,6 +32,10 @@ try{
  const stored=localStorage.getItem('lifedash_web_device_mode_v125');
  const mode=(stored==='desktop'||stored==='classic')?stored:
   (window.matchMedia('(min-width: 1000px)').matches?'desktop':'classic');
- if(mode==='desktop')doc.classList.add('ldp-os-launch-pending');
+ if(mode==='desktop'){
+  doc.classList.add('ldp-os-launch-pending');
+  // If login/network initialization cannot finish, never trap the user behind a splash.
+  setTimeout(()=>doc.classList.remove('ldp-os-launch-pending'),25000);
+ }
 }catch(_){}
 })();
