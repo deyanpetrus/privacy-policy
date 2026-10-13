@@ -33,6 +33,7 @@ const ICONS={
  around:'⌖',world:'◉',news:'▤',radio:'♫',vehicles:'◈',route:'🗺'
 };
 const COPY={
+ todayShort:['Today','Денес','Danas','Danas','Danas','Danas','Danes','Днес','Sot','Σήμερα','Astăzi','Heute'],
  desktop:['Desktop Mode','Десктоп режим','Desktop režim','Radna površina','Desktop način','Desktop režim','Namizni način','Настолен режим','Modaliteti desktop','Λειτουργία επιφάνειας','Mod desktop','Desktop-Modus'],
  classic:['Classic Mode','Класичен режим','Klasični režim','Klasični način','Klasični način','Klasični režim','Klasični način','Класически режим','Modaliteti klasik','Κλασική προβολή','Mod clasic','Klassischer Modus'],
  workspace:['Your workspace','Твојот работен простор','Tvoj radni prostor','Tvoj radni prostor','Tvoj radni prostor','Tvoj radni prostor','Tvoj delovni prostor','Твоето работно пространство','Hapësira jote e punës','Ο χώρος εργασίας σου','Spațiul tău de lucru','Dein Arbeitsbereich'],
@@ -65,7 +66,7 @@ const COPY={
  weatherSource:['Source: Open-Meteo · on demand','Извор: Open-Meteo · по барање','Izvor: Open-Meteo · na zahtev','Izvor: Open-Meteo · na zahtjev','Izvor: Open-Meteo · na zahtjev','Izvor: Open-Meteo · na zahtjev','Vir: Open-Meteo · na zahtevo','Източник: Open-Meteo · при поискване','Burimi: Open-Meteo · sipas kërkesës','Πηγή: Open-Meteo · κατόπιν αιτήματος','Sursa: Open-Meteo · la cerere','Quelle: Open-Meteo · auf Abruf'],
 };
 const LANGS=['en','mk','sr','hr','bs','cnr','sl','bg','sq','el','ro','de'];
-const name=(id)=>baseT(LABELS[id]||'', ({weather:'Weather',today:'Today',calendar:'Calendar',notes:'Notes',budget:'Finance',around:'Around Me',world:'World Live',news:'News & RSS',radio:'Radio',vehicles:'Vehicles',route:'Journey'})[id]||id);
+const name=id=>id==='today'?t('todayShort'):id==='weather'?t('weather'):baseT(LABELS[id]||'', ({calendar:'Calendar',notes:'Notes',budget:'Finance',around:'Around Me',world:'World Live',news:'News & RSS',radio:'Radio',vehicles:'Vehicles',route:'Journey'})[id]||id);
 function t(key){
  const raw=String(loc()||'en').split('-')[0].toLowerCase();
  const code=raw==='me'?'cnr':raw;
