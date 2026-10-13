@@ -53,7 +53,7 @@ async function enterApp(){
 }
 async function loadProfile(){
   if(!state.user)return;
-  const {data,error}=await state.client.from('profiles').select('id,name,first_name,last_name,city,country,language,avatar_url,web_desktop_prefs').eq('id',state.user.id).maybeSingle();
+  const {data,error}=await state.client.from('profiles').select('id,name,first_name,last_name,city,country,language,avatar_url,web_desktop_prefs,web_os_prefs').eq('id',state.user.id).maybeSingle();
   if(error){console.warn('profile',error)}
   state.profile=data||{id:state.user.id,name:state.user.user_metadata?.name||state.user.user_metadata?.full_name||'',city:'',country:state.user.user_metadata?.country||'',language:state.user.user_metadata?.language||'en',avatar_url:null};
   const initial=(state.profile?.name||state.user.email||'U').trim().charAt(0).toUpperCase()||'U';$('#avatar').textContent=initial;
@@ -676,6 +676,25 @@ window.LifeDashDashboardBridge=Object.freeze({
      throw new Error('Profile session changed while saving.');
    if(state.profile)state.profile.web_desktop_prefs=data.web_desktop_prefs;
    return true;
+ }
+});
+// Desktop OS v1.24: app-only, RLS-scoped profile window settings.
+window.LifeDashOSBridge=Object.freeze({
+ ready:()=>Boolean(state.client&&state.session&&state.user&&state.syncReady),
+ identity:()=>state.user?.id||null,
+ prefs:()=>state.user&&state.syncReady?state.profile?.web_os_prefs||null:null,
+ save:async prefs=>{
+  if(!state.client||!state.session||!state.user||!state.syncReady)
+   throw new Error('Secure session is not ready.');
+  if(!prefs||typeof prefs!=='object'||Array.isArray(prefs)||JSON.stringify(prefs).length>7500)
+   throw new Error('Window settings are invalid.');
+  const uid=state.user.id;
+  const {data,error}=await state.client.from('profiles')
+   .update({web_os_prefs:prefs}).eq('id',uid).select('id,web_os_prefs').single();
+  if(error)throw error;
+  if(data?.id!==uid||state.user?.id!==uid)throw new Error('Account session changed.');
+  if(state.profile)state.profile.web_os_prefs=data.web_os_prefs;
+  return true;
  }
 });
 window.LifeDashCalendarBridge=Object.freeze({
