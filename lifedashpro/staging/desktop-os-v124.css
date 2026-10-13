@@ -9,7 +9,7 @@ html.ldp-os-embedded #appView #radioDock,
 html.ldp-os-embedded #ldp123ModeSwitch,
 html.ldp-os-embedded #ldp123DesktopTop,
 html.ldp-os-embedded #ldp124OS{display:none!important}
-html.ldp-os-embedded #appView.app{
+html.ldp-os-embedded #appView.app:not(.hidden){
  display:block!important;min-height:100%;height:auto;margin:0!important;
  width:100%!important;max-width:none!important;padding:0!important;
  background:var(--bg)!important;overflow:visible!important;
