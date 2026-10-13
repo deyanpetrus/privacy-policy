@@ -435,3 +435,4 @@ html[data-ld-theme="light"] #androidDashboardParityV119 .ldp123-count-tile{
  #ldp123DesktopTop .ldp123-app-shortcut,
  #androidDashboardParityV119.ldp123-grid > [data-desktop-key]{transition:none!important}
 }
+#androidDashboardParityV119 .ldp123-cloud-status{flex:1 1 100%;text-align:right;color:var(--muted);font-size:11px;min-height:16px}
