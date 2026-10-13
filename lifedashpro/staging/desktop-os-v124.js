@@ -211,14 +211,22 @@ function paintSettings(){
   b.title=code;b.setAttribute('aria-label',code);themes.append(b);
  }
  p.append(themes,mk('h3','',t('widgets')));
- for(const key of WIDGETS){
+ for(const key of data.widgetOrder){
   const row=mk('label','ldp124-check');
   const box=mk('input');box.type='checkbox';box.checked=!data.hiddenWidgets.includes(key);
   box.addEventListener('change',()=>{
    data.hiddenWidgets=box.checked?data.hiddenWidgets.filter(x=>x!==key):[...new Set([...data.hiddenWidgets,key])];
    persist();drawWidgets();
   });
-  row.append(box,mk('span','',displayName(key)));p.append(row);
+  row.append(box,mk('span','',key==='today'?t('waiting'):displayName(key)));
+  const move=mk('span','ldp124-widget-order');
+  const up=button('↑','ldp124-widget-arrow',()=>shiftWidget(key,-1));
+  const down=button('↓','ldp124-widget-arrow',()=>shiftWidget(key,1));
+  up.disabled=data.widgetOrder.indexOf(key)===0;
+  down.disabled=data.widgetOrder.indexOf(key)===data.widgetOrder.length-1;
+  up.setAttribute('aria-label','Move '+key+' up');
+  down.setAttribute('aria-label','Move '+key+' down');
+  move.append(up,down);row.append(move);p.append(row);
  }
  p.append(mk('h3','',t('apps')));
  for(const [id,icon,title] of APPS){
@@ -238,6 +246,13 @@ function paintSettings(){
   wallpaper();drawWidgets();drawTaskbar();persist();paintSettings();
  }));
  const status=mk('small','ldp124-status','');status.id='ldp124Status';p.append(status);
+}
+function shiftWidget(id,dir){
+ const index=data.widgetOrder.indexOf(id),other=index+dir;
+ if(index<0||other<0||other>=data.widgetOrder.length)return;
+ [data.widgetOrder[index],data.widgetOrder[other]]=
+  [data.widgetOrder[other],data.widgetOrder[index]];
+ persist();drawWidgets();paintSettings();
 }
 function surface(){
  return {width:Math.max(335,window.innerWidth-22),height:Math.max(320,window.innerHeight-82)};
@@ -420,7 +435,8 @@ function nearEvents(){
  const d=dash()?.snapshot?.();if(!d)return [];
  const today=new Date(),start=new Date(today.getFullYear(),today.getMonth(),today.getDate());
  const end=new Date(start);end.setDate(end.getDate()+10);
- const begin=start.toISOString().slice(0,10),limit=end.toISOString().slice(0,10);
+ const localKey=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+ const begin=localKey(start),limit=localKey(end);
  const candidates=[
   ...(d.notes||[]).filter(x=>x.status!=='archived').map(x=>[x.title,x.dueDate]),
   ...(d.family_tasks||[]).filter(x=>!x.done).map(x=>[x.title,x.dueDate]),
