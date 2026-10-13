@@ -1,0 +1,2 @@
+/* LifeDashPro v1.24 same-origin child app window marker. */
+(()=>{const allowed=new Set(['dashboard','today','calendar','notes','tasks','documents','finance','explore','vehicles','journey','world','news','radio','backup','profile']);const value=new URLSearchParams(location.search).get('ldpWindow');if(value&&allowed.has(value)){document.documentElement.classList.add('ldp-os-embedded');document.documentElement.dataset.osWindow=value;}})();
