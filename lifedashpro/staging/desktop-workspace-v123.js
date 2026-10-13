@@ -576,7 +576,7 @@ const schedule=()=>{
  if(queued)return;queued=true;
  queueMicrotask(()=>{queued=false;sync()});
 };
-new MutationObserver(schedule).observe(root,{childList:true});
+new MutationObserver(schedule).observe(root,{childList:true,subtree:true});
 new MutationObserver(schedule).observe(app,{attributes:true,attributeFilter:['class']});
 document.addEventListener('lifedash:locale-change',()=>{
  if(!ready())return;
