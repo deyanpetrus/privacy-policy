@@ -269,6 +269,7 @@ document.addEventListener('lifedash:mode-change',sync);
 new MutationObserver(sync).observe(root,{childList:true,subtree:true});
 new MutationObserver(sync).observe(app,{attributes:true,attributeFilter:['class']});
 document.addEventListener('lifedash:locale-change',()=>{
+ if(root.classList.contains('ldp123-desktop'))return;
  const host=current;
  if(!host||!host.isConnected)return;
  const toolbar=$('#ldp121LayoutControls',host);
