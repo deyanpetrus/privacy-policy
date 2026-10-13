@@ -208,17 +208,17 @@ function setup(host){
  let dragged='';
  host.addEventListener('dragstart',e=>{
   const card=e.target.closest('.ldp121-draggable');
-  if(!editing||!card)return;
+  if(!editing||root.classList.contains('ldp123-desktop')||!card)return;
   dragged=card.dataset.layoutKey||'';
   if(!dragged)return;
   e.dataTransfer?.setData('text/plain',dragged);
   if(e.dataTransfer)e.dataTransfer.effectAllowed='move';
  });
  host.addEventListener('dragover',e=>{
-  if(editing&&dragged&&e.target.closest('.ldp121-draggable'))e.preventDefault();
+  if(!root.classList.contains('ldp123-desktop')&&editing&&dragged&&e.target.closest('.ldp121-draggable'))e.preventDefault();
  });
  host.addEventListener('drop',e=>{
-  if(!editing||!dragged)return;
+  if(!editing||root.classList.contains('ldp123-desktop')||!dragged)return;
   const dest=e.target.closest('.ldp121-draggable')?.dataset.layoutKey;
   if(dest&&dest!==dragged){
    e.preventDefault();
@@ -240,6 +240,8 @@ function sync(){
  }
  const host=$('#androidDashboardParityV119',root);
  if(!host||host.dataset.readyFor!==bridge().identity())return;
+ // Desktop Mode owns card order, sizing and visibility. Keep Classic state intact.
+ if(root.classList.contains('ldp123-desktop'))return;
  const id=bridge().identity();
  if(owner!==id){owner=id;editing=false;current=null}
  if(current!==host){current=host;editing=false;setup(host);notesCard(host)}
@@ -263,9 +265,11 @@ function sync(){
  if(JSON.stringify(present)!==JSON.stringify(wanted))reorder(host,order);
  updateMoveControls(host);
 }
+document.addEventListener('lifedash:mode-change',sync);
 new MutationObserver(sync).observe(root,{childList:true,subtree:true});
 new MutationObserver(sync).observe(app,{attributes:true,attributeFilter:['class']});
 document.addEventListener('lifedash:locale-change',()=>{
+ if(root.classList.contains('ldp123-desktop'))return;
  const host=current;
  if(!host||!host.isConnected)return;
  const toolbar=$('#ldp121LayoutControls',host);

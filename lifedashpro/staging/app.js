@@ -53,7 +53,7 @@ async function enterApp(){
 }
 async function loadProfile(){
   if(!state.user)return;
-  const {data,error}=await state.client.from('profiles').select('id,name,first_name,last_name,city,country,language,avatar_url').eq('id',state.user.id).maybeSingle();
+  const {data,error}=await state.client.from('profiles').select('id,name,first_name,last_name,city,country,language,avatar_url,web_desktop_prefs').eq('id',state.user.id).maybeSingle();
   if(error){console.warn('profile',error)}
   state.profile=data||{id:state.user.id,name:state.user.user_metadata?.name||state.user.user_metadata?.full_name||'',city:'',country:state.user.user_metadata?.country||'',language:state.user.user_metadata?.language||'en',avatar_url:null};
   const initial=(state.profile?.name||state.user.email||'U').trim().charAt(0).toUpperCase()||'U';$('#avatar').textContent=initial;
@@ -656,8 +656,26 @@ window.LifeDashDashboardBridge=Object.freeze({
  snapshot:()=>{
    if(!state.client||!state.session||!state.user||!state.syncReady)return null;
    return Object.fromEntries([
-     'notes','family_tasks','manual_reminders','documents','finance_transactions'
+     'notes','family_tasks','manual_reminders','documents','finance_transactions','vehicles','journey_plans_beta'
    ].map(k=>[k,(state.data[k]||[]).map(row=>({...row}))]));
+ },
+ desktopPrefs:()=>state.user&&state.syncReady?state.profile?.web_desktop_prefs||null:null,
+ saveDesktopPrefs:async input=>{
+   if(!state.client||!state.session||!state.user||!state.syncReady)
+     throw new Error('Sign in and sync before saving your layout.');
+   const uid=state.user.id;
+   if(!input||typeof input!=='object'||Array.isArray(input))
+     throw new Error('Invalid desktop preferences.');
+   const raw=JSON.stringify(input);
+   if(raw.length>4500)throw new Error('Desktop settings are too large.');
+   const {data,error}=await state.client.from('profiles')
+     .update({web_desktop_prefs:input}).eq('id',uid)
+     .select('id,web_desktop_prefs').single();
+   if(error)throw error;
+   if(!data||data.id!==uid||state.user?.id!==uid)
+     throw new Error('Profile session changed while saving.');
+   if(state.profile)state.profile.web_desktop_prefs=data.web_desktop_prefs;
+   return true;
  }
 });
 window.LifeDashCalendarBridge=Object.freeze({
