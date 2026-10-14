@@ -23,11 +23,18 @@ const DEFAULT_PIN=['notes','finance','calendar','radio','news','journey'];
 const MAX_WINDOWS=8;
 const PREF='ldp_web_os_v124_';
 const COLOURS=['aurora','dawn','forest','charcoal'];
-const LOCALE={"en":{"start":"Start","apps":"All applications","search":"Search apps…","windows":"Open windows","desktop":"Desktop","classic":"Classic","customize":"Customize","widgets":"Widgets","background":"Background","restore":"Restore workspace","empty":"No open windows","hint":"Open an application from Start or a desktop icon.","weather":"Weather","waiting":"Upcoming","noEvents":"No upcoming dated items","save":"Saving workspace…","saved":"Workspace saved ✓","offline":"Saved on this device · cloud unavailable","max":"Up to 8 apps can stay open at once.","close":"Close","min":"Minimize","maximize":"Maximize","again":"Restore","show":"Show","hide":"Hide","pin":"Pin","unpin":"Unpin","reload":"Reload app","starting":"Starting application…","stalled":"Application is taking too long. Reload this window."},"mk":{"start":"Старт","apps":"Сите апликации","search":"Пребарај апликации…","windows":"Отворени прозорци","desktop":"Десктоп","classic":"Класичен","customize":"Прилагоди","widgets":"Виџети","background":"Позадина","restore":"Врати работен простор","empty":"Нема отворени прозорци","hint":"Отвори апликација од Старт или преку икона.","weather":"Време","waiting":"Претстојни","noEvents":"Нема претстојни записи со датум","save":"Се зачувува работниот простор…","saved":"Работниот простор е зачуван ✓","offline":"Зачувано на уредот · нема cloud","max":"Може да останат отворени до 8 апликации.","close":"Затвори","min":"Минимизирај","maximize":"Максимизирај","again":"Врати","show":"Прикажи","hide":"Сокриј","pin":"Закачи","unpin":"Откачи","reload":"Освежи ја апликацијата","starting":"Се отвора апликацијата…","stalled":"Апликацијата предолго се вчитува. Освежи го овој прозорец."},"de":{"start":"Start","apps":"Alle Apps","search":"Apps suchen…","windows":"Offene Fenster","desktop":"Desktop","classic":"Klassisch","customize":"Anpassen","widgets":"Widgets","background":"Hintergrund","restore":"Arbeitsbereich wiederherstellen","empty":"Keine offenen Fenster","hint":"App über Start oder Desktop-Symbol öffnen.","weather":"Wetter","waiting":"Demnächst","noEvents":"Keine bevorstehenden Termine","save":"Arbeitsbereich speichern…","saved":"Arbeitsbereich gespeichert ✓","offline":"Lokal gespeichert · Cloud nicht verfügbar","max":"Bis zu 8 Apps können gleichzeitig geöffnet sein.","close":"Schließen","min":"Minimieren","maximize":"Maximieren","again":"Wiederherstellen","show":"Anzeigen","hide":"Verbergen","pin":"Anheften","unpin":"Lösen","reload":"App neu laden","starting":"Anwendung wird gestartet…","stalled":"Die Anwendung lädt zu lange. Dieses Fenster neu laden."},"sr":{"start":"Start","apps":"Sve aplikacije","search":"Pretraži aplikacije…","windows":"Otvoreni prozori","desktop":"Desktop","classic":"Klasično","customize":"Prilagodi","widgets":"Vidžeti","background":"Pozadina","restore":"Vrati radni prostor","empty":"Nema otvorenih prozora","hint":"Otvori aplikaciju iz Start menija ili sa radne površine.","weather":"Vreme","waiting":"Predstojeće","noEvents":"Nema predstojećih zapisa","save":"Čuvanje radnog prostora…","saved":"Radni prostor je sačuvan ✓","offline":"Sačuvano lokalno · oblak nije dostupan","max":"Najviše 8 aplikacija može biti otvoreno.","close":"Zatvori","min":"Minimizuj","maximize":"Uvećaj","again":"Vrati","show":"Prikaži","hide":"Sakrij","pin":"Zakači","unpin":"Otkači","reload":"Osveži aplikaciju","starting":"Pokretanje aplikacije…","stalled":"Aplikacija se predugo učitava. Osveži ovaj prozor."},"hr":{"start":"Start","apps":"Sve aplikacije","search":"Pretraži aplikacije…","windows":"Otvoreni prozori","desktop":"Radna površina","classic":"Klasično","customize":"Prilagodi","widgets":"Widgeti","background":"Pozadina","restore":"Vrati radni prostor","empty":"Nema otvorenih prozora","hint":"Otvori aplikaciju iz Start izbornika ili s radne površine.","weather":"Vrijeme","waiting":"Nadolazeće","noEvents":"Nema nadolazećih stavki","save":"Spremanje radnog prostora…","saved":"Radni prostor je spremljen ✓","offline":"Spremljeno na uređaju · oblak nije dostupan","max":"Može biti otvoreno najviše 8 aplikacija.","close":"Zatvori","min":"Minimiziraj","maximize":"Povećaj","again":"Vrati","show":"Prikaži","hide":"Sakrij","pin":"Prikvači","unpin":"Otkvači","reload":"Osvježi aplikaciju","starting":"Pokretanje aplikacije…","stalled":"Aplikacija se predugo učitava. Osvježi ovaj prozor."},"bs":{"start":"Start","apps":"Sve aplikacije","search":"Pretraži aplikacije…","windows":"Otvoreni prozori","desktop":"Desktop","classic":"Klasično","customize":"Prilagodi","widgets":"Vidžeti","background":"Pozadina","restore":"Vrati radni prostor","empty":"Nema otvorenih prozora","hint":"Otvori aplikaciju iz Start menija ili s radne površine.","weather":"Vrijeme","waiting":"Predstojeće","noEvents":"Nema predstojećih zapisa","save":"Čuvanje radnog prostora…","saved":"Radni prostor je sačuvan ✓","offline":"Sačuvano lokalno · oblak nije dostupan","max":"Može biti otvoreno najviše 8 aplikacija.","close":"Zatvori","min":"Minimiziraj","maximize":"Povećaj","again":"Vrati","show":"Prikaži","hide":"Sakrij","pin":"Zakači","unpin":"Otkači","reload":"Osvježi aplikaciju","starting":"Pokretanje aplikacije…","stalled":"Aplikacija se predugo učitava. Osvježi ovaj prozor."},"cnr":{"start":"Start","apps":"Sve aplikacije","search":"Pretraži aplikacije…","windows":"Otvoreni prozori","desktop":"Desktop","classic":"Klasično","customize":"Prilagodi","widgets":"Vidžeti","background":"Pozadina","restore":"Vrati radni prostor","empty":"Nema otvorenih prozora","hint":"Otvori aplikaciju iz Start menija ili s radne površine.","weather":"Vrijeme","waiting":"Predstojeće","noEvents":"Nema predstojećih zapisa","save":"Čuvanje radnog prostora…","saved":"Radni prostor je sačuvan ✓","offline":"Sačuvano na uređaju · oblak nije dostupan","max":"Može biti otvoreno najviše 8 aplikacija.","close":"Zatvori","min":"Minimiziraj","maximize":"Povećaj","again":"Vrati","show":"Prikaži","hide":"Sakrij","pin":"Zakači","unpin":"Otkači","reload":"Osvježi aplikaciju","starting":"Pokretanje aplikacije…","stalled":"Aplikacija se predugo učitava. Osvježi ovaj prozor."},"sl":{"start":"Start","apps":"Vse aplikacije","search":"Poišči aplikacije…","windows":"Odprta okna","desktop":"Namizje","classic":"Klasično","customize":"Prilagodi","widgets":"Pripomočki","background":"Ozadje","restore":"Obnovi delovni prostor","empty":"Ni odprtih oken","hint":"Odpri aplikacijo iz menija Start ali z namizja.","weather":"Vreme","waiting":"Prihajajoče","noEvents":"Ni prihajajočih vnosov","save":"Shranjevanje delovnega prostora…","saved":"Delovni prostor shranjen ✓","offline":"Shranjeno lokalno · oblak ni na voljo","max":"Odprtih je lahko največ 8 aplikacij.","close":"Zapri","min":"Pomanjšaj","maximize":"Povečaj","again":"Obnovi","show":"Prikaži","hide":"Skrij","pin":"Pripni","unpin":"Odpni","reload":"Osveži aplikacijo","starting":"Zagon aplikacije…","stalled":"Aplikacija se predolgo nalaga. Osveži to okno."},"bg":{"start":"Старт","apps":"Всички приложения","search":"Търси приложения…","windows":"Отворени прозорци","desktop":"Работен плот","classic":"Класически","customize":"Персонализирай","widgets":"Уиджети","background":"Фон","restore":"Възстанови работния плот","empty":"Няма отворени прозорци","hint":"Отвори приложение от Старт или икона на работния плот.","weather":"Време","waiting":"Предстоящи","noEvents":"Няма предстоящи записи","save":"Запазване на работното пространство…","saved":"Работното пространство е запазено ✓","offline":"Запазено на устройството · облакът е недостъпен","max":"Могат да бъдат отворени до 8 приложения.","close":"Затвори","min":"Минимизирай","maximize":"Максимизирай","again":"Възстанови","show":"Покажи","hide":"Скрий","pin":"Закачи","unpin":"Откачи","reload":"Презареди приложението","starting":"Приложението се зарежда…","stalled":"Приложението се зарежда твърде дълго. Презареди прозореца."},"sq":{"start":"Start","apps":"Të gjitha aplikacionet","search":"Kërko aplikacione…","windows":"Dritare të hapura","desktop":"Desktop","classic":"Klasike","customize":"Personalizo","widgets":"Miniaplikacione","background":"Sfondi","restore":"Rikthe hapësirën e punës","empty":"Nuk ka dritare të hapura","hint":"Hap aplikacionin nga Start ose ikona në desktop.","weather":"Moti","waiting":"Në vijim","noEvents":"Nuk ka ngjarje të ardhshme","save":"Duke ruajtur hapësirën e punës…","saved":"Hapësira e punës u ruajt ✓","offline":"Ruajtur në pajisje · reja nuk është e disponueshme","max":"Mund të jenë të hapura deri në 8 aplikacione.","close":"Mbyll","min":"Minimizo","maximize":"Maksimizo","again":"Rikthe","show":"Shfaq","hide":"Fshih","pin":"Fikso","unpin":"Hiq fiksimin","reload":"Ringarko aplikacionin","starting":"Duke hapur aplikacionin…","stalled":"Aplikacioni po ngarkohet shumë gjatë. Ringarko këtë dritare."},"el":{"start":"Έναρξη","apps":"Όλες οι εφαρμογές","search":"Αναζήτηση εφαρμογών…","windows":"Ανοιχτά παράθυρα","desktop":"Επιφάνεια εργασίας","classic":"Κλασική προβολή","customize":"Προσαρμογή","widgets":"Γραφικά στοιχεία","background":"Φόντο","restore":"Επαναφορά χώρου εργασίας","empty":"Δεν υπάρχουν ανοιχτά παράθυρα","hint":"Άνοιξε μια εφαρμογή από την Έναρξη ή το εικονίδιο.","weather":"Καιρός","waiting":"Προσεχώς","noEvents":"Δεν υπάρχουν προσεχή συμβάντα","save":"Αποθήκευση χώρου εργασίας…","saved":"Ο χώρος εργασίας αποθηκεύτηκε ✓","offline":"Τοπική αποθήκευση · το cloud δεν είναι διαθέσιμο","max":"Μπορούν να είναι ανοιχτές έως 8 εφαρμογές.","close":"Κλείσιμο","min":"Ελαχιστοποίηση","maximize":"Μεγιστοποίηση","again":"Επαναφορά","show":"Εμφάνιση","hide":"Απόκρυψη","pin":"Καρφίτσωμα","unpin":"Ξεκαρφίτσωμα","reload":"Επαναφόρτωση εφαρμογής","starting":"Εκκίνηση εφαρμογής…","stalled":"Η εφαρμογή αργεί πολύ. Επαναφόρτωσε αυτό το παράθυρο."},"ro":{"start":"Start","apps":"Toate aplicațiile","search":"Caută aplicații…","windows":"Ferestre deschise","desktop":"Desktop","classic":"Clasic","customize":"Personalizează","widgets":"Widgeturi","background":"Fundal","restore":"Restaurează spațiul de lucru","empty":"Nu sunt ferestre deschise","hint":"Deschide o aplicație din Start sau de pe desktop.","weather":"Vremea","waiting":"Urmează","noEvents":"Nu există evenimente viitoare","save":"Se salvează spațiul de lucru…","saved":"Spațiul de lucru a fost salvat ✓","offline":"Salvat local · cloud indisponibil","max":"Se pot deschide până la 8 aplicații.","close":"Închide","min":"Minimizează","maximize":"Maximizează","again":"Restaurează","show":"Arată","hide":"Ascunde","pin":"Fixează","unpin":"Anulează fixarea","reload":"Reîncarcă aplicația","starting":"Se deschide aplicația…","stalled":"Aplicația se încarcă prea mult. Reîncarcă fereastra."}};
+const LOCALE={"en":{"start":"Start","apps":"All applications","search":"Search apps…","windows":"Open windows","desktop":"Desktop","classic":"Classic","customize":"Customize","widgets":"Widgets","background":"Background","restore":"Restore workspace","empty":"No open windows","hint":"Open an application from Start or a desktop icon.","weather":"Weather","waiting":"Upcoming","noEvents":"No items for this period","save":"Saving workspace…","saved":"Workspace saved ✓","offline":"Saved on this device · cloud unavailable","max":"Up to 8 apps can stay open at once.","close":"Close","min":"Minimize","maximize":"Maximize","again":"Restore","show":"Show","hide":"Hide","pin":"Pin","unpin":"Unpin","reload":"Reload app","starting":"Starting application…","stalled":"Application is taking too long. Reload this window.","todayLabel":"Today","nextTen":"Next 10 days","waitingLate":"Waiting","more":"More","newsCountry":"News country","global":"Global","balkans":"Balkans","newsRefresh":"Refresh headlines","newsLoading":"Loading headlines…","newsEmpty":"Headlines unavailable","openNews":"Open news","paused":"Paused to save memory. Select Resume to continue.","resume":"Resume","notes":"Notes","tasks":"Tasks","reminders":"Reminders","documents":"Documents","birthdays":"Birthdays","finance":"Finance","todaySummary":"Today · Next 10 days"},"mk":{"start":"Старт","apps":"Сите апликации","search":"Пребарај апликации…","windows":"Отворени прозорци","desktop":"Десктоп","classic":"Класичен","customize":"Прилагоди","widgets":"Виџети","background":"Позадина","restore":"Врати работен простор","empty":"Нема отворени прозорци","hint":"Отвори апликација од Старт или преку икона.","weather":"Време","waiting":"Претстојни","noEvents":"Нема записи за овој период","save":"Се зачувува работниот простор…","saved":"Работниот простор е зачуван ✓","offline":"Зачувано на уредот · нема cloud","max":"Може да останат отворени до 8 апликации.","close":"Затвори","min":"Минимизирај","maximize":"Максимизирај","again":"Врати","show":"Прикажи","hide":"Сокриј","pin":"Закачи","unpin":"Откачи","reload":"Освежи ја апликацијата","starting":"Се отвора апликацијата…","stalled":"Апликацијата предолго се вчитува. Освежи го овој прозорец.","todayLabel":"Денес","nextTen":"Следни 10 дена","waitingLate":"Чекаат","more":"уште","newsCountry":"Држава за вести","global":"Свет","balkans":"Балкан","newsRefresh":"Освежи вести","newsLoading":"Се вчитуваат вестите…","newsEmpty":"Вестите не се достапни","openNews":"Отвори вести","paused":"Паузирано за заштеда на меморија. Притисни Продолжи.","resume":"Продолжи","notes":"Белешки","tasks":"Задачи","reminders":"Потсетници","documents":"Документи","birthdays":"Родендени","finance":"Финансии","todaySummary":"Денес · Следни 10 дена"},"de":{"start":"Start","apps":"Alle Apps","search":"Apps suchen…","windows":"Offene Fenster","desktop":"Desktop","classic":"Klassisch","customize":"Anpassen","widgets":"Widgets","background":"Hintergrund","restore":"Arbeitsbereich wiederherstellen","empty":"Keine offenen Fenster","hint":"App über Start oder Desktop-Symbol öffnen.","weather":"Wetter","waiting":"Demnächst","noEvents":"Keine Einträge für diesen Zeitraum","save":"Arbeitsbereich speichern…","saved":"Arbeitsbereich gespeichert ✓","offline":"Lokal gespeichert · Cloud nicht verfügbar","max":"Bis zu 8 Apps können gleichzeitig geöffnet sein.","close":"Schließen","min":"Minimieren","maximize":"Maximieren","again":"Wiederherstellen","show":"Anzeigen","hide":"Verbergen","pin":"Anheften","unpin":"Lösen","reload":"App neu laden","starting":"Anwendung wird gestartet…","stalled":"Die Anwendung lädt zu lange. Dieses Fenster neu laden.","todayLabel":"Heute","nextTen":"Nächste 10 Tage","waitingLate":"Überfällig","more":"weitere","newsCountry":"Nachrichtenland","global":"Welt","balkans":"Balkan","newsRefresh":"Nachrichten aktualisieren","newsLoading":"Nachrichten werden geladen…","newsEmpty":"Keine Nachrichten verfügbar","openNews":"Nachrichten öffnen","paused":"Zum Speichersparen pausiert. Mit Fortsetzen weiter.","resume":"Fortsetzen","notes":"Notizen","tasks":"Aufgaben","reminders":"Erinnerungen","documents":"Dokumente","birthdays":"Geburtstage","finance":"Finanzen","todaySummary":"Heute · Nächste 10 Tage"},"sr":{"start":"Start","apps":"Sve aplikacije","search":"Pretraži aplikacije…","windows":"Otvoreni prozori","desktop":"Desktop","classic":"Klasično","customize":"Prilagodi","widgets":"Vidžeti","background":"Pozadina","restore":"Vrati radni prostor","empty":"Nema otvorenih prozora","hint":"Otvori aplikaciju iz Start menija ili sa radne površine.","weather":"Vreme","waiting":"Predstojeće","noEvents":"Nema stavki za ovaj period","save":"Čuvanje radnog prostora…","saved":"Radni prostor je sačuvan ✓","offline":"Sačuvano lokalno · oblak nije dostupan","max":"Najviše 8 aplikacija može biti otvoreno.","close":"Zatvori","min":"Minimizuj","maximize":"Uvećaj","again":"Vrati","show":"Prikaži","hide":"Sakrij","pin":"Zakači","unpin":"Otkači","reload":"Osveži aplikaciju","starting":"Pokretanje aplikacije…","stalled":"Aplikacija se predugo učitava. Osveži ovaj prozor.","todayLabel":"Danas","nextTen":"Sledećih 10 dana","waitingLate":"Čekaju","more":"više","newsCountry":"Država vesti","global":"Svet","balkans":"Balkan","newsRefresh":"Osveži vesti","newsLoading":"Učitavanje vesti…","newsEmpty":"Vesti nisu dostupne","openNews":"Otvori vesti","paused":"Pauzirano radi uštede memorije. Pritisni Nastavi.","resume":"Nastavi","notes":"Beleške","tasks":"Zadaci","reminders":"Podsetnici","documents":"Dokumenti","birthdays":"Rođendani","finance":"Finansije","todaySummary":"Danas · Sledećih 10 dana"},"hr":{"start":"Start","apps":"Sve aplikacije","search":"Pretraži aplikacije…","windows":"Otvoreni prozori","desktop":"Radna površina","classic":"Klasično","customize":"Prilagodi","widgets":"Widgeti","background":"Pozadina","restore":"Vrati radni prostor","empty":"Nema otvorenih prozora","hint":"Otvori aplikaciju iz Start izbornika ili s radne površine.","weather":"Vrijeme","waiting":"Nadolazeće","noEvents":"Nema stavki za ovo razdoblje","save":"Spremanje radnog prostora…","saved":"Radni prostor je spremljen ✓","offline":"Spremljeno na uređaju · oblak nije dostupan","max":"Može biti otvoreno najviše 8 aplikacija.","close":"Zatvori","min":"Minimiziraj","maximize":"Povećaj","again":"Vrati","show":"Prikaži","hide":"Sakrij","pin":"Prikvači","unpin":"Otkvači","reload":"Osvježi aplikaciju","starting":"Pokretanje aplikacije…","stalled":"Aplikacija se predugo učitava. Osvježi ovaj prozor.","todayLabel":"Danas","nextTen":"Sljedećih 10 dana","waitingLate":"Čekaju","more":"više","newsCountry":"Država vijesti","global":"Svijet","balkans":"Balkan","newsRefresh":"Osvježi vijesti","newsLoading":"Učitavanje vijesti…","newsEmpty":"Vijesti nisu dostupne","openNews":"Otvori vijesti","paused":"Pauzirano radi uštede memorije. Pritisni Nastavi.","resume":"Nastavi","notes":"Bilješke","tasks":"Zadaci","reminders":"Podsjetnici","documents":"Dokumenti","birthdays":"Rođendani","finance":"Financije","todaySummary":"Danas · Sljedećih 10 dana"},"bs":{"start":"Start","apps":"Sve aplikacije","search":"Pretraži aplikacije…","windows":"Otvoreni prozori","desktop":"Desktop","classic":"Klasično","customize":"Prilagodi","widgets":"Vidžeti","background":"Pozadina","restore":"Vrati radni prostor","empty":"Nema otvorenih prozora","hint":"Otvori aplikaciju iz Start menija ili s radne površine.","weather":"Vrijeme","waiting":"Predstojeće","noEvents":"Nema stavki za ovaj period","save":"Čuvanje radnog prostora…","saved":"Radni prostor je sačuvan ✓","offline":"Sačuvano lokalno · oblak nije dostupan","max":"Može biti otvoreno najviše 8 aplikacija.","close":"Zatvori","min":"Minimiziraj","maximize":"Povećaj","again":"Vrati","show":"Prikaži","hide":"Sakrij","pin":"Zakači","unpin":"Otkači","reload":"Osvježi aplikaciju","starting":"Pokretanje aplikacije…","stalled":"Aplikacija se predugo učitava. Osvježi ovaj prozor.","todayLabel":"Danas","nextTen":"Sljedećih 10 dana","waitingLate":"Čekaju","more":"više","newsCountry":"Država vijesti","global":"Svijet","balkans":"Balkan","newsRefresh":"Osvježi vijesti","newsLoading":"Učitavanje vijesti…","newsEmpty":"Vijesti nisu dostupne","openNews":"Otvori vijesti","paused":"Pauzirano radi uštede memorije. Pritisni Nastavi.","resume":"Nastavi","notes":"Bilješke","tasks":"Zadaci","reminders":"Podsjetnici","documents":"Dokumenti","birthdays":"Rođendani","finance":"Finansije","todaySummary":"Danas · Sljedećih 10 dana"},"cnr":{"start":"Start","apps":"Sve aplikacije","search":"Pretraži aplikacije…","windows":"Otvoreni prozori","desktop":"Desktop","classic":"Klasično","customize":"Prilagodi","widgets":"Vidžeti","background":"Pozadina","restore":"Vrati radni prostor","empty":"Nema otvorenih prozora","hint":"Otvori aplikaciju iz Start menija ili s radne površine.","weather":"Vrijeme","waiting":"Predstojeće","noEvents":"Nema stavki za ovaj period","save":"Čuvanje radnog prostora…","saved":"Radni prostor je sačuvan ✓","offline":"Sačuvano na uređaju · oblak nije dostupan","max":"Može biti otvoreno najviše 8 aplikacija.","close":"Zatvori","min":"Minimiziraj","maximize":"Povećaj","again":"Vrati","show":"Prikaži","hide":"Sakrij","pin":"Zakači","unpin":"Otkači","reload":"Osvježi aplikaciju","starting":"Pokretanje aplikacije…","stalled":"Aplikacija se predugo učitava. Osvježi ovaj prozor.","todayLabel":"Danas","nextTen":"Sljedećih 10 dana","waitingLate":"Čekaju","more":"više","newsCountry":"Država vijesti","global":"Svijet","balkans":"Balkan","newsRefresh":"Osvježi vijesti","newsLoading":"Učitavanje vijesti…","newsEmpty":"Vijesti nijesu dostupne","openNews":"Otvori vijesti","paused":"Pauzirano radi uštede memorije. Pritisni Nastavi.","resume":"Nastavi","notes":"Bilješke","tasks":"Zadaci","reminders":"Podsjetnici","documents":"Dokumenti","birthdays":"Rođendani","finance":"Finansije","todaySummary":"Danas · Sljedećih 10 dana"},"sl":{"start":"Start","apps":"Vse aplikacije","search":"Poišči aplikacije…","windows":"Odprta okna","desktop":"Namizje","classic":"Klasično","customize":"Prilagodi","widgets":"Pripomočki","background":"Ozadje","restore":"Obnovi delovni prostor","empty":"Ni odprtih oken","hint":"Odpri aplikacijo iz menija Start ali z namizja.","weather":"Vreme","waiting":"Prihajajoče","noEvents":"Ni zapisov za to obdobje","save":"Shranjevanje delovnega prostora…","saved":"Delovni prostor shranjen ✓","offline":"Shranjeno lokalno · oblak ni na voljo","max":"Odprtih je lahko največ 8 aplikacij.","close":"Zapri","min":"Pomanjšaj","maximize":"Povečaj","again":"Obnovi","show":"Prikaži","hide":"Skrij","pin":"Pripni","unpin":"Odpni","reload":"Osveži aplikacijo","starting":"Zagon aplikacije…","stalled":"Aplikacija se predolgo nalaga. Osveži to okno.","todayLabel":"Danes","nextTen":"Naslednjih 10 dni","waitingLate":"Čakajo","more":"več","newsCountry":"Država novic","global":"Svet","balkans":"Balkan","newsRefresh":"Osveži novice","newsLoading":"Nalagam novice…","newsEmpty":"Novice niso na voljo","openNews":"Odpri novice","paused":"Začasno ustavljeno zaradi pomnilnika. Izberi Nadaljuj.","resume":"Nadaljuj","notes":"Zapiski","tasks":"Naloge","reminders":"Opomniki","documents":"Dokumenti","birthdays":"Rojstni dnevi","finance":"Finance","todaySummary":"Danes · Naslednjih 10 dni"},"bg":{"start":"Старт","apps":"Всички приложения","search":"Търси приложения…","windows":"Отворени прозорци","desktop":"Работен плот","classic":"Класически","customize":"Персонализирай","widgets":"Уиджети","background":"Фон","restore":"Възстанови работния плот","empty":"Няма отворени прозорци","hint":"Отвори приложение от Старт или икона на работния плот.","weather":"Време","waiting":"Предстоящи","noEvents":"Няма записи за този период","save":"Запазване на работното пространство…","saved":"Работното пространство е запазено ✓","offline":"Запазено на устройството · облакът е недостъпен","max":"Могат да бъдат отворени до 8 приложения.","close":"Затвори","min":"Минимизирай","maximize":"Максимизирай","again":"Възстанови","show":"Покажи","hide":"Скрий","pin":"Закачи","unpin":"Откачи","reload":"Презареди приложението","starting":"Приложението се зарежда…","stalled":"Приложението се зарежда твърде дълго. Презареди прозореца.","todayLabel":"Днес","nextTen":"Следващи 10 дни","waitingLate":"Чакат","more":"още","newsCountry":"Държава за новини","global":"Свят","balkans":"Балкани","newsRefresh":"Опресни новините","newsLoading":"Зареждане на новини…","newsEmpty":"Новините са недостъпни","openNews":"Отвори новини","paused":"Паузирано за пестене на памет. Избери Продължи.","resume":"Продължи","notes":"Бележки","tasks":"Задачи","reminders":"Напомняния","documents":"Документи","birthdays":"Рождени дни","finance":"Финанси","todaySummary":"Днес · Следващи 10 дни"},"sq":{"start":"Start","apps":"Të gjitha aplikacionet","search":"Kërko aplikacione…","windows":"Dritare të hapura","desktop":"Desktop","classic":"Klasike","customize":"Personalizo","widgets":"Miniaplikacione","background":"Sfondi","restore":"Rikthe hapësirën e punës","empty":"Nuk ka dritare të hapura","hint":"Hap aplikacionin nga Start ose ikona në desktop.","weather":"Moti","waiting":"Në vijim","noEvents":"Nuk ka të dhëna për këtë periudhë","save":"Duke ruajtur hapësirën e punës…","saved":"Hapësira e punës u ruajt ✓","offline":"Ruajtur në pajisje · reja nuk është e disponueshme","max":"Mund të jenë të hapura deri në 8 aplikacione.","close":"Mbyll","min":"Minimizo","maximize":"Maksimizo","again":"Rikthe","show":"Shfaq","hide":"Fshih","pin":"Fikso","unpin":"Hiq fiksimin","reload":"Ringarko aplikacionin","starting":"Duke hapur aplikacionin…","stalled":"Aplikacioni po ngarkohet shumë gjatë. Ringarko këtë dritare.","todayLabel":"Sot","nextTen":"10 ditët e ardhshme","waitingLate":"Në pritje","more":"të tjera","newsCountry":"Vendi i lajmeve","global":"Bota","balkans":"Ballkani","newsRefresh":"Rifresko lajmet","newsLoading":"Duke ngarkuar lajmet…","newsEmpty":"Lajmet nuk janë të disponueshme","openNews":"Hap lajmet","paused":"Pauzuar për të kursyer memorie. Shtyp Vazhdo.","resume":"Vazhdo","notes":"Shënime","tasks":"Detyra","reminders":"Kujtues","documents":"Dokumente","birthdays":"Ditëlindje","finance":"Financa","todaySummary":"Sot · 10 ditët e ardhshme"},"el":{"start":"Έναρξη","apps":"Όλες οι εφαρμογές","search":"Αναζήτηση εφαρμογών…","windows":"Ανοιχτά παράθυρα","desktop":"Επιφάνεια εργασίας","classic":"Κλασική προβολή","customize":"Προσαρμογή","widgets":"Γραφικά στοιχεία","background":"Φόντο","restore":"Επαναφορά χώρου εργασίας","empty":"Δεν υπάρχουν ανοιχτά παράθυρα","hint":"Άνοιξε μια εφαρμογή από την Έναρξη ή το εικονίδιο.","weather":"Καιρός","waiting":"Προσεχώς","noEvents":"Δεν υπάρχουν εγγραφές","save":"Αποθήκευση χώρου εργασίας…","saved":"Ο χώρος εργασίας αποθηκεύτηκε ✓","offline":"Τοπική αποθήκευση · το cloud δεν είναι διαθέσιμο","max":"Μπορούν να είναι ανοιχτές έως 8 εφαρμογές.","close":"Κλείσιμο","min":"Ελαχιστοποίηση","maximize":"Μεγιστοποίηση","again":"Επαναφορά","show":"Εμφάνιση","hide":"Απόκρυψη","pin":"Καρφίτσωμα","unpin":"Ξεκαρφίτσωμα","reload":"Επαναφόρτωση εφαρμογής","starting":"Εκκίνηση εφαρμογής…","stalled":"Η εφαρμογή αργεί πολύ. Επαναφόρτωσε αυτό το παράθυρο.","todayLabel":"Σήμερα","nextTen":"Επόμενες 10 ημέρες","waitingLate":"Εκκρεμούν","more":"ακόμη","newsCountry":"Χώρα ειδήσεων","global":"Παγκόσμια","balkans":"Βαλκάνια","newsRefresh":"Ανανέωση ειδήσεων","newsLoading":"Φόρτωση ειδήσεων…","newsEmpty":"Οι ειδήσεις δεν είναι διαθέσιμες","openNews":"Άνοιγμα ειδήσεων","paused":"Παύση για εξοικονόμηση μνήμης. Πάτησε Συνέχεια.","resume":"Συνέχεια","notes":"Σημειώσεις","tasks":"Εργασίες","reminders":"Υπενθυμίσεις","documents":"Έγγραφα","birthdays":"Γενέθλια","finance":"Οικονομικά","todaySummary":"Σήμερα · Επόμενες 10 ημέρες"},"ro":{"start":"Start","apps":"Toate aplicațiile","search":"Caută aplicații…","windows":"Ferestre deschise","desktop":"Desktop","classic":"Clasic","customize":"Personalizează","widgets":"Widgeturi","background":"Fundal","restore":"Restaurează spațiul de lucru","empty":"Nu sunt ferestre deschise","hint":"Deschide o aplicație din Start sau de pe desktop.","weather":"Vremea","waiting":"Urmează","noEvents":"Nu există înregistrări în această perioadă","save":"Se salvează spațiul de lucru…","saved":"Spațiul de lucru a fost salvat ✓","offline":"Salvat local · cloud indisponibil","max":"Se pot deschide până la 8 aplicații.","close":"Închide","min":"Minimizează","maximize":"Maximizează","again":"Restaurează","show":"Arată","hide":"Ascunde","pin":"Fixează","unpin":"Anulează fixarea","reload":"Reîncarcă aplicația","starting":"Se deschide aplicația…","stalled":"Aplicația se încarcă prea mult. Reîncarcă fereastra.","todayLabel":"Astăzi","nextTen":"Următoarele 10 zile","waitingLate":"În așteptare","more":"mai multe","newsCountry":"Țara știrilor","global":"Global","balkans":"Balcani","newsRefresh":"Actualizează știrile","newsLoading":"Se încarcă știrile…","newsEmpty":"Știrile nu sunt disponibile","openNews":"Deschide știrile","paused":"Pauză pentru economie de memorie. Apasă Continuă.","resume":"Continuă","notes":"Notițe","tasks":"Sarcini","reminders":"Mementouri","documents":"Documente","birthdays":"Zile de naștere","finance":"Finanțe","todaySummary":"Astăzi · Următoarele 10 zile"}};
 let owner='',data=null,ui=null,saving=0,saveRun=Promise.resolve(),z=50,focusId='',drag=null;
 const startQueue=[],runningWindows=new Set(),loadTimers=new Map();
 const MAX_PARALLEL_STARTS=1; // Full SPA iframes sync many datasets; serialize their startup.
 let loadSerial=0;
+const HEAVY_APPS=new Set(['explore','world','news']);
+const idleHeavyTimers=new Map();
+const RSS_COUNTRIES=['DE','MK','RS','BG','HR','BA','ME','AL','SI','AT','CH','GR','RO','GB','US','BALKANS','GLOBAL'];
+const RSS_KEY='lifedash_web_news_country_v116_';
+const RSS_TTL=15*60*1000;
+const newsState={owner:'',country:'',items:[],index:0,at:0,loading:false,controller:null};
+let todayTab='today';
 function lang(){return String(window.LifeDashWebI18n?.locale?.()||'en').toLowerCase().split('-')[0]}
 function t(key){return (LOCALE[lang()]||LOCALE.en)[key]||LOCALE.en[key]||key}
 function active(){return !!bridge()?.ready?.()&&!$('#appView')?.classList.contains('hidden')&&$('#appView')?.classList.contains('ldp123-desktop-shell')}
@@ -286,6 +293,35 @@ function urlFor(id,token=''){
  u.hash=id;
  return u.href;
 }
+function forgetIdle(id){
+ const timer=idleHeavyTimers.get(id);
+ if(timer!==undefined){clearTimeout(timer);idleHeavyTimers.delete(id)}
+}
+function pauseHeavy(id){
+ if(!HEAVY_APPS.has(id)||!data?.windows[id]||!ui||ui.hidden)return;
+ const node=$('#ldp124Windows [data-app="'+id+'"]',ui);
+ if(!node||node.dataset.osState!=='ready')return;
+ forgetStart(id);
+ const frame=$('.ldp124-frame',node);
+ if(frame)frame.src='about:blank';
+ node.dataset.frameStarted='false';
+ node.dataset.loadToken='';
+ setWindowStatus(node,t('paused'),true);
+ node.dataset.osState='paused';
+ const spinner=$('.ldp125-loading-spinner',node);
+ if(spinner)spinner.hidden=true;
+ const retry=$('.ldp125-loading-retry',node);
+ if(retry)retry.textContent='↻ '+t('resume');
+}
+function delayHeavyPause(id,ms){
+ forgetIdle(id);
+ if(!HEAVY_APPS.has(id)||!data?.windows[id])return;
+ idleHeavyTimers.set(id,setTimeout(()=>{
+  idleHeavyTimers.delete(id);
+  if(!active()||!data?.windows[id]||ui?.hidden)return;
+  if(data.windows[id].min||focusId!==id)pauseHeavy(id);
+ },ms));
+}
 function forgetStart(id){
  const index=startQueue.indexOf(id);
  if(index>=0)startQueue.splice(index,1);
@@ -296,6 +332,9 @@ function forgetStart(id){
 function clearStarts(){
  for(const id of [...runningWindows,...startQueue])forgetStart(id);
  startQueue.length=0;
+ for(const id of idleHeavyTimers.keys())forgetIdle(id);
+ if(newsState.controller){newsState.controller.abort();newsState.controller=null}
+ newsState.loading=false;
 }
 function setWindowStatus(node,text,failed=false){
  const message=$('.ldp125-loading-text',node),retry=$('.ldp125-loading-retry',node);
@@ -313,6 +352,10 @@ function pumpStarts(){
   const token=String(++loadSerial);
   node.dataset.frameStarted='true';node.dataset.loadToken=token;
   setWindowStatus(node,t('starting'));
+  const spinner=$('.ldp125-loading-spinner',node);
+  if(spinner)spinner.hidden=false;
+  const retry=$('.ldp125-loading-retry',node);
+  if(retry)retry.textContent='↻ '+t('reload');
   runningWindows.add(id);
   loadTimers.set(id,setTimeout(()=>{
    if(node.isConnected&&node.dataset.loadToken===token&&node.dataset.osState!=='ready'){
@@ -363,6 +406,9 @@ window.addEventListener('message',event=>{
   node.dataset.loadToken!==token)return;
  node.dataset.osState='ready';
  finishStart(id,token);
+ // A heavy app may finish starting after its window has lost focus.
+ if(HEAVY_APPS.has(id)&&(data.windows[id].min||focusId!==id))
+  delayHeavyPause(id,data.windows[id].min?10000:90000);
 });
 function openApp(id){
  if(!INFO[id]||!active())return;
@@ -455,7 +501,13 @@ function mountWindow(id){
 }
 function raise(id){
  if(!data.windows[id])return;
+ for(const heavy of HEAVY_APPS){
+  if(heavy!==id&&data.windows[heavy])delayHeavyPause(heavy,90000);
+ }
+ forgetIdle(id);
  focusId=id;
+ const existing=$('#ldp124Windows [data-app="'+id+'"]',ui);
+ if(existing?.dataset.osState==='paused')scheduleStart(id,true);
  const node=$('#ldp124Windows [data-app="'+id+'"]',ui);
  if(node){
   z++;if(z>9000){z=51;all('.ldp124-window',ui).forEach(el=>el.style.zIndex='50')}
@@ -466,12 +518,14 @@ function raise(id){
 }
 function restore(id){
  const w=data.windows[id];if(!w)return;
+ forgetIdle(id);
  if(w.min){w.min=false;mountWindow(id);persist()}
  raise(id);
 }
 function minimize(id){
  const w=data.windows[id];if(!w)return;
  w.min=true;
+ if(HEAVY_APPS.has(id))delayHeavyPause(id,10000);
  const queued=startQueue.indexOf(id);
  if(queued>=0)startQueue.splice(queued,1);
  position(mountWindow(id),w);focusId='';drawTaskbar();persist();
@@ -482,6 +536,7 @@ function maximize(id){
 }
 function closeWindow(id,saveChange=true){
  const node=$('#ldp124Windows [data-app="'+id+'"]',ui);
+ forgetIdle(id);
  forgetStart(id);
  if(node)node.remove();
  pumpStarts();
@@ -549,25 +604,139 @@ function dateKey(v){
  if(test.getFullYear()!==y||test.getMonth()+1!==mo||test.getDate()!==d)return '';
  return y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
 }
-function nearEvents(){
- const d=dash()?.snapshot?.();if(!d)return [];
- const today=new Date(),start=new Date(today.getFullYear(),today.getMonth(),today.getDate());
- const end=new Date(start);end.setDate(end.getDate()+10);
- const localKey=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
- const begin=localKey(start),limit=localKey(end);
- const candidates=[
-  ...(d.notes||[]).filter(x=>x.status!=='archived').map(x=>[x.title,x.dueDate]),
-  ...(d.family_tasks||[]).filter(x=>!x.done).map(x=>[x.title,x.dueDate]),
-  ...(d.manual_reminders||[]).map(x=>[x.title||x.text,x.dueDate||x.date]),
-  ...(d.documents||[]).map(x=>[x.name||x.title,x.expiresAt||x.expiryDate])
+function eventGroups(){
+ return window.LifeDashTodayV127?.collect?.(
+  window.LifeDashCalendarBridge?.snapshot?.()||{},
+  dash()?.snapshot?.()?.finance_transactions||[],new Date()
+ )||{today:[],next:[],overdue:[]};
+}
+function showTodayRecords(box,section){
+ const data=eventGroups(),groups=[
+  ['today',data.today],['next',data.next],['overdue',data.overdue]
  ];
- return candidates.map(([title,date])=>({title:String(title||'').slice(0,75),date:dateKey(date)}))
- .filter(x=>x.title&&x.date>=begin&&x.date<=limit)
- .sort((a,b)=>a.date.localeCompare(b.date)).slice(0,3);
+ box.replaceChildren();
+ const counts=mk('div','ldp127-event-tabs');
+ for(const [id,records] of groups){
+  const btn=button(t(id==='next'?'nextTen':id==='overdue'?'waitingLate':'todayLabel')+' '+records.length,
+   'ldp127-event-tab'+(todayTab===id?' selected':''),()=>{todayTab=id;showTodayRecords(box,section)});
+  btn.setAttribute('aria-pressed',String(todayTab===id));
+  counts.append(btn);
+ }
+ box.append(counts);
+ const records=(data[todayTab]||[]);
+ if(!records.length){
+  box.append(mk('p','ldp124-widget-muted',t('noEvents')));return;
+ }
+ for(const e of records.slice(0,5)){
+  const row=button('','ldp124-widget-event',()=>openApp(e.page||'today'));
+  const typeIcon={notes:'✎',tasks:'✓',reminders:'◷',documents:'▣',birthdays:'♡',finance:'€'}[e.kind]||'◷';
+  const icon=mk('span','ldp127-event-type',typeIcon);
+  const info=mk('span','ldp127-event-detail');
+  info.append(mk('strong','',e.title),mk('small','',
+   e.date+(e.time?' · '+e.time:'')+' · '+t(e.kind)));
+  row.append(icon,info);
+  box.append(row);
+ }
+ if(records.length>5)box.append(mk('small','ldp127-event-more','+'+(records.length-5)+' '+t('more')));
+}
+function rssCode(raw){
+ const c=String(raw||'').trim().toUpperCase();
+ if(c==='BALKANS'||c==='GLOBAL'||/^[A-Z]{2}$/.test(c))return c;
+ const map={GERMANY:'DE',DEUTSCHLAND:'DE','NORTH MACEDONIA':'MK',
+  МАКЕДОНИЈА:'MK',MACEDONIA:'MK',SRBIJA:'RS',SERBIA:'RS'};
+ return map[c]||'DE';
+}
+function readNewsCountry(){
+ let stored='';
+ try{stored=localStorage.getItem(RSS_KEY+owner)||''}catch(_){}
+ return rssCode(stored||window.LifeDashNewsBridge?.profileCountry?.()||'DE');
+}
+function setNewsCountry(code){
+ const country=rssCode(code);
+ newsState.country=country;newsState.index=0;newsState.at=0;newsState.items=[];
+ if(newsState.controller){newsState.controller.abort();newsState.controller=null}
+ newsState.loading=false;
+ try{localStorage.setItem(RSS_KEY+owner,country)}catch(_){}
+ paintNews();
+ void fetchNews(true);
+}
+function paintNews(){
+ const widget=$('#ldp124Widgets [data-widget="news"]',ui);
+ if(!widget)return;
+ const body=$('.ldp127-news-body',widget),country=$('.ldp127-news-country',widget);
+ if(country&&country.value!==newsState.country)country.value=newsState.country;
+ if(!body)return;
+ body.replaceChildren();
+ if(!newsState.items.length){
+  body.append(mk('p','ldp124-widget-muted',
+   newsState.loading?t('newsLoading'):t('newsEmpty')));
+  return;
+ }
+ const item=newsState.items[newsState.index%newsState.items.length];
+ const link=button('','ldp127-news-story',()=>openApp('news'));
+ link.title=t('openNews');
+ link.append(mk('strong','ldp127-news-title',String(item.title||'').slice(0,180)),
+  mk('small','ldp127-news-publisher',String(item.source||'').slice(0,65)));
+ body.append(link);
+ const meta=mk('small','ldp127-news-position',
+  (newsState.index%newsState.items.length+1)+' / '+newsState.items.length);
+ body.append(meta);
+}
+async function fetchNews(force=false){
+ const b=window.LifeDashNewsBridge,newsBox=$('#ldp124Widgets [data-widget="news"]',ui);
+ if(!newsBox||!b?.ready?.()||!active()||ui?.hidden||document.visibilityState==='hidden')return;
+ const chosen=readNewsCountry();
+ if(newsState.owner!==owner||newsState.country!==chosen){
+  newsState.owner=owner;newsState.country=chosen;newsState.items=[];newsState.at=0;newsState.index=0;
+ }
+ if(newsState.loading||(!force&&Date.now()-newsState.at<RSS_TTL))return;
+ const reqOwner=owner,reqCountry=newsState.country;
+ newsState.loading=true;const controller=new AbortController();
+ newsState.controller=controller;
+ paintNews();
+ const timeout=setTimeout(()=>controller.abort(),13500);
+ try{
+  const result=await b.news(reqCountry,'top',controller.signal);
+  if(controller.signal.aborted||reqOwner!==owner||newsState.country!==reqCountry||!active())return;
+  if(result?.country!==reqCountry||result?.category!=='top'||!Array.isArray(result.items))
+    throw new Error('RSS response mismatch');
+  newsState.items=result.items.filter(item=>typeof item.title==='string'&&item.title.trim()).slice(0,12);
+  newsState.at=Date.now();newsState.index=0;
+ }catch(_){
+  if(reqOwner===owner&&newsState.country===reqCountry)newsState.at=Date.now();
+ }finally{
+  clearTimeout(timeout);
+  if(newsState.controller===controller){newsState.controller=null;newsState.loading=false}
+  if(reqOwner===owner)paintNews();
+ }
+}
+function newsWidget(box){
+ const picker=mk('select','ldp127-news-country');
+ picker.setAttribute('aria-label',t('newsCountry'));
+ const current=readNewsCountry();
+ const allowed=[...new Set([current,...RSS_COUNTRIES])];
+ for(const c of allowed){
+  const option=mk('option','',c==='GLOBAL'?t('global'):c==='BALKANS'?t('balkans'):c);
+  option.value=c;picker.append(option);
+ }
+ picker.value=current;
+ if(!newsState.country)newsState.country=current;
+ picker.addEventListener('change',()=>setNewsCountry(picker.value));
+ const controls=mk('div','ldp127-news-controls');
+ const refresh=button('↻','ldp127-news-reload',()=>void fetchNews(true));
+ refresh.title=t('newsRefresh');refresh.setAttribute('aria-label',t('newsRefresh'));
+ controls.append(picker,refresh);
+ const body=mk('div','ldp127-news-body');
+ box.append(controls,body);
+ paintNews();
+ // Fetch only when the visible Desktop widget is mounted. It uses the
+ // existing authenticated news-rss gateway, never a second RSS provider.
+ if(!newsState.loading&&Date.now()-newsState.at>=RSS_TTL)
+  queueMicrotask(()=>void fetchNews());
 }
 function widget(id){
  const box=mk('article','ldp124-widget');box.dataset.widget=id;
- const title={today:t('waiting'),weather:t('weather'),calendar:displayName('calendar'),
+ const title={today:t('todaySummary'),weather:t('weather'),calendar:displayName('calendar'),
  finance:displayName('finance'),world:displayName('world'),news:displayName('news')}[id]||id;
  const btn=button('↗','ldp124-widget-open',()=>openApp(id==='weather'?'world':id==='today'?'today':id));
  btn.setAttribute('aria-label','Open '+title);
@@ -575,10 +744,17 @@ function widget(id){
  heading.append(mk('strong','',title),btn);
  box.append(heading);
  if(id==='today'||id==='calendar'){
-  const events=nearEvents();if(!events.length)box.append(mk('p','ldp124-widget-muted',t('noEvents')));
-  else for(const x of events){
-   const row=button('','ldp124-widget-event',()=>openApp(id==='today'?'today':'calendar'));
-   row.append(mk('strong','',x.title),mk('small','',x.date));box.append(row);
+  const area=mk('div','ldp127-today-list');
+  box.append(area);
+  if(id==='today')showTodayRecords(area,id);
+  else{
+   const e=eventGroups().next.slice(0,5);
+   if(!e.length)area.append(mk('p','ldp124-widget-muted',t('noEvents')));
+   for(const item of e){
+    const row=button('','ldp124-widget-event',()=>openApp(item.page));
+    row.append(mk('strong','',item.title),mk('small','',item.date));
+    area.append(row);
+   }
   }
  }else if(id==='finance'){
   const rows=dash()?.snapshot?.()?.finance_transactions||[];
@@ -615,7 +791,7 @@ function widget(id){
  }else if(id==='world'){
   box.append(mk('div','ldp124-widget-decor','🌐'),mk('p','ldp124-widget-muted','Fires · Earthquakes · Road Live'));
  }else if(id==='news'){
-  box.append(mk('div','ldp124-widget-decor','📰'),mk('p','ldp124-widget-muted','RSS · DE · MK · RS · Balkans'));
+  newsWidget(box);
  }
  return box;
 }
@@ -634,6 +810,8 @@ function activate(){
  if(owner!==next){
   // Never reuse an embedded app from a previous signed-in account.
   clearStarts();
+  newsState.owner='';newsState.country='';newsState.items=[];newsState.index=0;newsState.at=0;
+  todayTab='today';
   if(ui){ui.classList.remove('ldp126-max-active');$('#ldp124Windows',ui)?.replaceChildren()}
   if(saving){clearTimeout(saving);saving=0}
   owner=next;
@@ -677,5 +855,18 @@ window.addEventListener('resize',()=>{if(!ui||ui.hidden||!data)return;
   const w=data.windows[id];position($('#ldp124Windows [data-app="'+id+'"]',ui),w);
  }});
 window.setInterval(()=>{if(ui&&!ui.hidden)updateClock()},30000);
+window.setInterval(()=>{
+ if(!ui||ui.hidden||!active()||document.visibilityState==='hidden')return;
+ if(newsState.items.length){newsState.index=(newsState.index+1)%newsState.items.length;paintNews()}
+ if(!newsState.loading&&Date.now()-newsState.at>RSS_TTL)void fetchNews();
+},13000);
+window.addEventListener('storage',event=>{
+ if(!owner||!active()||event.key!==RSS_KEY+owner)return;
+ const choice=readNewsCountry();
+ if(choice!==newsState.country){
+  newsState.country=choice;newsState.at=0;newsState.items=[];newsState.index=0;
+  void fetchNews(true);
+ }
+});
 schedule();
 })();
