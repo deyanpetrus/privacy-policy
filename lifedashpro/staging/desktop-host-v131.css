@@ -1,0 +1,106 @@
+/* LifeDashPro Desktop OS v1.31 — ONE authenticated app host, no iframes.
+ * All application content lives in the ORIGINAL #appView DOM node and retains
+ * its handlers, real data and original Supabase session. Inactive window shells
+ * are lightweight; Classic/Android behavior is unchanged.
+ */
+#ldp124OS .ldp131-host-window .ldp131-window-body{
+ flex:1 1 auto;min-width:0;min-height:0;overflow:auto;
+ background:#f3f6fc;color:#203246;position:relative;
+ scrollbar-width:thin;user-select:text;
+ overscroll-behavior:contain;
+}
+#ldp124OS .ldp131-host-window .ldp131-window-body:empty{display:none}
+#ldp124OS .ldp131-host-window .ldp131-inactive{
+ flex:1 1 auto;min-height:0;padding:24px 18px;
+ display:flex;flex-direction:column;justify-content:center;
+ align-items:center;text-align:center;gap:12px;
+ background:radial-gradient(ellipse at 70% 0%,rgba(103,87,170,.2),transparent 70%),#18203b;
+ color:#f2eeff;
+}
+#ldp124OS .ldp131-inactive[hidden]{display:none!important}
+#ldp124OS .ldp131-inactive-icon{
+ width:55px;height:55px;display:grid;place-items:center;border-radius:16px;
+ background:rgba(155,132,250,.19);border:1px solid rgba(229,222,255,.25);
+ font-size:29px;
+}
+#ldp124OS .ldp131-inactive strong{font-size:15px}
+#ldp124OS .ldp131-inactive p{font-size:12px;line-height:1.6;color:#cec5df;max-width:300px}
+#ldp124OS .ldp131-activate{
+ background:linear-gradient(130deg,#6b52e6,#378fe6);border:0;
+ color:white;border-radius:11px;padding:11px 19px;
+ font-size:12px;font-weight:800;cursor:pointer;
+}
+#ldp124OS .ldp131-activate:hover{filter:brightness(1.1)}
+#ldp124OS .ldp131-host-window .ldp124-resize-grip{z-index:4}
+
+/* The real app is moved, never cloned. Keep its existing interactive DOM
+ * fully available in the active Desktop window and hide only Classic chrome. */
+html.ldp131-hosted #ldp124OS .ldp131-host-window #appView.app:not(.hidden){
+ display:block!important;position:static!important;
+ box-sizing:border-box!important;width:100%!important;
+ min-width:0!important;min-height:0!important;height:auto!important;
+ margin:0!important;padding:0!important;overflow:visible!important;
+ background:#f3f6fc!important;color:#23364d!important;
+}
+html.ldp131-hosted #ldp124OS #appView .sidebar,
+html.ldp131-hosted #ldp124OS #appView .topbar,
+html.ldp131-hosted #ldp124OS #appView .mobile-nav,
+html.ldp131-hosted #ldp124OS #appView .nav-scrim,
+html.ldp131-hosted #ldp124OS #appView #ldp123ModeSwitch,
+html.ldp131-hosted #ldp124OS #appView #ldp123DesktopTop{
+ display:none!important;
+}
+html.ldp131-hosted #ldp124OS #appView .workspace{
+ display:block!important;min-height:0!important;
+ min-width:0!important;max-width:none!important;
+ width:100%!important;margin:0!important;padding:0!important;
+}
+html.ldp131-hosted #ldp124OS #appView #content{
+ display:block;min-height:0!important;max-width:none!important;
+ margin:0!important;width:100%!important;
+ padding:12px 15px 24px!important;overflow:visible;
+ box-sizing:border-box;
+}
+html.ldp131-hosted #ldp124OS #appView #content>.section-head:first-child{
+ display:flex!important;flex-direction:row!important;
+ align-items:center!important;justify-content:space-between!important;
+ flex-wrap:wrap;gap:8px!important;margin:0 0 10px!important;
+ padding:0 0 8px!important;
+ border-bottom:1px solid rgba(39,68,105,.15);
+}
+html.ldp131-hosted #ldp124OS #appView #content>.section-head:first-child .eyebrow{
+ display:none!important;
+}
+html.ldp131-hosted #ldp124OS #appView #content>.section-head:first-child h2{
+ font-size:18px!important;line-height:1.3!important;margin:0!important;
+}
+html.ldp131-hosted #ldp124OS #appView #content>.section-head:first-child p:not(.eyebrow){
+ font-size:11px!important;line-height:1.3!important;margin:2px 0!important;
+}
+html.ldp131-hosted #ldp124OS #appView .card{padding:13px!important;border-radius:13px!important}
+html.ldp131-hosted #ldp124OS #appView .card-head{margin-bottom:8px!important}
+html.ldp131-hosted #ldp124OS #appView .data-row{padding:7px 10px!important}
+html.ldp131-hosted #ldp124OS #appView input,
+html.ldp131-hosted #ldp124OS #appView select,
+html.ldp131-hosted #ldp124OS #appView textarea{user-select:text!important}
+html.ldp131-hosted #ldp124OS #appView button{cursor:pointer}
+html.ldp131-hosted #ldp124OS #appView .radio-page-heading{margin:0 0 8px!important}
+html.ldp131-hosted #ldp124OS #appView .radio-page-heading .eyebrow{display:none!important}
+html.ldp131-hosted #ldp124OS #appView .radio-page-heading h2{font-size:18px!important}
+html.ldp131-hosted #ldp124OS #appView .radio-toolbar{padding:10px!important;margin-bottom:9px!important}
+html.ldp131-hosted #ldp124OS #appView .explore-header{margin:0 0 8px!important}
+html.ldp131-hosted #ldp124OS #appView .explore-header h2{font-size:18px!important}
+html.ldp131-hosted #ldp124OS #appView .explore-layout{gap:9px!important}
+html.ldp131-hosted #ldp124OS #appView .finance-plus-shell{padding:12px!important}
+html.ldp131-hosted #ldp124OS #appView #newsRssV116 .news-hero{padding:12px!important}
+html.ldp131-hosted #ldp124OS #appView #newsRssV116 .news-hero h2{font-size:18px!important}
+
+/* Preserve interaction with the bottom dock and maximized layout. */
+#ldp124OS .ldp131-host-window.ldp124-maximized .ldp131-window-body{
+ height:100%!important;min-height:0!important;flex:1 1 auto!important;
+}
+#ldp124OS.ldp126-max-active .ldp124-taskbar{z-index:9000!important}
+@media(max-width:760px){
+ html.ldp131-hosted #ldp124OS #appView #content{padding:10px!important}
+ #ldp124OS .ldp131-inactive p{font-size:11px}
+}
