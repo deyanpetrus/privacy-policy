@@ -24,15 +24,23 @@
       explain('Web application failed to initialize. Please retry.');
     }
   });
+  function desktopParentAvailable(){
+    if(window.parent===window||!document.documentElement.classList.contains('ldp-os-embedded'))return false;
+    try{return typeof window.parent.LifeDashChildContextV128?.boot==='function'}
+    catch(_){return false}
+  }
   function loadApp(){
-    if(!window.supabase||typeof window.supabase.createClient!=='function'){
+    if(!desktopParentAvailable()&&(!window.supabase||typeof window.supabase.createClient!=='function')){
       explain('Secure login library is unavailable. Please retry.');return;
     }
-    var s=document.createElement('script');s.src='./app.js?v=1.27.0';s.async=true;
+    var s=document.createElement('script');s.src='./app.js?v=1.28.0';s.async=true;
     s.onerror=function(){explain('The application file could not be loaded. Please retry.');};
     document.body.appendChild(s);
   }
   function loadVendor(){
+    // Registered same-origin OS windows have no independent Auth client.
+    // The desktop's already-synchronized session is the source of truth.
+    if(desktopParentAvailable()){loadApp();return;}
     if(window.supabase&&window.supabase.createClient){loadApp();return;}
     if(failures>=vendors.length){explain('Secure login cannot load. Check internet access, then retry.');return;}
     var url=vendors[failures++];
