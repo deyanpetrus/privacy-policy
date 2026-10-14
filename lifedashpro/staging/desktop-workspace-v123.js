@@ -558,6 +558,12 @@ function sync(){
   // Most recently edited layout wins. Keep view mode local on each device.
   settings=normalize(cloud&&cloudTime>=localTime?cloud:local);
   settings.mode=['desktop','classic'].includes(local?.mode)?local.mode:defaults().mode;
+  // A direct rescue URL stays usable even if previous desktop settings
+  // restored frozen windows. This changes device-local mode only.
+  if(new URLSearchParams(location.search).get('ldpRescue')==='1'){
+    settings.mode='classic';
+    save(stored(),settings);
+  }
   rememberMode(settings.mode);
   host=null;top=null;editing=false;
  }
@@ -584,7 +590,12 @@ const schedule=()=>{
  if(queued)return;queued=true;
  queueMicrotask(()=>{queued=false;sync()});
 };
-new MutationObserver(schedule).observe(root,{childList:true,subtree:true});
+new MutationObserver(()=>{
+ // The v1.24+ desktop shell is now the owner of the visible UI. Do not
+ // scan/reorder the hidden legacy dashboard on every child DOM mutation.
+ if(document.documentElement.classList.contains('ldp-os-running'))return;
+ schedule();
+}).observe(root,{childList:true,subtree:true});
 new MutationObserver(schedule).observe(app,{attributes:true,attributeFilter:['class']});
 document.addEventListener('lifedash:locale-change',()=>{
  if(!ready())return;

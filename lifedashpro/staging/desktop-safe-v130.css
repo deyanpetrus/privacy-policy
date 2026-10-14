@@ -1,0 +1,32 @@
+/* v1.30 stability rollback.
+ * The Desktop shell, widgets and launcher remain fully usable.
+ * Whole-app iframes are deliberately disabled to prevent renderer freezes.
+ */
+#ldp124OS .ldp130-safe-status{
+ border:1px solid rgba(174,232,203,.42)!important;
+ background:rgba(13,91,83,.25)!important;
+ color:#e5fff4!important;white-space:nowrap;
+}
+#ldp124OS .ldp130-safe-notice{
+ position:absolute;z-index:3;left:218px;top:22px;
+ max-width:min(465px,calc(100vw - 600px));
+ padding:12px 15px;border-radius:14px;
+ background:rgba(16,30,49,.80);
+ border:1px solid rgba(210,234,255,.25);
+ backdrop-filter:blur(18px);
+ font:600 12px/1.55 system-ui,Arial,sans-serif;
+ box-shadow:0 10px 20px rgba(3,9,18,.2);
+ color:#f6fbff;pointer-events:none;
+}
+@media(max-width:1100px){
+ #ldp124OS .ldp130-safe-notice{
+  left:176px;top:18px;max-width:calc(100vw - 475px);
+  padding:8px 10px;font-size:10px;
+ }
+}
+@media(max-width:930px){
+ #ldp124OS .ldp130-safe-notice{display:none}
+}
+@media(max-width:650px){
+ #ldp124OS .ldp130-safe-status{padding:6px 8px!important;font-size:10px!important}
+}
