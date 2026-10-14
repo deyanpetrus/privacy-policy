@@ -5,6 +5,19 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const state={client:null,session:null,user:null,profile:null,page:'dashboard',data:{},editor:null,loading:false,syncReady:false,lastSync:null,deviceId:localStorage.getItem('lifedash_web_device_id')||`web-${crypto.randomUUID?.()||Date.now()}`};
 localStorage.setItem('lifedash_web_device_id',state.deviceId);
 const KINDS=['notes','finance_transactions','finance_goals','family_tasks','documents','vehicles','journey_plans_beta','manual_reminders','travel','radio_favorites','family_members'];
+const OS_CHILD=Boolean(document.documentElement.classList.contains('ldp-os-embedded')&&window.parent!==window);
+function desktopChildContext(){
+ if(!OS_CHILD)return null;
+ try{
+  const page=document.documentElement.dataset.osWindow||'',
+        load=new URLSearchParams(location.search).get('ldpLoad')||'';
+  return window.parent.LifeDashChildContextV128?.boot?.(window,page,load)||null;
+ }catch(_){return null}
+}
+function notifyParentRecord(kind,record,deleted=false){
+ if(!OS_CHILD)return;
+ try{window.parent.LifeDashChildContextV128?.changed?.(window,kind,record,deleted)}catch(_){}
+}
 const TITLES={dashboard:'Dashboard',today:'Today & Next 5',calendar:'Personal Calendar',notes:'Notes Pro',tasks:'Tasks',documents:'Documents',finance:'Finance',explore:'Explore & Around Me',vehicles:'Vehicles',journey:'Journey',radio:'World Radio',world:'World Live',news:'News & RSS',backup:'Backup & Restore',profile:'Profile & Settings'};
 
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
@@ -19,6 +32,27 @@ function publicKey(){return String(cfg.publishableKey||localStorage.getItem('lif
 async function init(){
   window.LIFEDASH_BOOT_OK?.();
   $('#boot').classList.add('hidden');
+  if(OS_CHILD){
+    // Desktop parent has already authenticated, RLS-synced and verified this
+    // same-origin iframe. Reuse that session and snapshot instead of 11 queries
+    // and independent Supabase Auth locks for every app window.
+    const grant=desktopChildContext();
+    if(!grant||!grant.client||!grant.session||!grant.user||
+       grant.ownerId!==grant.user.id){
+      showAuthShell(false);
+      authMsg('Desktop session is not ready. Use ↻ Reload on this window.','error');
+      return;
+    }
+    state.client=grant.client;state.session=grant.session;state.user=grant.user;
+    state.profile=grant.profile;state.deviceId=grant.deviceId;
+    state.data=grant.data;state.syncReady=true;state.lastSync=new Date();
+    $('#authView').classList.add('hidden');$('#appView').classList.remove('hidden');
+    $('#syncLabel').textContent='Desktop secure sync';
+    $('#syncTime').textContent='Shared authorized session';
+    $('#syncDot').classList.add('good');
+    updateCounts();render();
+    return;
+  }
   const key=publicKey();
   if(!cfg.supabaseUrl||!key){showAuthShell(true);return}
   if(!window.supabase?.createClient){showAuthShell(true);authMsg('Secure login did not load. Please refresh this page.','error');return}
@@ -64,6 +98,18 @@ async function loadKind(kind){
   return (data||[]).filter(x=>!x.deleted_at).map(x=>({...x.payload,id:String(x.payload?.id||x.item_id),_sync:{updated_at:x.updated_at,revision:x.revision}}));
 }
 async function refreshAll(){
+  if(OS_CHILD){
+    const grant=desktopChildContext();
+    if(!grant||!grant.client||!grant.session||!grant.user||
+       grant.ownerId!==grant.user.id){
+      state.syncReady=false;render();
+      throw new Error('Desktop session unavailable; reload this window.');
+    }
+    state.client=grant.client;state.session=grant.session;state.user=grant.user;
+    state.profile=grant.profile;state.data=grant.data;
+    state.syncReady=true;state.lastSync=new Date();updateCounts();render();
+    return;
+  }
   if(!state.user||state.loading)return;setBusy(true);$('#syncLabel').textContent='Syncing…';
   try{const rows=await Promise.all(KINDS.map(async k=>[k,await loadKind(k)]));state.data=Object.fromEntries(rows);state.syncReady=true;state.lastSync=new Date();$('#syncDot').classList.add('good');$('#syncLabel').textContent='Secure sync';$('#syncTime').textContent=`Updated ${state.lastSync.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;updateCounts();render()}
   catch(e){state.syncReady=false;$('#syncLabel').textContent='Sync issue';msg(`Sync error: ${e.message}`,'error');render()}
@@ -87,7 +133,7 @@ async function upsertRecord(kind,item){
   const row={user_id:state.user.id,kind,item_id:String(item.id),payload,deleted_at:null,device_id:state.deviceId,updated_at:isoNow()};
   const {data,error}=await state.client.from('user_data').upsert(row,{onConflict:'user_id,kind,item_id'}).select('revision,updated_at,payload').single();if(error)throw error;
   const saved={...(data?.payload||payload),id:String(item.id),_sync:{revision:data?.revision,updated_at:data?.updated_at}};
-  const arr=state.data[kind]||[];state.data[kind]=[saved,...arr.filter(x=>String(x.id)!==String(item.id))];updateCounts();render();
+  const arr=state.data[kind]||[];state.data[kind]=[saved,...arr.filter(x=>String(x.id)!==String(item.id))];updateCounts();render();notifyParentRecord(kind,saved,false);
 }
 async function tombstoneRecord(kind,id){
   if(!state.syncReady)throw new Error('Data not loaded; cannot delete until sync succeeds.');
@@ -96,7 +142,7 @@ async function tombstoneRecord(kind,id){
   await assertFresh(kind,loaded);
   const now=isoNow();const row={user_id:state.user.id,kind,item_id:String(id),payload:{},deleted_at:now,device_id:state.deviceId,updated_at:now};
   const {error}=await state.client.from('user_data').upsert(row,{onConflict:'user_id,kind,item_id'});if(error)throw error;
-  state.data[kind]=(state.data[kind]||[]).filter(x=>String(x.id)!==String(id));updateCounts();render();
+  state.data[kind]=(state.data[kind]||[]).filter(x=>String(x.id)!==String(id));updateCounts();render();notifyParentRecord(kind,{id:String(id)},true);
 }
 function updateCounts(){const d=state.data;$('#navNotes').textContent=(d.notes||[]).length;$('#navTasks').textContent=(d.family_tasks||[]).filter(x=>!x.done).length;$('#navDocs').textContent=(d.documents||[]).length;$('#navVehicles').textContent=(d.vehicles||[]).length;$('#navJourneys').textContent=(d.journey_plans_beta||[]).length}
 function setPage(page){state.page=page;location.hash=page;$$('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));$('#pageTitle').textContent=TITLES[page]||'LifeDashPro';$('#quickAddBtn').classList.toggle('hidden',!['notes','finance','tasks','dashboard'].includes(page));render()}
@@ -645,6 +691,45 @@ window.LifeDashDocumentsBridge=Object.freeze({
 });
 // Web Dashboard v1.19: read-only snapshot of canonical synced records.
 // No new queries, provider changes, browser GPS requests or record writes.
+// v1.28: same-origin, parent-only Desktop child capability.
+// No credentials enter URLs/messages or localStorage; the existing client stays
+// inside the same origin and the caller must be a registered live iframe.
+window.LifeDashChildContextV128=Object.freeze({
+ boot:(child,page,token)=>{
+   if(OS_CHILD||!state.client||!state.session||!state.user||!state.syncReady||
+      typeof page!=='string'||typeof token!=='string')return null;
+   let childUrl;
+   try{childUrl=new URL(child.location.href);
+      if(childUrl.origin!==location.origin)return null;
+   }catch(_){return null}
+   const iframe=[...document.querySelectorAll('#ldp124Windows iframe.ldp124-frame')]
+     .find(f=>f.contentWindow===child);
+   if(!iframe)return null;
+   const frameUrl=new URL(iframe.src,location.href);
+   if(frameUrl.origin!==location.origin||
+      frameUrl.searchParams.get('ldpWindow')!==page||
+      (frameUrl.searchParams.get('ldpLoad')||'')!==token||
+      childUrl.searchParams.get('ldpWindow')!==page||
+      (childUrl.searchParams.get('ldpLoad')||'')!==token)return null;
+   return {ownerId:state.user.id,client:state.client,
+     user:state.user,session:state.session,
+     profile:{...(state.profile||{})},deviceId:state.deviceId,
+     data:Object.fromEntries(KINDS.map(kind=>[kind,(state.data[kind]||[]).map(row=>({...row}))]))};
+ },
+ changed:(child,kind,row,deleted)=>{
+   if(OS_CHILD||!KINDS.includes(kind)||!row?.id)return;
+   const iframe=[...document.querySelectorAll('#ldp124Windows iframe.ldp124-frame')]
+      .find(f=>f.contentWindow===child);
+   if(!iframe||!state.user||!state.session||!state.syncReady)return;
+   // Caller is a currently mounted child on this already authenticated origin.
+   // RLS has already verified the preceding database upsert/tombstone.
+   const id=String(row.id);
+   state.data[kind]=deleted?
+     (state.data[kind]||[]).filter(x=>String(x.id)!==id):
+     [{...row},...(state.data[kind]||[]).filter(x=>String(x.id)!==id)];
+   updateCounts();render();
+ }
+});
 window.LifeDashDashboardBridge=Object.freeze({
  ready:()=>Boolean(state.client&&state.session&&state.user&&state.syncReady),
  identity:()=>state.user?.id||null,
