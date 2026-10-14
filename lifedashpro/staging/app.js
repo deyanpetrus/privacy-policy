@@ -863,5 +863,5 @@ window.LifeDashRadioBridge=Object.freeze({
 window.addEventListener('hashchange',()=>{const p=location.hash.slice(1);if(TITLES[p])setPage(p)});
 window.addEventListener('online',()=>state.session&&refreshAll());
 window.addEventListener('focus',()=>{if(state.session&&state.lastSync&&Date.now()-state.lastSync.getTime()>120000)refreshAll()});
-init().then(()=>{const p=location.hash.slice(1);if(TITLES[p])setPage(p)});
+init().then(()=>{const p=location.hash.slice(1);if(TITLES[p]&&state.page!==p)setPage(p)});
 })();
