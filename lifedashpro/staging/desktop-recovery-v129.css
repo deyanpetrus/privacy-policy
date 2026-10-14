@@ -1,0 +1,24 @@
+/* LifeDashPro Desktop v1.29 — bounded boot diagnostics and usable fallback.
+ * Only Desktop OS windows; no changes to Classic or data modules.
+ */
+#ldp124OS .ldp129-loading-classic{
+  display:block;max-width:min(320px,100%);
+  padding:10px 15px;border:1px solid rgba(203,186,255,.42);
+  border-radius:11px;background:rgba(246,238,255,.12);
+  color:#f6f3ff;font-size:12px;font-weight:800;
+  cursor:pointer;line-height:1.35;
+}
+#ldp124OS .ldp129-loading-classic:hover,
+#ldp124OS .ldp129-loading-classic:focus-visible{
+  background:rgba(162,138,245,.25);
+}
+#ldp124OS .ldp124-window[data-os-state="ready"]>.ldp125-loading{
+  display:none!important;
+}
+#ldp124OS .ldp124-window[data-os-state="stalled"] .ldp125-loading-text{
+  max-width:340px;line-height:1.5;
+  overflow-wrap:anywhere;
+}
+@media(max-width:650px){
+ #ldp124OS .ldp129-loading-classic{font-size:11px;padding:9px 11px}
+}
