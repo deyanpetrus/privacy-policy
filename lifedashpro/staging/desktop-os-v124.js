@@ -397,13 +397,19 @@ function retryWindow(id){
  raise(id);
 }
 window.addEventListener('message',event=>{
- if(event.origin!==location.origin||event.data?.type!=='ldp-os-ready-v125')return;
+ const type=event.data?.type;
+ if(event.origin!==location.origin||
+    !['ldp-os-ready-v125','ldp-os-failed-v128'].includes(type))return;
  const id=event.data.app,token=String(event.data.load||'');
  if(!INFO[id]||!active()||!data?.windows[id])return;
  const node=$('#ldp124Windows [data-app="'+id+'"]',ui);
  const frame=$('.ldp124-frame',node);
  if(!node||!frame||frame.contentWindow!==event.source||
   node.dataset.loadToken!==token)return;
+ if(type==='ldp-os-failed-v128'){
+  setWindowStatus(node,t('stalled'),true);
+  finishStart(id,token);return;
+ }
  node.dataset.osState='ready';
  finishStart(id,token);
  // A heavy app may finish starting after its window has lost focus.
