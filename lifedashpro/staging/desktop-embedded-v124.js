@@ -29,6 +29,12 @@ if(value&&allowed.has(value)){
  return;
 }
 try{
+ // Explicit no-JS-interaction rescue: /staging/?ldpRescue=1
+ // Do not preload Desktop even if this device previously selected it.
+ if(new URLSearchParams(location.search).get('ldpRescue')==='1'){
+  doc.classList.remove('ldp-os-launch-pending');
+  return;
+ }
  const stored=localStorage.getItem('lifedash_web_device_mode_v125');
  const mode=(stored==='desktop'||stored==='classic')?stored:
   (window.matchMedia('(min-width: 1000px)').matches?'desktop':'classic');
