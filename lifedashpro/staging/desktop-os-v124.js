@@ -28,6 +28,13 @@ let owner='',data=null,ui=null,saving=0,saveRun=Promise.resolve(),z=50,focusId='
 const startQueue=[],runningWindows=new Set(),loadTimers=new Map();
 const MAX_PARALLEL_STARTS=1; // Full SPA iframes sync many datasets; serialize their startup.
 let loadSerial=0;
+const HEAVY_APPS=new Set(['explore','world','news']);
+const idleHeavyTimers=new Map();
+const RSS_COUNTRIES=['DE','MK','RS','BG','HR','BA','ME','AL','SI','AT','CH','GR','RO','GB','US','BALKANS','GLOBAL'];
+const RSS_KEY='lifedash_web_news_country_v116_';
+const RSS_TTL=15*60*1000;
+const newsState={owner:'',country:'',items:[],index:0,at:0,loading:false,controller:null};
+let todayTab='today';
 function lang(){return String(window.LifeDashWebI18n?.locale?.()||'en').toLowerCase().split('-')[0]}
 function t(key){return (LOCALE[lang()]||LOCALE.en)[key]||LOCALE.en[key]||key}
 function active(){return !!bridge()?.ready?.()&&!$('#appView')?.classList.contains('hidden')&&$('#appView')?.classList.contains('ldp123-desktop-shell')}
@@ -286,6 +293,35 @@ function urlFor(id,token=''){
  u.hash=id;
  return u.href;
 }
+function forgetIdle(id){
+ const timer=idleHeavyTimers.get(id);
+ if(timer!==undefined){clearTimeout(timer);idleHeavyTimers.delete(id)}
+}
+function pauseHeavy(id){
+ if(!HEAVY_APPS.has(id)||!data?.windows[id]||!ui||ui.hidden)return;
+ const node=$('#ldp124Windows [data-app="'+id+'"]',ui);
+ if(!node||node.dataset.osState!=='ready')return;
+ forgetStart(id);
+ const frame=$('.ldp124-frame',node);
+ if(frame)frame.src='about:blank';
+ node.dataset.osState='paused';
+ node.dataset.frameStarted='false';
+ node.dataset.loadToken='';
+ setWindowStatus(node,t('paused'),true);
+ const spinner=$('.ldp125-loading-spinner',node);
+ if(spinner)spinner.hidden=true;
+ const retry=$('.ldp125-loading-retry',node);
+ if(retry)retry.textContent='↻ '+t('resume');
+}
+function delayHeavyPause(id,ms){
+ forgetIdle(id);
+ if(!HEAVY_APPS.has(id)||!data?.windows[id])return;
+ idleHeavyTimers.set(id,setTimeout(()=>{
+  idleHeavyTimers.delete(id);
+  if(!active()||!data?.windows[id]||ui?.hidden)return;
+  if(data.windows[id].min||focusId!==id)pauseHeavy(id);
+ },ms));
+}
 function forgetStart(id){
  const index=startQueue.indexOf(id);
  if(index>=0)startQueue.splice(index,1);
@@ -296,6 +332,9 @@ function forgetStart(id){
 function clearStarts(){
  for(const id of [...runningWindows,...startQueue])forgetStart(id);
  startQueue.length=0;
+ for(const id of idleHeavyTimers.keys())forgetIdle(id);
+ if(newsState.controller){newsState.controller.abort();newsState.controller=null}
+ newsState.loading=false;
 }
 function setWindowStatus(node,text,failed=false){
  const message=$('.ldp125-loading-text',node),retry=$('.ldp125-loading-retry',node);
@@ -313,6 +352,10 @@ function pumpStarts(){
   const token=String(++loadSerial);
   node.dataset.frameStarted='true';node.dataset.loadToken=token;
   setWindowStatus(node,t('starting'));
+  const spinner=$('.ldp125-loading-spinner',node);
+  if(spinner)spinner.hidden=false;
+  const retry=$('.ldp125-loading-retry',node);
+  if(retry)retry.textContent='↻ '+t('reload');
   runningWindows.add(id);
   loadTimers.set(id,setTimeout(()=>{
    if(node.isConnected&&node.dataset.loadToken===token&&node.dataset.osState!=='ready'){
@@ -455,7 +498,13 @@ function mountWindow(id){
 }
 function raise(id){
  if(!data.windows[id])return;
+ for(const heavy of HEAVY_APPS){
+  if(heavy!==id&&data.windows[heavy])delayHeavyPause(heavy,90000);
+ }
+ forgetIdle(id);
  focusId=id;
+ const existing=$('#ldp124Windows [data-app="'+id+'"]',ui);
+ if(existing?.dataset.osState==='paused')scheduleStart(id,true);
  const node=$('#ldp124Windows [data-app="'+id+'"]',ui);
  if(node){
   z++;if(z>9000){z=51;all('.ldp124-window',ui).forEach(el=>el.style.zIndex='50')}
@@ -466,12 +515,14 @@ function raise(id){
 }
 function restore(id){
  const w=data.windows[id];if(!w)return;
+ forgetIdle(id);
  if(w.min){w.min=false;mountWindow(id);persist()}
  raise(id);
 }
 function minimize(id){
  const w=data.windows[id];if(!w)return;
  w.min=true;
+ if(HEAVY_APPS.has(id))delayHeavyPause(id,10000);
  const queued=startQueue.indexOf(id);
  if(queued>=0)startQueue.splice(queued,1);
  position(mountWindow(id),w);focusId='';drawTaskbar();persist();
@@ -482,6 +533,7 @@ function maximize(id){
 }
 function closeWindow(id,saveChange=true){
  const node=$('#ldp124Windows [data-app="'+id+'"]',ui);
+ forgetIdle(id);
  forgetStart(id);
  if(node)node.remove();
  pumpStarts();
@@ -634,6 +686,8 @@ function activate(){
  if(owner!==next){
   // Never reuse an embedded app from a previous signed-in account.
   clearStarts();
+  newsState.owner='';newsState.country='';newsState.items=[];newsState.index=0;newsState.at=0;
+  todayTab='today';
   if(ui){ui.classList.remove('ldp126-max-active');$('#ldp124Windows',ui)?.replaceChildren()}
   if(saving){clearTimeout(saving);saving=0}
   owner=next;
