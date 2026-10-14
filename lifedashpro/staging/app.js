@@ -41,10 +41,15 @@ async function init(){
        grant.ownerId!==grant.user.id){
       showAuthShell(false);
       authMsg('Desktop session is not ready. Use ↻ Reload on this window.','error');
+      try{window.parent.postMessage({type:'ldp-os-failed-v128',
+        app:document.documentElement.dataset.osWindow||'',
+        load:new URLSearchParams(location.search).get('ldpLoad')||''},location.origin)}catch(_){}
       return;
     }
     state.client=grant.client;state.session=grant.session;state.user=grant.user;
     state.profile=grant.profile;state.deviceId=grant.deviceId;
+    const embedPage=document.documentElement.dataset.osWindow||'dashboard';
+    state.page=TITLES[embedPage]?embedPage:'dashboard';
     state.data=grant.data;state.syncReady=true;state.lastSync=new Date();
     $('#authView').classList.add('hidden');$('#appView').classList.remove('hidden');
     $('#syncLabel').textContent='Desktop secure sync';
