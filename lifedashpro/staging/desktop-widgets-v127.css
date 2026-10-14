@@ -1,0 +1,94 @@
+/* LifeDashPro Desktop v1.27 — Upcoming 10 days, regional RSS, memory saver.
+ * Scoped to Desktop OS widgets/windows. Classic & Android untouched.
+ */
+#ldp124OS .ldp127-event-tabs{
+ display:flex;gap:5px;flex-wrap:wrap;margin:11px 0 7px;
+}
+#ldp124OS .ldp127-event-tab{
+ border:1px solid rgba(214,200,255,.22);border-radius:9px;
+ background:rgba(228,217,255,.09);color:#d8cceb;
+ padding:7px 8px;font-size:10px;font-weight:800;
+ cursor:pointer;min-height:30px;
+}
+#ldp124OS .ldp127-event-tab.selected{
+ color:white;border-color:rgba(200,178,255,.55);
+ background:linear-gradient(135deg,rgba(125,91,218,.72),rgba(64,106,184,.72));
+}
+#ldp124OS .ldp127-today-list{display:flex;flex-direction:column;gap:4px}
+#ldp124OS .ldp127-today-list .ldp124-widget-event{
+ display:flex;gap:8px;align-items:center;
+ padding:8px 4px;min-height:43px;
+}
+#ldp124OS .ldp127-event-type{
+ flex:none;display:grid;place-items:center;
+ width:28px;height:28px;border-radius:9px;font-size:16px;
+ color:#d5cdff;background:rgba(151,131,237,.18);
+}
+#ldp124OS .ldp127-event-detail{
+ flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;
+}
+#ldp124OS .ldp127-event-detail strong{
+ font-size:11px;line-height:1.25;font-weight:800;
+ overflow-wrap:anywhere;max-width:100%;
+}
+#ldp124OS .ldp127-event-detail small{
+ font-size:10px;line-height:1.2;color:#cabfe3;
+}
+#ldp124OS .ldp127-event-more{
+ align-self:flex-end;font-size:10px;color:#ded4f7;
+}
+#ldp124OS .ldp127-news-controls{
+ display:flex;align-items:center;gap:7px;margin-top:11px;
+}
+#ldp124OS .ldp127-news-country{
+ flex:1;min-width:0;padding:8px;
+ border:1px solid rgba(218,209,255,.28);
+ border-radius:10px;color:#fff;font-size:11px;
+ font-weight:750;background:rgba(38,32,70,.85);
+}
+#ldp124OS .ldp127-news-country option{color:#fff;background:#201c3b}
+#ldp124OS .ldp127-news-reload{
+ width:32px;height:32px;flex:none;
+ border:1px solid rgba(218,209,255,.25);border-radius:10px;
+ font-size:20px;background:rgba(120,107,180,.18);
+ color:#fff;cursor:pointer;
+}
+#ldp124OS .ldp127-news-body{
+ margin-top:8px;display:flex;flex-direction:column;
+ min-height:56px;
+}
+#ldp124OS .ldp127-news-story{
+ display:block;width:100%;text-align:left;
+ padding:10px 0 6px;
+ border:0;border-top:1px solid rgba(216,207,255,.18);
+ background:transparent;color:#f4f2ff;cursor:pointer;
+}
+#ldp124OS .ldp127-news-title{
+ display:block;font-size:12px;font-weight:850;
+ line-height:1.42;max-width:100%;
+ white-space:normal;overflow-wrap:anywhere;
+}
+#ldp124OS .ldp127-news-publisher{
+ display:block;margin-top:6px;font-size:10px;
+ font-weight:650;color:#d1c8e5;
+}
+#ldp124OS .ldp127-news-position{
+ margin:3px 0 0;align-self:flex-end;
+ font-size:10px;color:#c0b4e3;
+}
+#ldp124OS .ldp124-window[data-os-state="paused"] .ldp125-loading{
+ display:flex!important;gap:15px;
+}
+#ldp124OS .ldp124-window .ldp125-loading-spinner[hidden]{
+ display:none!important;
+}
+#ldp124OS .ldp124-window[data-os-state="paused"] .ldp125-loading-retry{
+ display:block!important;
+}
+/* On narrow desktop make sure news and the Today tabs have usable room. */
+@media(max-width:930px){
+ #ldp124OS .ldp124-widgets{grid-auto-columns:235px}
+ #ldp124OS .ldp127-event-tab{padding:5px;font-size:9px}
+ #ldp124OS .ldp127-news-body{margin-top:4px}
+ #ldp124OS .ldp127-news-title{font-size:11px;line-height:1.3}
+}
