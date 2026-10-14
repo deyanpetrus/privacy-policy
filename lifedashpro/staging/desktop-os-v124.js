@@ -601,21 +601,135 @@ function dateKey(v){
  if(test.getFullYear()!==y||test.getMonth()+1!==mo||test.getDate()!==d)return '';
  return y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
 }
-function nearEvents(){
- const d=dash()?.snapshot?.();if(!d)return [];
- const today=new Date(),start=new Date(today.getFullYear(),today.getMonth(),today.getDate());
- const end=new Date(start);end.setDate(end.getDate()+10);
- const localKey=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
- const begin=localKey(start),limit=localKey(end);
- const candidates=[
-  ...(d.notes||[]).filter(x=>x.status!=='archived').map(x=>[x.title,x.dueDate]),
-  ...(d.family_tasks||[]).filter(x=>!x.done).map(x=>[x.title,x.dueDate]),
-  ...(d.manual_reminders||[]).map(x=>[x.title||x.text,x.dueDate||x.date]),
-  ...(d.documents||[]).map(x=>[x.name||x.title,x.expiresAt||x.expiryDate])
+function eventGroups(){
+ return window.LifeDashTodayV127?.collect?.(
+  window.LifeDashCalendarBridge?.snapshot?.()||{},
+  dash()?.snapshot?.()?.finance_transactions||[],new Date()
+ )||{today:[],next:[],overdue:[]};
+}
+function showTodayRecords(box,section){
+ const data=eventGroups(),groups=[
+  ['today',data.today],['next',data.next],['overdue',data.overdue]
  ];
- return candidates.map(([title,date])=>({title:String(title||'').slice(0,75),date:dateKey(date)}))
- .filter(x=>x.title&&x.date>=begin&&x.date<=limit)
- .sort((a,b)=>a.date.localeCompare(b.date)).slice(0,3);
+ box.replaceChildren();
+ const counts=mk('div','ldp127-event-tabs');
+ for(const [id,records] of groups){
+  const btn=button(t(id==='next'?'nextTen':id==='overdue'?'waitingLate':'todayLabel')+' '+records.length,
+   'ldp127-event-tab'+(todayTab===id?' selected':''),()=>{todayTab=id;showTodayRecords(box,section)});
+  btn.setAttribute('aria-pressed',String(todayTab===id));
+  counts.append(btn);
+ }
+ box.append(counts);
+ const records=(data[todayTab]||[]);
+ if(!records.length){
+  box.append(mk('p','ldp124-widget-muted',t('noEvents')));return;
+ }
+ for(const e of records.slice(0,5)){
+  const row=button('','ldp124-widget-event',()=>openApp(e.page||'today'));
+  const typeIcon={notes:'✎',tasks:'✓',reminders:'◷',documents:'▣',birthdays:'♡',finance:'€'}[e.kind]||'◷';
+  const icon=mk('span','ldp127-event-type',typeIcon);
+  const info=mk('span','ldp127-event-detail');
+  info.append(mk('strong','',e.title),mk('small','',
+   e.date+(e.time?' · '+e.time:'')+' · '+t(e.kind)));
+  row.append(icon,info);
+  box.append(row);
+ }
+ if(records.length>5)box.append(mk('small','ldp127-event-more','+'+(records.length-5)+' '+t('more')));
+}
+function rssCode(raw){
+ const c=String(raw||'').trim().toUpperCase();
+ if(c==='BALKANS'||c==='GLOBAL'||/^[A-Z]{2}$/.test(c))return c;
+ const map={GERMANY:'DE',DEUTSCHLAND:'DE','NORTH MACEDONIA':'MK',
+  МАКЕДОНИЈА:'MK',MACEDONIA:'MK',SRBIJA:'RS',SERBIA:'RS'};
+ return map[c]||'DE';
+}
+function readNewsCountry(){
+ let stored='';
+ try{stored=localStorage.getItem(RSS_KEY+owner)||''}catch(_){}
+ return rssCode(stored||window.LifeDashNewsBridge?.profileCountry?.()||'DE');
+}
+function setNewsCountry(code){
+ const country=rssCode(code);
+ newsState.country=country;newsState.index=0;newsState.at=0;newsState.items=[];
+ if(newsState.controller){newsState.controller.abort();newsState.controller=null}
+ newsState.loading=false;
+ try{localStorage.setItem(RSS_KEY+owner,country)}catch(_){}
+ paintNews();
+ void fetchNews(true);
+}
+function paintNews(){
+ const widget=$('#ldp124Widgets [data-widget="news"]',ui);
+ if(!widget)return;
+ const body=$('.ldp127-news-body',widget),country=$('.ldp127-news-country',widget);
+ if(country&&country.value!==newsState.country)country.value=newsState.country;
+ if(!body)return;
+ body.replaceChildren();
+ if(!newsState.items.length){
+  body.append(mk('p','ldp124-widget-muted',
+   newsState.loading?t('newsLoading'):t('newsEmpty')));
+  return;
+ }
+ const item=newsState.items[newsState.index%newsState.items.length];
+ const link=button('','ldp127-news-story',()=>openApp('news'));
+ link.title=t('openNews');
+ link.append(mk('strong','ldp127-news-title',String(item.title||'').slice(0,180)),
+  mk('small','ldp127-news-publisher',String(item.source||'').slice(0,65)));
+ body.append(link);
+ const meta=mk('small','ldp127-news-position',
+  (newsState.index%newsState.items.length+1)+' / '+newsState.items.length);
+ body.append(meta);
+}
+async function fetchNews(force=false){
+ const b=window.LifeDashNewsBridge,newsBox=$('#ldp124Widgets [data-widget="news"]',ui);
+ if(!newsBox||!b?.ready?.()||!active()||ui?.hidden||document.visibilityState==='hidden')return;
+ const chosen=readNewsCountry();
+ if(newsState.owner!==owner||newsState.country!==chosen){
+  newsState.owner=owner;newsState.country=chosen;newsState.items=[];newsState.at=0;newsState.index=0;
+ }
+ if(newsState.loading||(!force&&Date.now()-newsState.at<RSS_TTL))return;
+ const reqOwner=owner,reqCountry=newsState.country;
+ newsState.loading=true;const controller=new AbortController();
+ newsState.controller=controller;
+ paintNews();
+ const timeout=setTimeout(()=>controller.abort(),13500);
+ try{
+  const result=await b.news(reqCountry,'top',controller.signal);
+  if(controller.signal.aborted||reqOwner!==owner||newsState.country!==reqCountry||!active())return;
+  if(result?.country!==reqCountry||result?.category!=='top'||!Array.isArray(result.items))
+    throw new Error('RSS response mismatch');
+  newsState.items=result.items.filter(item=>typeof item.title==='string'&&item.title.trim()).slice(0,12);
+  newsState.at=Date.now();newsState.index=0;
+ }catch(_){
+  if(reqOwner===owner&&newsState.country===reqCountry)newsState.at=Date.now();
+ }finally{
+  clearTimeout(timeout);
+  if(newsState.controller===controller){newsState.controller=null;newsState.loading=false}
+  if(reqOwner===owner)paintNews();
+ }
+}
+function newsWidget(box){
+ const picker=mk('select','ldp127-news-country');
+ picker.setAttribute('aria-label',t('newsCountry'));
+ const current=readNewsCountry();
+ const allowed=[...new Set([current,...RSS_COUNTRIES])];
+ for(const c of allowed){
+  const option=mk('option','',c==='GLOBAL'?t('global'):c==='BALKANS'?t('balkans'):c);
+  option.value=c;picker.append(option);
+ }
+ picker.value=current;
+ if(!newsState.country)newsState.country=current;
+ picker.addEventListener('change',()=>setNewsCountry(picker.value));
+ const controls=mk('div','ldp127-news-controls');
+ const refresh=button('↻','ldp127-news-reload',()=>void fetchNews(true));
+ refresh.title=t('newsRefresh');refresh.setAttribute('aria-label',t('newsRefresh'));
+ controls.append(picker,refresh);
+ const body=mk('div','ldp127-news-body');
+ box.append(controls,body);
+ paintNews();
+ // Fetch only when the visible Desktop widget is mounted. It uses the
+ // existing authenticated news-rss gateway, never a second RSS provider.
+ if(!newsState.loading&&Date.now()-newsState.at>=RSS_TTL)
+  queueMicrotask(()=>void fetchNews());
 }
 function widget(id){
  const box=mk('article','ldp124-widget');box.dataset.widget=id;
@@ -627,10 +741,17 @@ function widget(id){
  heading.append(mk('strong','',title),btn);
  box.append(heading);
  if(id==='today'||id==='calendar'){
-  const events=nearEvents();if(!events.length)box.append(mk('p','ldp124-widget-muted',t('noEvents')));
-  else for(const x of events){
-   const row=button('','ldp124-widget-event',()=>openApp(id==='today'?'today':'calendar'));
-   row.append(mk('strong','',x.title),mk('small','',x.date));box.append(row);
+  const area=mk('div','ldp127-today-list');
+  box.append(area);
+  if(id==='today')showTodayRecords(area,id);
+  else{
+   const e=eventGroups().next.slice(0,5);
+   if(!e.length)area.append(mk('p','ldp124-widget-muted',t('noEvents')));
+   for(const item of e){
+    const row=button('','ldp124-widget-event',()=>openApp(item.page));
+    row.append(mk('strong','',item.title),mk('small','',item.date));
+    area.append(row);
+   }
   }
  }else if(id==='finance'){
   const rows=dash()?.snapshot?.()?.finance_transactions||[];
@@ -667,7 +788,7 @@ function widget(id){
  }else if(id==='world'){
   box.append(mk('div','ldp124-widget-decor','🌐'),mk('p','ldp124-widget-muted','Fires · Earthquakes · Road Live'));
  }else if(id==='news'){
-  box.append(mk('div','ldp124-widget-decor','📰'),mk('p','ldp124-widget-muted','RSS · DE · MK · RS · Balkans'));
+  newsWidget(box);
  }
  return box;
 }
@@ -731,5 +852,18 @@ window.addEventListener('resize',()=>{if(!ui||ui.hidden||!data)return;
   const w=data.windows[id];position($('#ldp124Windows [data-app="'+id+'"]',ui),w);
  }});
 window.setInterval(()=>{if(ui&&!ui.hidden)updateClock()},30000);
+window.setInterval(()=>{
+ if(!ui||ui.hidden||!active()||document.visibilityState==='hidden')return;
+ if(newsState.items.length){newsState.index=(newsState.index+1)%newsState.items.length;paintNews()}
+ if(Date.now()-newsState.at>RSS_TTL)void fetchNews();
+},13000);
+window.addEventListener('storage',event=>{
+ if(!owner||!active()||event.key!==RSS_KEY+owner)return;
+ const choice=readNewsCountry();
+ if(choice!==newsState.country){
+  newsState.country=choice;newsState.at=0;newsState.items=[];newsState.index=0;
+  void fetchNews(true);
+ }
+});
 schedule();
 })();
