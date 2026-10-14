@@ -376,7 +376,9 @@ function probeWindow(id,token){
   }
   const childApp=child.document.getElementById('appView');
   const content=child.document.getElementById('content');
-  if(!child.LifeDashDashboardBridge?.ready?.()){
+  if(typeof child.LifeDashDashboardBridge?.ready!=='function'){
+   stage='scripts';
+  }else if(!child.LifeDashDashboardBridge.ready()){
    const auth=child.document.getElementById('authMessage');
    stage=auth&&!auth.classList.contains('hidden')?'auth':'secure-sync';
   }else if(childApp?.classList.contains('hidden')){
@@ -394,6 +396,11 @@ function probeWindow(id,token){
   }
  }catch(_){stage='frame-access'}
  node.dataset.loadStage=stage;
+ if(Date.now()-Number(node.dataset.loadBegin||Date.now())>3500 &&
+    node.dataset.osState==='loading'){
+  const message=$('.ldp125-loading-text',node);
+  if(message)message.textContent=t('starting')+' · '+stage;
+ }
  return false;
 }
 function pumpStarts(){
@@ -412,6 +419,7 @@ function pumpStarts(){
   if(retry)retry.textContent='↻ '+t('reload');
   runningWindows.add(id);
   node.dataset.loadStage='document';
+  node.dataset.loadBegin=String(Date.now());
   loadTimers.set(id,setTimeout(()=>{
    if(node.isConnected&&node.dataset.loadToken===token&&node.dataset.osState!=='ready')
     setWindowFailure(id,token,node.dataset.loadStage);
