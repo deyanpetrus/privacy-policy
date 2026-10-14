@@ -721,14 +721,16 @@ window.LifeDashChildContextV128=Object.freeze({
    const iframe=[...document.querySelectorAll('#ldp124Windows iframe.ldp124-frame')]
       .find(f=>f.contentWindow===child);
    if(!iframe||!state.user||!state.session||!state.syncReady)return;
-   // Caller is a currently mounted child on this already authenticated origin.
-   // RLS has already verified the preceding database upsert/tombstone.
-   const id=String(row.id);
-   state.data[kind]=deleted?
-     (state.data[kind]||[]).filter(x=>String(x.id)!==id):
-     [{...row},...(state.data[kind]||[]).filter(x=>String(x.id)!==id)];
-   updateCounts();render();
+   // Never trust an iframe-supplied payload as authoritative, even if it is
+   // same-origin. Read exactly the changed kind back through the existing
+   // authenticated RLS owner query after the child write was successful.
+   const owner=state.user.id;
+   void loadKind(kind).then(rows=>{
+     if(state.user?.id!==owner||!state.syncReady)return;
+     state.data[kind]=rows;updateCounts();render();
+   }).catch(error=>console.warn('Desktop record sync',error));
  }
+
 });
 window.LifeDashDashboardBridge=Object.freeze({
  ready:()=>Boolean(state.client&&state.session&&state.user&&state.syncReady),
