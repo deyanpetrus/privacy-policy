@@ -406,6 +406,9 @@ window.addEventListener('message',event=>{
   node.dataset.loadToken!==token)return;
  node.dataset.osState='ready';
  finishStart(id,token);
+ // A heavy app may finish starting after its window has lost focus.
+ if(HEAVY_APPS.has(id)&&(data.windows[id].min||focusId!==id))
+  delayHeavyPause(id,data.windows[id].min?10000:90000);
 });
 function openApp(id){
  if(!INFO[id]||!active())return;
@@ -855,7 +858,7 @@ window.setInterval(()=>{if(ui&&!ui.hidden)updateClock()},30000);
 window.setInterval(()=>{
  if(!ui||ui.hidden||!active()||document.visibilityState==='hidden')return;
  if(newsState.items.length){newsState.index=(newsState.index+1)%newsState.items.length;paintNews()}
- if(Date.now()-newsState.at>RSS_TTL)void fetchNews();
+ if(!newsState.loading&&Date.now()-newsState.at>RSS_TTL)void fetchNews();
 },13000);
 window.addEventListener('storage',event=>{
  if(!owner||!active()||event.key!==RSS_KEY+owner)return;
