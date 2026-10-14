@@ -122,7 +122,9 @@ function shell(){
  const icons=mk('nav','ldp124-icons');icons.id='ldp124Icons';icons.setAttribute('aria-label','Desktop applications');
  const widgets=mk('section','ldp124-widgets');widgets.id='ldp124Widgets';widgets.setAttribute('aria-label',t('widgets'));
  const winArea=mk('div','ldp124-windows');winArea.id='ldp124Windows';
- canvas.append(icons,widgets,winArea);
+ const notice=mk('div','ldp130-safe-notice',t('safeDescription'));
+ notice.setAttribute('role','status');
+ canvas.append(icons,widgets,winArea,notice);
  const task=mk('nav','ldp124-taskbar');task.setAttribute('aria-label','Desktop taskbar');
  const start=button('','ldp124-start',()=>toggleStart());start.title=t('start');start.id='ldp124Start';
  const startLogo=mk('img','ldp126-start-logo');startLogo.alt='';startLogo.width=33;startLogo.height=33;
