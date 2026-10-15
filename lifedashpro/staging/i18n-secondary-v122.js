@@ -1,4 +1,4 @@
-/* LifeDashPro Web v1.22 - additive secondary-screen localization.
+/* LifeDashPro Web v1.32 - idempotent secondary-screen localization (v1.22 vocabulary).
  * Read-only display translations. Never touch transaction amounts, user-entered
  * data, map pins, POI results, or news article title/body/source.
  */
@@ -72,7 +72,7 @@ function finance(){
   ['.finance-plus-recurring-main .finance-plus-panel-title','recurringTitle'],
   ['.finance-plus-panel h3','lastSix']
  ]){ // headings below use safe English/translated-match replacement
-  const node=c.querySelector(pair[0]);if(node&&node.textContent===WORDS[pair[1]]?.[0])node.textContent=t(pair[1]);
+  const node=c.querySelector(pair[0]);if(node&&node.textContent===WORDS[pair[1]]?.[0]&&node.textContent!==t(pair[1]))node.textContent=t(pair[1]);
  }
  const headerNames={'Last 6 months':'lastSix','By category':'byCategory',
    'Monthly income & expenses · including repeats':'recurringTitle','Savings goals':'savingsGoals'};
@@ -86,7 +86,8 @@ function news(){
  const c=root.querySelector('#newsRssV116');if(!c)return;
  headText('.news-country-label','countryRegion',c);
  const refresh=c.querySelector('#newsRefreshV116');
- if(refresh&&['↻ Refresh',...WORDS.refresh].includes(refresh.textContent.trim()))
+ if(refresh&&refresh.textContent!==t('refresh')&&
+   ['↻ Refresh',...WORDS.refresh].includes(refresh.textContent.trim()))
   refresh.textContent=t('refresh');
  const map={top:['✦','topStories'],world:['◎','worldCategory'],business:['↗','business'],
   technology:['⌘','technology'],sports:['⚑','sports'],science:['✧','science'],
@@ -105,7 +106,8 @@ function explore(){
  assign('.explore-controls .explore-field:nth-child(2) > span','radius',c);
  assign('#exploreUseGps','useGps',c);
  const r=c.querySelector('#exploreRefresh');
- if(r&&['↻ Refresh',...WORDS.refresh].includes(r.textContent.trim()))r.textContent=t('refresh');
+ if(r&&r.textContent!==t('refresh')&&
+   ['↻ Refresh',...WORDS.refresh].includes(r.textContent.trim()))r.textContent=t('refresh');
  assign('#exploreFindCity','findCity',c);
  assign('.explore-map-head strong','nearbyMap',c);
  const cats={fuel:'fuel',parking:'parking',restaurant:'food',hotel:'hotels',
