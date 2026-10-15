@@ -114,7 +114,7 @@ function shell(){
  logo.alt='LifeDashPro';logo.width=38;logo.height=38;logo.decoding='async';
  logo.src=new URL('../../assets/lifedash-icon.webp',location.href).href;
  logo.addEventListener('error',()=>logo.replaceWith(mk('span','ldp124-brandmark','LD')),{once:true});
- brand.append(logo,mk('strong','', 'LifeDashPro'),mk('span','ldp124-top-tag','DESKTOP OS · v1.31'));
+ brand.append(logo,mk('strong','', 'LifeDashPro'),mk('span','ldp124-top-tag','DESKTOP OS · v1.32'));
  const actions=mk('div','ldp124-top-actions');
  const customize=button('⚙ '+t('customize'),'ldp124-top-button',()=>toggleSettings());
  const classic=button('↩ '+t('classic'),'ldp124-top-button',switchClassic);
