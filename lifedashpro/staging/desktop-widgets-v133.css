@@ -1,0 +1,73 @@
+/* LifeDashPro Web v1.33 — right-side widgets only. Desktop icons, windows and Classic untouched. */
+#ldp124OS .ldp124-widgets [data-widget="today"]{padding-bottom:11px}
+#ldp124OS .ldp124-widgets [data-widget="today"] .ldp127-today-list{margin-top:8px;gap:0}
+#ldp124OS .ldp124-widgets [data-widget="today"] .ldp124-widget-event{
+ min-height:53px;max-height:72px;align-items:center;padding:7px 3px;
+ border-bottom:1px solid rgba(225,220,255,.14);text-align:left;width:100%;
+}
+#ldp124OS .ldp124-widgets [data-widget="today"] .ldp124-widget-event:hover,
+#ldp124OS .ldp124-widgets [data-widget="calendar"] .ldp124-widget-event:hover{
+ background:rgba(171,159,238,.14);border-radius:8px;
+}
+#ldp124OS .ldp124-widgets [data-widget="today"] .ldp127-event-type{
+ width:27px;height:27px;font-size:15px
+}
+#ldp124OS .ldp124-widgets [data-widget="today"] .ldp127-event-detail{
+ gap:3px;overflow:hidden
+}
+#ldp124OS .ldp124-widgets [data-widget="today"] .ldp127-event-detail strong{
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+ overflow:hidden;font-size:11px;line-height:1.3
+}
+#ldp124OS .ldp124-widgets [data-widget="today"] .ldp127-event-detail small{
+ font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+#ldp124OS .ldp133-carousel-controls{
+ display:flex;gap:9px;align-items:center;justify-content:center;padding:6px 0 0;
+ font-size:10px;color:#d5c9f5
+}
+#ldp124OS .ldp133-carousel-controls small{font-size:10px;font-variant-numeric:tabular-nums}
+#ldp124OS .ldp133-slide-btn{
+ width:27px;height:25px;border-radius:9px;color:#fff;font-size:19px;
+ background:rgba(140,126,211,.21);border:1px solid #ddd4ff40;cursor:pointer
+}
+#ldp124OS .ldp133-slide-btn:hover{background:rgba(167,146,255,.4)}
+#ldp124OS .ldp124-widgets [data-widget="weather"]{padding-bottom:12px}
+#ldp124OS .ldp124-widgets [data-widget="weather"] .ldp124-weather-value{
+ display:block;margin:7px 0 0;font-size:27px;line-height:1.15;min-height:32px;
+ font-variant-numeric:tabular-nums
+}
+#ldp124OS .ldp124-widgets [data-widget="weather"] .ldp124-widget-muted{margin:3px 0 7px}
+#ldp124OS .ldp133-astro{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 8px;
+ margin-top:9px;padding:7px 0;border-top:1px solid #ffffff24;border-bottom:1px solid #ffffff24
+}
+#ldp124OS .ldp133-astro-item{display:flex;align-items:center;gap:8px;justify-content:space-between;
+ min-width:0;color:#e5dafa;font-size:11px
+}
+#ldp124OS .ldp133-astro-item strong{font-size:11px;font-variant-numeric:tabular-nums}
+#ldp124OS .ldp133-weather-tools{display:flex;justify-content:flex-end;gap:7px;margin-top:9px}
+#ldp124OS .ldp133-weather-control{
+ height:30px;min-width:31px;padding:0 8px;font:inherit;font-size:14px;color:#fff;
+ border:1px solid rgba(229,217,255,.27);border-radius:9px;cursor:pointer;
+ background:rgba(122,115,181,.2)
+}
+#ldp124OS .ldp133-weather-control:hover{background:rgba(163,143,231,.36)}
+#ldp124OS .ldp133-weather-control[disabled]{opacity:.5;cursor:wait}
+#ldp124OS .ldp133-forecast{
+ display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin-top:10px;
+ padding:9px 0 1px;border-top:1px solid rgba(229,217,255,.22)
+}
+#ldp124OS .ldp133-forecast[hidden]{display:none!important}
+#ldp124OS .ldp133-forecast-day{
+ display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;
+ background:rgba(230,218,255,.07);border-radius:8px;padding:8px 2px
+}
+#ldp124OS .ldp133-forecast-day span{font-size:20px}
+#ldp124OS .ldp133-forecast-day strong{font-size:11px;font-variant-numeric:tabular-nums}
+#ldp124OS .ldp133-forecast-day small{font-size:10px;color:#d7cfea}
+#ldp124OS .ldp133-target{outline:2px solid #6b72fb;outline-offset:2px}
+@media(max-width:930px){
+ #ldp124OS .ldp133-forecast-day{padding:5px 0}
+ #ldp124OS .ldp133-astro{gap:5px}
+}

@@ -41,7 +41,47 @@ const RSS_COUNTRIES=['DE','MK','RS','BG','HR','BA','ME','AL','SI','AT','CH','GR'
 const RSS_KEY='lifedash_web_news_country_v116_';
 const RSS_TTL=15*60*1000;
 const newsState={owner:'',country:'',items:[],index:0,at:0,loading:false,controller:null};
-let todayTab='today';
+let todayOffset=0,todayHover=false,todayHoldUntil=0,todayCount=0;
+const WEATHER_TTL=35*60*1000;
+let weatherCached={owner:'',city:'',at:0,data:null},weatherLoading=false;
+const WEATHER_WORDS={
+ en:['5-day forecast','Sunrise','Sunset','Moonrise','Moonset','Weather unavailable','Set city in Profile','Refresh weather','Forecast'],
+ mk:['Прогноза 5 дена','Изгрејсонце','Зајдисонце','Изгрев на месечина','Зајдисонце на месечина','Времето не е достапно','Постави град во профилот','Освежи време','Прогноза'],
+ sr:['Prognoza 5 dana','Izlazak sunca','Zalazak sunca','Izlazak meseca','Zalazak meseca','Vreme nije dostupno','Unesi grad u profilu','Osveži vreme','Prognoza'],
+ hr:['Prognoza 5 dana','Izlazak sunca','Zalazak sunca','Izlazak Mjeseca','Zalazak Mjeseca','Vrijeme nije dostupno','Upiši grad u profilu','Osvježi vrijeme','Prognoza'],
+ bs:['Prognoza 5 dana','Izlazak sunca','Zalazak sunca','Izlazak Mjeseca','Zalazak Mjeseca','Vrijeme nije dostupno','Upiši grad u profilu','Osvježi vrijeme','Prognoza'],
+ cnr:['Prognoza 5 dana','Izlazak sunca','Zalazak sunca','Izlazak Mjeseca','Zalazak Mjeseca','Vrijeme nije dostupno','Unesi grad u profilu','Osvježi vrijeme','Prognoza'],
+ sl:['Napoved 5 dni','Sončni vzhod','Sončni zahod','Lunin vzhod','Lunin zahod','Vreme ni na voljo','Vnesi mesto v profil','Osveži vreme','Napoved'],
+ bg:['Прогноза 5 дни','Изгрев','Залез','Изгрев на Луната','Залез на Луната','Времето е недостъпно','Въведи град в профила','Обнови времето','Прогноза'],
+ sq:['Parashikimi 5 ditë','Lindja e diellit','Perëndimi i diellit','Lindja e hënës','Perëndimi i hënës','Moti nuk ofrohet','Vendos qytetin në profil','Rifresko motin','Parashikim'],
+ el:['Πρόγνωση 5 ημερών','Ανατολή ήλιου','Δύση ήλιου','Ανατολή Σελήνης','Δύση Σελήνης','Καιρός μη διαθέσιμος','Βάλε πόλη στο προφίλ','Ανανέωση καιρού','Πρόγνωση'],
+ ro:['Prognoză 5 zile','Răsărit','Apus','Răsăritul Lunii','Apusul Lunii','Vreme indisponibilă','Setează orașul în profil','Actualizează vremea','Prognoză'],
+ de:['5-Tage-Vorhersage','Sonnenaufgang','Sonnenuntergang','Mondaufgang','Monduntergang','Wetter nicht verfügbar','Stadt im Profil eintragen','Wetter aktualisieren','Vorhersage']
+};
+function wt(i){return (WEATHER_WORDS[lang()]||WEATHER_WORDS.en)[i]}
+function wxIcon(code,day=true){
+ const c=Number(code);
+ if(!Number.isFinite(c))return '☁';
+ if(c===0)return day?'☀️':'🌙';
+ if(c<=3)return '⛅';
+ if(c===45||c===48)return '🌫';
+ if([51,53,55,56,57,61,63,65,66,67,80,81,82].includes(c))return '🌧';
+ if([71,73,75,77,85,86].includes(c))return '❄️';
+ if(c>=95)return '⛈';
+ return '☁';
+}
+function wxTime(value){return typeof value==='string'&&/T\d{2}:\d{2}/.test(value)?value.split('T')[1].slice(0,5):'—'}
+function wxNumber(n){return n!==null&&n!==undefined&&Number.isFinite(Number(n))?Math.round(Number(n))+'°':'—'}
+function agendaRecord(e){
+ openApp(e.page||'today');
+ if(!e.id)return;
+ requestAnimationFrame(()=>{
+  const match=all('#content [data-id]').find(n=>n.dataset.id===String(e.id));
+  if(!match)return;
+  if(match.dataset.open===e.page&&['notes','tasks','finance'].includes(e.page))match.click();
+  else{match.scrollIntoView({block:'center',behavior:'smooth'});match.classList.add('ldp133-target')}
+ });
+}
 function lang(){return String(window.LifeDashWebI18n?.locale?.()||'en').toLowerCase().split('-')[0]}
 function t(key){return (LOCALE[lang()]||LOCALE.en)[key]||LOCALE.en[key]||key}
 function active(){return !!bridge()?.ready?.()&&!$('#appView')?.classList.contains('hidden')&&$('#appView')?.classList.contains('ldp123-desktop-shell')}
@@ -114,7 +154,7 @@ function shell(){
  logo.alt='LifeDashPro';logo.width=38;logo.height=38;logo.decoding='async';
  logo.src=new URL('../../assets/lifedash-icon.webp',location.href).href;
  logo.addEventListener('error',()=>logo.replaceWith(mk('span','ldp124-brandmark','LD')),{once:true});
- brand.append(logo,mk('strong','', 'LifeDashPro'),mk('span','ldp124-top-tag','DESKTOP OS · v1.32'));
+ brand.append(logo,mk('strong','', 'LifeDashPro'),mk('span','ldp124-top-tag','DESKTOP OS · v1.33'));
  const actions=mk('div','ldp124-top-actions');
  const customize=button('⚙ '+t('customize'),'ldp124-top-button',()=>toggleSettings());
  const classic=button('↩ '+t('classic'),'ldp124-top-button',switchClassic);
@@ -786,34 +826,40 @@ function eventGroups(){
   dash()?.snapshot?.()?.finance_transactions||[],new Date()
  )||{today:[],next:[],overdue:[]};
 }
-function showTodayRecords(box,section){
- const data=eventGroups(),groups=[
-  ['today',data.today],['next',data.next],['overdue',data.overdue]
- ];
+function agendaItems(){
+ const g=eventGroups();
+ const now=Date.now(),min=now-14*86400000;
+ const recent=(g.overdue||[]).filter(e=>{const d=new Date(e.date+'T12:00:00');return Number.isFinite(d.getTime())&&d.getTime()>=min});
+ return [...(g.today||[]),...(g.next||[]),...recent].filter(e=>e&&e.title&&e.page);
+}
+function showTodayRecords(box){
+ if(!box)return;
+ const records=agendaItems();
+ todayCount=records.length;
+ if(todayOffset>=records.length)todayOffset=0;
  box.replaceChildren();
- const counts=mk('div','ldp127-event-tabs');
- for(const [id,records] of groups){
-  const btn=button(t(id==='next'?'nextTen':id==='overdue'?'waitingLate':'todayLabel')+' '+records.length,
-   'ldp127-event-tab'+(todayTab===id?' selected':''),()=>{todayTab=id;showTodayRecords(box,section)});
-  btn.setAttribute('aria-pressed',String(todayTab===id));
-  counts.append(btn);
- }
- box.append(counts);
- const records=(data[todayTab]||[]);
- if(!records.length){
-  box.append(mk('p','ldp124-widget-muted',t('noEvents')));return;
- }
- for(const e of records.slice(0,5)){
-  const row=button('','ldp124-widget-event',()=>openApp(e.page||'today'));
+ if(!records.length){box.append(mk('p','ldp124-widget-muted',t('noEvents')));return}
+ const n=Math.min(3,records.length);
+ for(let i=0;i<n;i++){
+  const e=records[(todayOffset+i)%records.length];
+  const row=button('','ldp124-widget-event',()=>agendaRecord(e));
   const typeIcon={notes:'✎',tasks:'✓',reminders:'◷',documents:'▣',birthdays:'♡',finance:'€'}[e.kind]||'◷';
   const icon=mk('span','ldp127-event-type',typeIcon);
   const info=mk('span','ldp127-event-detail');
   info.append(mk('strong','',e.title),mk('small','',
-   e.date+(e.time?' · '+e.time:'')+' · '+t(e.kind)));
-  row.append(icon,info);
-  box.append(row);
+   e.date+(e.time?' · '+e.time:'')+' · '+(t(e.kind)||e.kind)));
+  row.append(icon,info);row.title=e.title;box.append(row);
  }
- if(records.length>5)box.append(mk('small','ldp127-event-more','+'+(records.length-5)+' '+t('more')));
+ if(records.length>3){
+  const controls=mk('div','ldp133-carousel-controls');
+  const move=step=>{todayOffset=(todayOffset+step*3%records.length+records.length)%records.length;
+    todayHoldUntil=Date.now()+24000;showTodayRecords(box)};
+  const prev=button('‹','ldp133-slide-btn',()=>move(-1));
+  const next=button('›','ldp133-slide-btn',()=>move(1));
+  prev.setAttribute('aria-label',t('again'));next.setAttribute('aria-label',t('more'));
+  const range=mk('small','',String(todayOffset+1)+'–'+String(Math.min(todayOffset+3,records.length))+' / '+records.length);
+  controls.append(prev,range,next);box.append(controls);
+ }
 }
 function rssCode(raw){
  const c=String(raw||'').trim().toUpperCase();
@@ -912,7 +958,7 @@ function newsWidget(box){
 }
 function widget(id){
  const box=mk('article','ldp124-widget');box.dataset.widget=id;
- const title={today:t('todaySummary'),weather:t('weather'),calendar:displayName('calendar'),
+ const title={today:t('todayLabel'),weather:t('weather'),calendar:displayName('calendar'),
  finance:displayName('finance'),world:displayName('world'),news:displayName('news')}[id]||id;
  const btn=button('↗','ldp124-widget-open',()=>openApp(id==='weather'?'world':id==='today'?'today':id));
  btn.setAttribute('aria-label','Open '+title);
@@ -922,12 +968,22 @@ function widget(id){
  if(id==='today'||id==='calendar'){
   const area=mk('div','ldp127-today-list');
   box.append(area);
-  if(id==='today')showTodayRecords(area,id);
-  else{
-   const e=eventGroups().next.slice(0,5);
+  if(id==='today'){
+   showTodayRecords(area);
+   area.addEventListener('mouseenter',()=>{todayHover=true});
+   area.addEventListener('mouseleave',()=>{todayHover=false});
+   area.addEventListener('focusin',()=>{todayHover=true});
+   area.addEventListener('focusout',()=>{todayHover=false;todayHoldUntil=Date.now()+9000});
+   area.addEventListener('wheel',ev=>{
+    if(todayCount<=3)return;
+    ev.preventDefault();todayOffset=(todayOffset+(ev.deltaY>=0?3:-3)+todayCount)%todayCount;
+    todayHoldUntil=Date.now()+24000;showTodayRecords(area);
+   },{passive:false});
+  }else{
+   const e=eventGroups().next.slice(0,3);
    if(!e.length)area.append(mk('p','ldp124-widget-muted',t('noEvents')));
    for(const item of e){
-    const row=button('','ldp124-widget-event',()=>openApp(item.page));
+    const row=button('','ldp124-widget-event',()=>agendaRecord(item));
     row.append(mk('strong','',item.title),mk('small','',item.date));
     area.append(row);
    }
@@ -941,30 +997,93 @@ function widget(id){
    Number.isFinite(amount)?new Intl.NumberFormat(lang(),{style:'currency',currency:'EUR'}).format(amount/100):'—'));
   box.append(mk('small','ldp124-widget-muted','Monthly balance · EUR'));
  }else if(id==='weather'){
-  const line=mk('p','ldp124-widget-muted',dash()?.profile?.()?.city||'City in Profile');
-  const value=mk('div','ldp124-weather-value','☁');
-  const check=button(t('weather'),'ldp124-weather-button',async()=>{
-   if(check.disabled)return;check.disabled=true;value.textContent='…';
-   try{
-    const city=dash()?.profile?.()?.city;
-    if(!city)throw new Error('Set city in Profile');
-    const search=await window.LifeDashExploreBridge?.cities?.(city);
-    const first=search?.find(x=>Number.isFinite(Number(x.lat))&&Number.isFinite(Number(x.lon)));
-    if(!first)throw new Error('City not found');
-    const url=new URL('https://api.open-meteo.com/v1/forecast');
-    url.searchParams.set('latitude',String(first.lat));url.searchParams.set('longitude',String(first.lon));
-    url.searchParams.set('current','temperature_2m');url.searchParams.set('forecast_days','1');
-    const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),9500);
-    let res;try{res=await fetch(url.toString(),{signal:controller.signal})}finally{clearTimeout(timeout)}
-    if(!res.ok)throw new Error('Weather service unavailable');
-    const json=await res.json(),temp=Number(json?.current?.temperature_2m);
-    if(!Number.isFinite(temp)||temp<-120||temp>70)throw new Error('Invalid data');
-    if(box.isConnected)value.textContent=Math.round(temp)+'°C';
-   }catch(e){if(box.isConnected)value.textContent=String(e.message||'Weather unavailable').slice(0,60)}
-   finally{check.disabled=false}
+  const city=String(dash()?.profile?.()?.city||'').trim();
+  const line=mk('p','ldp124-widget-muted',city||wt(6));
+  const value=mk('div','ldp124-weather-value','☁ —');
+  const solar=mk('div','ldp133-astro');
+  const tools=mk('div','ldp133-weather-tools');
+  const forecast=mk('div','ldp133-forecast');forecast.hidden=true;
+  const forecastBtn=button('▦ 5','ldp133-weather-control',()=>{
+   forecast.hidden=!forecast.hidden;forecastBtn.setAttribute('aria-expanded',String(!forecast.hidden));
   });
-  box.append(value,line,check);
- }else if(id==='world'){
+  forecastBtn.setAttribute('aria-label',wt(0));forecastBtn.title=wt(0);
+  forecastBtn.setAttribute('aria-expanded','false');
+  const mapBtn=button('⌖','ldp133-weather-control',()=>openApp('world'));
+  mapBtn.title=displayName('world');mapBtn.setAttribute('aria-label',displayName('world'));
+  const check=button('↻','ldp133-weather-control',()=>void loadWeather(true));
+  check.title=wt(7);check.setAttribute('aria-label',wt(7));
+  tools.append(forecastBtn,mapBtn,check);box.append(value,line,solar,tools,forecast);
+  function paintWeather(data){
+   if(!box.isConnected||!data)return;
+   const curr=data.current||{},daily=data.daily||{};
+   const temp=Number(curr.temperature_2m);
+   value.textContent=wxIcon(curr.weather_code,curr.is_day!==0)+' '+(Number.isFinite(temp)?Math.round(temp)+'°C':'—');
+   solar.replaceChildren();
+   for(const [symbol,label,raw] of [
+    ['☀ ↑',wt(1),daily.sunrise?.[0]],['☀ ↓',wt(2),daily.sunset?.[0]],
+    ['☾ ↑',wt(3),daily.moonrise?.[0]],['☾ ↓',wt(4),daily.moonset?.[0]]]){
+    const item=mk('div','ldp133-astro-item');
+    item.append(mk('span','',symbol),mk('strong','',wxTime(raw)));
+    item.title=label;item.setAttribute('aria-label',label+' '+wxTime(raw));
+    solar.append(item);
+   }
+   forecast.replaceChildren();
+   (daily.time||[]).slice(0,5).forEach((date,i)=>{
+    const day=mk('div','ldp133-forecast-day');
+    const time=new Date(date+'T12:00:00');
+    const weekday=Number.isFinite(time.getTime())?
+      new Intl.DateTimeFormat(lang(),{weekday:'short'}).format(time):date;
+    day.append(mk('small','',weekday),mk('span','',wxIcon(daily.weather_code?.[i])),
+      mk('strong','',wxNumber(daily.temperature_2m_max?.[i])),
+      mk('small','',wxNumber(daily.temperature_2m_min?.[i])));
+    forecast.append(day);
+   });
+  }
+  async function loadWeather(force=false){
+   if(weatherLoading||!city||!box.isConnected||ui?.hidden)return;
+   const id=owner,now=Date.now();
+   if(!force&&weatherCached.owner===id&&weatherCached.city===city&&
+    weatherCached.data&&now-weatherCached.at<WEATHER_TTL){
+    paintWeather(weatherCached.data);return;
+   }
+   weatherLoading=true;check.disabled=true;
+   value.textContent='…';
+   try{
+    const cities=await window.LifeDashExploreBridge?.cities?.(city);
+    const place=cities?.find(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lon)));
+    if(!place)throw new Error(wt(6));
+    const fetchForecast=async(withMoon)=>{
+     const url=new URL('https://api.open-meteo.com/v1/forecast');
+     url.searchParams.set('latitude',String(place.lat));
+     url.searchParams.set('longitude',String(place.lon));
+     url.searchParams.set('timezone','auto');
+     url.searchParams.set('forecast_days','5');
+     url.searchParams.set('current','temperature_2m,weather_code,is_day');
+     url.searchParams.set('daily','weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset'+
+       (withMoon?',moonrise,moonset':''));
+     const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),9500);
+     try{
+      const response=await fetch(url.toString(),{signal:ctrl.signal});
+      if(!response.ok)throw new Error('Weather HTTP '+response.status);
+      return await response.json();
+     }finally{clearTimeout(timer)}
+    };
+    let data;
+    try{data=await fetchForecast(true)}
+    catch(e){if(String(e.message||'').includes('HTTP 400'))data=await fetchForecast(false);else throw e}
+    if(id!==owner||!active()||!box.isConnected)return;
+    if(!Number.isFinite(Number(data?.current?.temperature_2m))||!Array.isArray(data?.daily?.time))
+     throw new Error(wt(5));
+    weatherCached={owner:id,city,at:Date.now(),data};paintWeather(data);
+   }catch(e){
+    if(box.isConnected&&id===owner){
+      value.textContent=wt(5);solar.replaceChildren();
+      line.textContent=city+' · '+String(e?.message||'').slice(0,55);
+    }
+   }finally{weatherLoading=false;if(box.isConnected)check.disabled=false}
+  }
+  if(city)queueMicrotask(()=>void loadWeather());
+}else if(id==='world'){
   box.append(mk('div','ldp124-widget-decor','🌐'),mk('p','ldp124-widget-muted','Fires · Earthquakes · Road Live'));
  }else if(id==='news'){
   newsWidget(box);
@@ -988,6 +1107,7 @@ function activate(){
   clearStarts();
   if(HOST_WINDOWS_V131)restoreHostToClassic();
   newsState.owner='';newsState.country='';newsState.items=[];newsState.index=0;newsState.at=0;
+  weatherCached={owner:'',city:'',at:0,data:null};weatherLoading=false;todayOffset=0;
   todayTab='today';
   if(ui){ui.classList.remove('ldp126-max-active');$('#ldp124Windows',ui)?.replaceChildren()}
   if(saving){clearTimeout(saving);saving=0}
@@ -1035,6 +1155,11 @@ window.addEventListener('resize',()=>{if(!ui||ui.hidden||!data)return;
 window.setInterval(()=>{if(ui&&!ui.hidden)updateClock()},30000);
 window.setInterval(()=>{
  if(!ui||ui.hidden||!active()||document.visibilityState==='hidden')return;
+ if(todayCount>3&&!todayHover&&Date.now()>todayHoldUntil&&
+   !window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+  const list=$('#ldp124Widgets [data-widget="today"] .ldp127-today-list',ui);
+  if(list){todayOffset=(todayOffset+3)%todayCount;showTodayRecords(list)}
+ }
  if(newsState.items.length){newsState.index=(newsState.index+1)%newsState.items.length;paintNews()}
  if(!newsState.loading&&Date.now()-newsState.at>RSS_TTL)void fetchNews();
 },13000);
