@@ -71,7 +71,7 @@ function wxIcon(code,day=true){
  return '☁';
 }
 function wxTime(value){return typeof value==='string'&&/T\d{2}:\d{2}/.test(value)?value.split('T')[1].slice(0,5):'—'}
-function wxNumber(n){return Number.isFinite(Number(n))?Math.round(Number(n))+'°':'—'}
+function wxNumber(n){return n!==null&&n!==undefined&&Number.isFinite(Number(n))?Math.round(Number(n))+'°':'—'}
 function agendaRecord(e){
  openApp(e.page||'today');
  if(!e.id)return;
@@ -833,7 +833,7 @@ function agendaItems(){
  return [...(g.today||[]),...(g.next||[]),...recent].filter(e=>e&&e.title&&e.page);
 }
 function showTodayRecords(box){
- if(!box||!box.isConnected)return;
+ if(!box)return;
  const records=agendaItems();
  todayCount=records.length;
  if(todayOffset>=records.length)todayOffset=0;
@@ -1155,7 +1155,8 @@ window.addEventListener('resize',()=>{if(!ui||ui.hidden||!data)return;
 window.setInterval(()=>{if(ui&&!ui.hidden)updateClock()},30000);
 window.setInterval(()=>{
  if(!ui||ui.hidden||!active()||document.visibilityState==='hidden')return;
- if(todayCount>3&&!todayHover&&Date.now()>todayHoldUntil){
+ if(todayCount>3&&!todayHover&&Date.now()>todayHoldUntil&&
+   !window.matchMedia('(prefers-reduced-motion: reduce)').matches){
   const list=$('#ldp124Widgets [data-widget="today"] .ldp127-today-list',ui);
   if(list){todayOffset=(todayOffset+3)%todayCount;showTodayRecords(list)}
  }
