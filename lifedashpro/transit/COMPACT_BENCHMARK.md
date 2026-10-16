@@ -62,3 +62,34 @@ Keep Transit Edge v14 and Android/Web unchanged until a production-safe
 migration is explicitly reviewed, backed up and authorized.
 
 Tracked in [LifeDashPro issue #59](https://github.com/deyanpetrus/privacy-policy/issues/59).
+
+## Stage 2: Full GTFS metadata and backend contract parity (16 Oct 2026)
+
+A separate `compact_gtfs_api_parity.py` step now runs after the compact
+storage benchmark using **the same disposable local PostgreSQL instance**.
+This extends both schemas with complete `routes`, `calendar`,
+`calendar_dates` and `shapes` metadata CSVs, then compares:
+
+- All source GTFS metadata rows, with no changed fields.
+- Calendar service decisions with additions/cancellations taking priority
+  over weekday flags, over 14 days.
+- Nearby stops around Regensburg, Munich, Nürnberg and Nittendorf.
+- Date-aware timetable departures, route labels/headsign/platform and
+  previous-service-day departures for GTFS times beyond 24:00:00 where present.
+- Representative trip stop positions, names, raw/reconstructed GTFS times,
+  route metadata and sequence; any mismatch makes the job fail.
+- Real PostgreSQL heap/index storage for **all** local GTFS tables, not just
+  stops/trips/stop_times. The report is in `contract_result.json` alongside
+  `result.json` in the same GitHub artifact.
+
+**Scope limitations:** The `nv_free` source has zero `shapes.txt` points in
+this LifeDashPro extract, so only stop-based *approximate* geometry can
+be tested now; no exact route shape claims. The benchmark compares equivalent
+SQL semantics in local copies, **not** a live Android session, Web session,
+or production Edge RPC. It does not test storage and WAL spikes during a
+database cutover. Use it to decide whether to advance to a dedicated
+migration rehearsal, **never** as approval to publish automatically.
+
+The current GTFS feed's service calendars still expire on 19 Oct 2026.
+Neither this PR nor the benchmark refreshes it. Production Edge v14 remains
+locked and no data in the user's Supabase project is changed.
