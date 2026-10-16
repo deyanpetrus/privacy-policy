@@ -47,6 +47,31 @@ The valid published schedule ends **2026-10-19**.
 The user-confirmed initial `validate` run succeeded but tests ONLY
 Regensburg and Nürnberg in a limited area; it does **not** refresh Supabase.
 
+**Confirmed old baseline (actual Supabase feed metadata):** the September 20
+import covers only **Regensburg, München, Nürnberg and Nittendorf**, 6 km
+seed radius and a three-day *service selection window*. The current calendar
+nevertheless holds service end dates through **2026-10-19**; do not blindly
+extend that calendar or assume future schedules exist.
+
+The succeeding nine-region `assess` run selected **234,818 trips, 948 routes
+and 5,405,014 stop_times**, producing a **420 MB stop_times.csv** file by
+itself. This is far beyond a safe atomic swap on the Free database.
+
+### Emergency core capacity assessment (no database writes)
+
+Run GitHub Actions **Run workflow → main → mode `core`**. It checks the
+same **four existing areas with a 6 km radius**, now with a full 7-day
+selection to preserve weekday/weekend service, and validates 14 days of
+actual service coverage from GTFS calendars. It prints selected row counts
+and CSV sizes; no database credentials or Supabase writes are used.
+This mode is intentionally NOT a publication option.
+
+Before replacing the old feed, compare `core` counts, database projected
+table/index sizes and temporary disk/WAL footprint. If the new fit is still
+unsafe on 500 MB Free, do not attempt the in-place COPY importer: prioritize
+a compact regional serving layer with object storage or a paid
+database upgrade, only after explicit approval. No data loss is acceptable.
+
 Before ANY database refresh:
 
 1. Run the workflow manually using mode **assess**. This downloads the same
