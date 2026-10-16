@@ -24,7 +24,19 @@ def manifest_check(root: Path, min_days: int, min_zip_mb: int, profile: str):
             raise RuntimeError("Safety stop: missing or invalid manifest count " + key)
     if min_zip_mb and (obj.get("source_zip_bytes") or 0) < min_zip_mb * 1024 * 1024:
         raise RuntimeError("Safety stop: GTFS source ZIP unexpectedly small")
-    if profile == "assess":
+    if profile == "core":
+        # A no-write assessment preserving current production's 4-city geographic footprint.
+        # Require a full weekly selection to avoid silently excluding weekday-only routes.
+        wanted = {"regensburg", "munich", "nuremberg", "nittendorf"}
+        selected = {str(c.get("id", "")) for c in obj.get("selection", {}).get("cities", [])}
+        if selected != wanted or abs(float(obj["selection"].get("radius_km", 0)) - 6.0) > 0.01:
+            raise RuntimeError("Safety stop: core assessment must include precisely 4 existing cities with 6 km radius")
+        if int(obj["selection"].get("service_days", 0)) != 7:
+            raise RuntimeError("Safety stop: core must select all seven weekdays")
+        if c["stops"] < 1000 or c["routes"] < 100 or c["trips"] < 10000 or c["stop_times"] < 200000:
+            raise RuntimeError("Safety stop: core assessment has unexpectedly low coverage")
+        required_cities = tuple(sorted(wanted))
+    elif profile == "assess":
         # Nine-area read-only sizing assessment, never an import dataset.
         selected = {str(c.get("id", "")) for c in obj.get("selection", {}).get("cities", [])}
         required = {"regensburg", "munich", "nuremberg", "berlin", "hamburg", "cologne", "frankfurt", "dresden", "nittendorf"}
@@ -55,7 +67,10 @@ def manifest_check(root: Path, min_days: int, min_zip_mb: int, profile: str):
     sel = obj["selection"]
     start = date.fromisoformat(sel["service_date"])
     window_days = int(sel["service_days"])
-    if window_days < min_days + 1 or window_days > 31:
+    if profile == "core":
+        if window_days != 7:
+            raise RuntimeError("Safety stop: core selection must include 7 days")
+    elif window_days < min_days + 1 or window_days > 31:
         raise RuntimeError("Safety stop: service-day window is too short or too long")
     if abs((date.today() - start).days) > 2:
         raise RuntimeError("Safety stop: subset was generated for an outdated date")
@@ -127,7 +142,7 @@ if __name__ == "__main__":
     ap.add_argument("--dir",required=True,type=Path)
     ap.add_argument("--min-valid-days",type=int,default=12)
     ap.add_argument("--min-zip-mb",type=int,default=100)
-    ap.add_argument("--profile", choices=("pilot", "assess", "production"), default="production",
+    ap.add_argument("--profile", choices=("pilot", "core", "assess", "production"), default="production",
                     help="pilot is a read-only two-city validation; production is nine-city import gate")
     ap.add_argument("--check-database",action="store_true")
     ap.add_argument("--database-limit-mb",type=int,default=0)
