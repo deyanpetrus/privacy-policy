@@ -1,0 +1,106 @@
+name: LifeDashPro separate Transit schema validation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'lifedashpro/transit/dedicated_schema.sql'
+      - '.github/workflows/lifedashpro-dedicated-schema-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ldp_gtfs_scratch
+          POSTGRES_PASSWORD: local_ephemeral_benchmark_only
+          POSTGRES_DB: ldp_gtfs_scratch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ldp_gtfs_scratch -d ldp_gtfs_scratch"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      LOCAL_PG_URL: postgresql://ldp_gtfs_scratch:local_ephemeral_benchmark_only@127.0.0.1:5432/ldp_gtfs_scratch
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install isolated test driver
+        run: python -m pip install --disable-pip-version-check "psycopg[binary]==3.2.10"
+      - name: Create local test roles and run private schema DDL
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          import psycopg
+          ddl=open("lifedashpro/transit/dedicated_schema.sql",encoding="utf-8").read()
+          with psycopg.connect(os.environ["LOCAL_PG_URL"],autocommit=True) as db:
+              with db.cursor() as cur:
+                  cur.execute("create role anon noinherit nologin")
+                  cur.execute("create role authenticated noinherit nologin")
+                  cur.execute(ddl)
+                  cur.execute("""
+                    select count(*) from pg_class c
+                    join pg_namespace n on n.oid=c.relnamespace
+                    where n.nspname='transit_data' and c.relkind='r'
+                  """)
+                  tables=cur.fetchone()[0]
+                  assert tables==8, f"Expected 8 dedicated tables, got {tables}"
+                  cur.execute("""
+                    select count(*) from pg_class c
+                    join pg_namespace n on n.oid=c.relnamespace
+                    where n.nspname='transit_data' and c.relkind='r'
+                    and c.relrowsecurity
+                  """)
+                  secured=cur.fetchone()[0]
+                  assert secured==8, f"RLS must be enabled on all 8 tables, got {secured}"
+                  cur.execute("select has_schema_privilege('anon','transit_data','USAGE'), has_schema_privilege('authenticated','transit_data','USAGE')")
+                  assert cur.fetchone()==(False,False), "Schema must remain private"
+                  cur.execute("""
+                    insert into transit_data.feeds(feed_source,feed_name,region,timezone,source_url,selected_from,selected_until)
+                    values ('de-test','Test feed','Germany','Europe/Berlin','https://example.invalid','2026-10-16','2026-11-09')
+                  """)
+                  cur.execute("""
+                    insert into transit_data.stops(feed_source,stop_id,stop_name,stop_lat,stop_lon)
+                    values ('de-test','s0','First stop',49.0134,12.1016),
+                           ('de-test','s1','Second stop',49.02,12.11)
+                  """)
+                  cur.execute("""
+                    insert into transit_data.routes(feed_source,route_id,route_short_name,route_type)
+                    values ('de-test','r1','Bus 1',3)
+                  """)
+                  cur.execute("""
+                    insert into transit_data.trips(feed_source,trip_id,route_key,service_id,trip_headsign)
+                    select 'de-test','t1',route_key,'svc1','City centre'
+                    from transit_data.routes where feed_source='de-test' and route_id='r1'
+                  """)
+                  cur.execute("""
+                    insert into transit_data.stop_times(trip_key,stop_sequence,stop_key,arrival_secs,departure_secs)
+                    select t.trip_key,1,s.stop_key,90000,90060
+                    from transit_data.trips t join transit_data.stops s
+                      on s.feed_source=t.feed_source
+                    where t.trip_id='t1' and s.stop_id='s0'
+                  """)
+                  cur.execute("""
+                    select s.stop_id,st.departure_secs,t.trip_id
+                    from transit_data.stop_times st
+                    join transit_data.stops s on s.stop_key=st.stop_key
+                    join transit_data.trips t on t.trip_key=st.trip_key
+                  """)
+                  assert cur.fetchone()==('s0',90060,'t1'),"Normalized transit lookup mismatch"
+                  print("DEDICATED_TRANSIT_SCHEMA_PASS — 8/8 tables RLS, private, normalized query, no production access.")
+          PY
