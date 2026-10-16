@@ -1,0 +1,129 @@
+name: LifeDashPro dedicated Transit GTFS import
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'lifedashpro/transit/dedicated_gtfs_import.py'
+      - '.github/workflows/lifedashpro-dedicated-import.yml'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Validate only or manually import to the NEW Transit project
+        required: true
+        type: choice
+        default: validate
+        options:
+          - validate
+          - import
+      confirm_project_ref:
+        description: For import only, type EXACT project ref gnqtngtuzbxohgwgvmpb
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lifedashpro-dedicated-transit-import
+  cancel-in-progress: false
+
+jobs:
+  dedicated:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install pinned PostgreSQL driver
+        run: python -m pip install --disable-pip-version-check "psycopg[binary]==3.2.10"
+      - name: Compile importer and check destination protection
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile lifedashpro/transit/dedicated_gtfs_import.py
+          python - <<'PY'
+          import importlib.util
+          spec=importlib.util.spec_from_file_location(
+              "dedicated_import","lifedashpro/transit/dedicated_gtfs_import.py")
+          mod=importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(mod)
+          for url in (
+              "postgresql://postgres:secret@db.djbxhyhqefylyqqlifan.supabase.co:5432/postgres",
+              "postgresql://postgres.other:secret@aws-0-eu-west-1.pooler.supabase.com:5432/postgres",
+              "postgresql://postgres:secret@127.0.0.1:5432/postgres",
+              "postgresql://postgres:secret@db.gnqtngtuzbxohgwgvmpb.supabase.co:5432/wrong",
+          ):
+              try:
+                  mod.verify_target(url)
+              except RuntimeError:
+                  pass
+              else:
+                  raise RuntimeError("Safety stop failed on an invalid DB destination")
+          mod.verify_target("postgresql://postgres.gnqtngtuzbxohgwgvmpb:secret@aws-0-eu-west-1.pooler.supabase.com:5432/postgres")
+          print("DEDICATED_DESTINATION_GUARD_PASS")
+          PY
+
+      - name: Download current Germany national GTFS
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/transit-new"
+          curl --fail --show-error --silent --location --retry 3 --retry-delay 15 \
+            --connect-timeout 30 --max-time 1500 \
+            "https://download.gtfs.de/germany/nv_free/latest.zip" \
+            --output "$RUNNER_TEMP/transit-new/source.zip"
+          test "$(stat -c %s "$RUNNER_TEMP/transit-new/source.zip")" -gt 100000000
+
+      - name: Prepare four-region 7-weekday GTFS core
+        shell: bash
+        run: |
+          set -euo pipefail
+          python lifedashpro/transit/germany_gtfs_extract.py \
+            --zip "$RUNNER_TEMP/transit-new/source.zip" \
+            --out-dir "$RUNNER_TEMP/transit-new/subset" \
+            --city-ids regensburg,munich,nuremberg,nittendorf \
+            --radius-km 6 --service-days 7 \
+            --service-date "$(date -u +%F)" --max-trips 500000
+
+      - name: Check source freshness, coverage and 14-day service calendar
+        shell: bash
+        run: |
+          set -euo pipefail
+          python lifedashpro/transit/gtfs_refresh_guard.py \
+            --profile core --dir "$RUNNER_TEMP/transit-new/subset" \
+            --min-valid-days 12 --min-zip-mb 100
+          echo "Core GTFS validated; remote import is opt-in only." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Import only to NEW dedicated project (manual + exact ref + secret)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'import' }}
+        shell: bash
+        env:
+          LDP_DEDICATED_TRANSIT_DB_URL: ${{ secrets.LDP_DEDICATED_TRANSIT_DB_URL }}
+          CONFIRMED_PROJECT: ${{ inputs.confirm_project_ref }}
+        run: |
+          set -euo pipefail
+          if [[ "$CONFIRMED_PROJECT" != "gnqtngtuzbxohgwgvmpb" ]]; then
+            echo "::error::Dedicated import locked: confirm exact NEW Transit project ref."
+            exit 1
+          fi
+          if [[ -z "$LDP_DEDICATED_TRANSIT_DB_URL" ]]; then
+            echo "::error::Missing LDP_DEDICATED_TRANSIT_DB_URL repository secret for NEW Transit project."
+            exit 1
+          fi
+          python lifedashpro/transit/dedicated_gtfs_import.py \
+            --dir "$RUNNER_TEMP/transit-new/subset" \
+            --confirm-project-ref gnqtngtuzbxohgwgvmpb
+          echo "## NEW dedicated Transit GTFS imported" >> "$GITHUB_STEP_SUMMARY"
+          echo "Verify data and storage in new Supabase before connecting existing Transit v14." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove downloaded GTFS files
+        if: always()
+        shell: bash
+        run: rm -rf "$RUNNER_TEMP/transit-new"
