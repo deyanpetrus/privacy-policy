@@ -154,11 +154,19 @@ function shell(){
  logo.alt='LifeDashPro';logo.width=38;logo.height=38;logo.decoding='async';
  logo.src=new URL('../../assets/lifedash-icon.webp',location.href).href;
  logo.addEventListener('error',()=>logo.replaceWith(mk('span','ldp124-brandmark','LD')),{once:true});
- brand.append(logo,mk('strong','', 'LifeDashPro'),mk('span','ldp124-top-tag','DESKTOP OS · v1.34'));
+ brand.append(logo,mk('strong','', 'LifeDashPro'),mk('span','ldp124-top-tag','DESKTOP OS · v1.35'));
  const actions=mk('div','ldp124-top-actions');
  const customize=button('⚙ '+t('customize'),'ldp124-top-button',()=>toggleSettings());
  const classic=button('↩ '+t('classic'),'ldp124-top-button',switchClassic);
- actions.append(customize,classic);top.append(brand,actions);
+ const names={en:'Transit',mk:'Превоз',sr:'Prevoz',hr:'Prijevoz',bs:'Prevoz',
+  cnr:'Prevoz',sl:'Prevoz',bg:'Транспорт',sq:'Transport',el:'Μεταφορές',
+  ro:'Transport',de:'Nahverkehr'};
+ const transit=button('🚌 '+(names[lang()]||names.en),'ldp124-top-button',()=>{
+  const u=new URL('../legacy.html?workspace=desktop',location.href);
+  window.open(u.toString(),'_blank','noopener');
+ });
+ transit.title=names[lang()]||names.en;
+ actions.append(customize,transit,classic);top.append(brand,actions);
  const canvas=mk('div','ldp124-canvas');canvas.id='ldp124Canvas';
  const icons=mk('nav','ldp124-icons');icons.id='ldp124Icons';icons.setAttribute('aria-label','Desktop applications');
  const widgets=mk('section','ldp124-widgets');widgets.id='ldp124Widgets';widgets.setAttribute('aria-label',t('widgets'));
