@@ -162,7 +162,7 @@ function shell(){
   cnr:'Prevoz',sl:'Prevoz',bg:'Транспорт',sq:'Transport',el:'Μεταφορές',
   ro:'Transport',de:'Nahverkehr'};
  const transit=button('🚌 '+(names[lang()]||names.en),'ldp124-top-button',()=>{
-  const u=new URL('../legacy.html?workspace=desktop',location.href);
+  const u=new URL('/lifedashpro/legacy.html?workspace=desktop',location.origin);
   window.open(u.toString(),'_blank','noopener');
  });
  transit.title=names[lang()]||names.en;
