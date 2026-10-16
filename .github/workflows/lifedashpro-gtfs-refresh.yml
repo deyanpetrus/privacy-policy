@@ -1,0 +1,111 @@
+name: LifeDashPro German GTFS refresh
+
+on:
+  schedule:
+    - cron: '27 3 * * 1,3,5'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Validate or publish after checks
+        required: true
+        type: choice
+        default: validate
+        options:
+          - validate
+          - publish
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lifedashpro-gtfs
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.LDP_GTFS_AUTOPUBLISH == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      PYTHONUNBUFFERED: '1'
+      LDP_TRANSIT_DB_URL: ${{ secrets.LDP_TRANSIT_DB_URL }}
+      DATABASE_LIMIT_MB: ${{ vars.LDP_GTFS_DB_LIMIT_MB || '0' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned PostgreSQL driver
+        run: python -m pip install --disable-pip-version-check --no-cache-dir "psycopg[binary]==3.2.10"
+      - name: Download current gtfs.de national feed
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/gtfs-de"
+          curl --fail --show-error --silent --location --retry 3 --retry-delay 15 \
+            --connect-timeout 30 --max-time 1500 \
+            "https://download.gtfs.de/germany/nv_free/latest.zip" \
+            --output "$RUNNER_TEMP/gtfs-de/source.zip"
+          ls -lh "$RUNNER_TEMP/gtfs-de/source.zip"
+      - name: Extract multi-city GTFS data
+        shell: bash
+        run: |
+          set -euo pipefail
+          python lifedashpro/transit/germany_gtfs_extract.py \
+            --zip "$RUNNER_TEMP/gtfs-de/source.zip" \
+            --out-dir "$RUNNER_TEMP/gtfs-de/subset" \
+            --service-date "$(date -u +%F)" --service-days 25 \
+            --radius-km 12 --max-trips 250000
+      - name: Validate freshness and coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          python lifedashpro/transit/gtfs_refresh_guard.py \
+            --dir "$RUNNER_TEMP/gtfs-de/subset" \
+            --min-valid-days 12 --min-zip-mb 100
+      - name: Decide publish mode
+        id: decide
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REQUESTED_MODE: ${{ inputs.mode }}
+          AUTO_PUBLISH: ${{ vars.LDP_GTFS_AUTOPUBLISH }}
+        shell: bash
+        run: |
+          if [[ "$EVENT_NAME" == "schedule" && "$AUTO_PUBLISH" == "true" ]] \
+             || [[ "$EVENT_NAME" == "workflow_dispatch" && "$REQUESTED_MODE" == "publish" ]]; then
+            echo 'publish=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'publish=false' >> "$GITHUB_OUTPUT"
+            echo 'GTFS validated; Supabase not changed.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Safety gate — storage quota and data counts
+        if: steps.decide.outputs.publish == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$LDP_TRANSIT_DB_URL" || { echo 'Missing LDP_TRANSIT_DB_URL repository secret' >&2; exit 1; }
+          if ! [[ "$DATABASE_LIMIT_MB" =~ ^[0-9]+$ ]] || (( DATABASE_LIMIT_MB < 500 )); then
+            echo 'Set LDP_GTFS_DB_LIMIT_MB to verified Supabase database quota (MB)' >&2
+            exit 1
+          fi
+          python lifedashpro/transit/gtfs_refresh_guard.py \
+            --dir "$RUNNER_TEMP/gtfs-de/subset" \
+            --min-valid-days 12 --min-zip-mb 100 \
+            --check-database --database-limit-mb "$DATABASE_LIMIT_MB"
+      - name: Connection and schema check (read-only)
+        if: steps.decide.outputs.publish == 'true'
+        run: |
+          python lifedashpro/transit/germany_gtfs_import.py \
+            --dir "$RUNNER_TEMP/gtfs-de/subset" \
+            --confirm-feed-source de-national --check-only
+      - name: Transactional replacement of de-national
+        if: steps.decide.outputs.publish == 'true'
+        run: |
+          python lifedashpro/transit/germany_gtfs_import.py \
+            --dir "$RUNNER_TEMP/gtfs-de/subset" \
+            --confirm-feed-source de-national --priority 50
+          echo 'de-national updated transactionally; Android and Web builds unchanged.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove temporary download
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/gtfs-de/source.zip"
