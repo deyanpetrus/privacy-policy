@@ -107,10 +107,15 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           REQUESTED_MODE: ${{ inputs.mode }}
           AUTO_PUBLISH: ${{ vars.LDP_GTFS_AUTOPUBLISH }}
+          RELEASE_APPROVED: ${{ vars.LDP_GTFS_RELEASE_APPROVED || 'false' }}
         shell: bash
         run: |
           if [[ "$EVENT_NAME" == "schedule" && "$AUTO_PUBLISH" == "true" ]] \
              || [[ "$EVENT_NAME" == "workflow_dispatch" && "$REQUESTED_MODE" == "publish" ]]; then
+            if [[ "$RELEASE_APPROVED" != "true" ]]; then
+              echo "::error::GTFS publish is LOCKED until release gate LDP_GTFS_RELEASE_APPROVED=true after sizing and backup review."
+              exit 1
+            fi
             echo 'publish=true' >> "$GITHUB_OUTPUT"
           else
             echo 'publish=false' >> "$GITHUB_OUTPUT"
