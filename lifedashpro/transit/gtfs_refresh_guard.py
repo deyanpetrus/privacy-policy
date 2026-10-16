@@ -24,7 +24,16 @@ def manifest_check(root: Path, min_days: int, min_zip_mb: int, profile: str):
             raise RuntimeError("Safety stop: missing or invalid manifest count " + key)
     if min_zip_mb and (obj.get("source_zip_bytes") or 0) < min_zip_mb * 1024 * 1024:
         raise RuntimeError("Safety stop: GTFS source ZIP unexpectedly small")
-    if profile == "pilot":
+    if profile == "assess":
+        # Nine-area read-only sizing assessment, never an import dataset.
+        selected = {str(c.get("id", "")) for c in obj.get("selection", {}).get("cities", [])}
+        required = {"regensburg", "munich", "nuremberg", "berlin", "hamburg", "cologne", "frankfurt", "dresden", "nittendorf"}
+        if selected != required:
+            raise RuntimeError("Safety stop: nine-city assessment scope is incomplete")
+        if c["stops"] < 2000 or c["trips"] < 2000 or c["stop_times"] < 40000:
+            raise RuntimeError("Safety stop: GTFS assessment sample unexpectedly small")
+        required_cities = tuple(sorted(required))
+    elif profile == "pilot":
         # Read-only smoke test: two cities, NEVER eligible for database replacement.
         allowed = {"regensburg", "nuremberg"}
         selected = {str(c.get("id", "")) for c in obj.get("selection", {}).get("cities", [])}
@@ -66,7 +75,9 @@ def manifest_check(root: Path, min_days: int, min_zip_mb: int, profile: str):
         p = root / (key + ".csv")
         if not p.is_file() or p.stat().st_size < 2:
             raise RuntimeError("Safety stop: required CSV missing or empty: " + str(p))
-    print(json.dumps({"preflight": "PASS", "profile": profile, "feed": "de-national",
+    print(json.dumps({"preflight": "PASS", "profile": profile, "csv_mb": round(sum(
+        p.stat().st_size for p in root.glob("*.csv")) / (1024 * 1024), 1),
+        "feed": "de-national",
         "source_zip_bytes": obj.get("source_zip_bytes"), "counts": c,
         "service_start": str(start), "service_end": str(latest)}, indent=2))
     return obj
@@ -116,14 +127,14 @@ if __name__ == "__main__":
     ap.add_argument("--dir",required=True,type=Path)
     ap.add_argument("--min-valid-days",type=int,default=12)
     ap.add_argument("--min-zip-mb",type=int,default=100)
-    ap.add_argument("--profile", choices=("pilot", "production"), default="production",
+    ap.add_argument("--profile", choices=("pilot", "assess", "production"), default="production",
                     help="pilot is a read-only two-city validation; production is nine-city import gate")
     ap.add_argument("--check-database",action="store_true")
     ap.add_argument("--database-limit-mb",type=int,default=0)
     args=ap.parse_args()
     try:
         if args.check_database and args.profile != "production":
-            raise RuntimeError("Safety stop: pilot profile may not connect to or modify Supabase")
+            raise RuntimeError("Safety stop: non-production profiles must not connect to Supabase")
         m=manifest_check(args.dir,args.min_valid_days,args.min_zip_mb,args.profile)
         if args.check_database: database_check(m,args.database_limit_mb)
     except Exception as e:
