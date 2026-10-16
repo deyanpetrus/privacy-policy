@@ -7,6 +7,7 @@ on:
     paths:
       - 'lifedashpro/transit/compact_gtfs_benchmark.py'
       - 'lifedashpro/transit/compact_gtfs_api_parity.py'
+      - 'lifedashpro/transit/compact_gtfs_cutover_rehearsal.py'
       - '.github/workflows/lifedashpro-compact-benchmark.yml'
   workflow_dispatch:
 
@@ -54,7 +55,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m py_compile lifedashpro/transit/compact_gtfs_benchmark.py lifedashpro/transit/compact_gtfs_api_parity.py
+          python -m py_compile lifedashpro/transit/compact_gtfs_benchmark.py lifedashpro/transit/compact_gtfs_api_parity.py lifedashpro/transit/compact_gtfs_cutover_rehearsal.py
           python - <<'PY'
           import importlib.util
           p="lifedashpro/transit/compact_gtfs_benchmark.py"
@@ -125,6 +126,15 @@ jobs:
             --db-url "$BENCH_DB_URL" \
             --report "$RUNNER_TEMP/gtfs-bench/contract_result.json"
 
+      - name: Test transactional cutover, rollback and emergency fallback (local only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python lifedashpro/transit/compact_gtfs_cutover_rehearsal.py \
+            --dir "$RUNNER_TEMP/gtfs-bench/subset" \
+            --db-url "$BENCH_DB_URL" \
+            --report "$RUNNER_TEMP/gtfs-bench/cutover_result.json"
+
       - name: Publish benchmark results (not production)
         shell: bash
         run: |
@@ -135,6 +145,7 @@ jobs:
           from pathlib import Path
           obj=json.loads((Path(os.environ['RUNNER_TEMP'])/'gtfs-bench/result.json').read_text())
           contract=json.loads((Path(os.environ['RUNNER_TEMP'])/'gtfs-bench/contract_result.json').read_text())
+          cutover=json.loads((Path(os.environ['RUNNER_TEMP'])/'gtfs-bench/cutover_result.json').read_text())
           lines=[
             "## Isolated Germany GTFS benchmark — NOT deployed",
             "",
@@ -152,6 +163,7 @@ jobs:
             f"({contract['departure_rpc']['nonempty_windows']} with results); "
             f"{contract['trip_route_checks']} trip-stop routes.",
             f"**24h+ after-midnight:** {contract['departure_rpc']['after_midnight_24h_plus']}.",
+            f"**Transactional cutover/rollback:** {cutover['rows_compared']:,} fact rows, {cutover['rows_changed']} mismatches; rollback {cutover['precommit_rollback']}, fallback {cutover['emergency_legacy_fallback']}.",
             "",
             "This ran on a disposable PostgreSQL service inside the GitHub runner.",
             "**Nothing was imported to Supabase. Transit v14 / Android / Web were not modified.**",
@@ -169,6 +181,7 @@ jobs:
           path: |
             ${{ runner.temp }}/gtfs-bench/result.json
             ${{ runner.temp }}/gtfs-bench/contract_result.json
+            ${{ runner.temp }}/gtfs-bench/cutover_result.json
           retention-days: 14
           if-no-files-found: error
 

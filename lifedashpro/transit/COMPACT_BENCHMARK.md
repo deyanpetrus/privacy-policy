@@ -93,3 +93,36 @@ migration rehearsal, **never** as approval to publish automatically.
 The current GTFS feed's service calendars still expire on 19 Oct 2026.
 Neither this PR nor the benchmark refreshes it. Production Edge v14 remains
 locked and no data in the user's Supabase project is changed.
+
+## Stage 3: Transactional compatibility view switch / rollback rehearsal
+
+The full API parity benchmark successfully completed (user-provided GitHub
+artifact, Oct 16): **3,010 service-calendar decisions**, 8 nearby checks,
+168 departure windows, 24 routes, including a 24h+ after-midnight departure.
+Across all seven GTFS tables, **274.63 MB legacy vs 169.55 MB compact**
+(38.26% savings); 1,455,755 stop-time records changed **zero** fields.
+
+A new `compact_gtfs_cutover_rehearsal.py` step runs next in the **same
+ephemeral local PostgreSQL 16 GitHub runner**:
+
+1. Create `runtime_bench.stop_times` view over legacy source; collect sample
+   trips and timings.
+2. Start a SQL transaction, replace the view with an equivalent read layer
+   over compact numeric-key storage, and **ROLLBACK**. Confirm the original
+   legacy view and sample records survive unchanged.
+3. Commit a second transactional switch to the compact view. Compare all
+   stop_time records, including fully reconstructed GTFS HH:MM:SS values,
+   against legacy source using a LEFT JOIN on source/trip/sequence.
+4. Commit a separate emergency fallback switch to legacy view; confirm
+   samples are still unchanged.
+5. Fail on any mismatch; report `cutover_result.json` in GitHub artifact and
+   Actions summary.
+
+**Important limitations:** This rehearsal only proves *view routing* on an
+isolated database. It does **not** execute or prove a safe in-place migration
+of current production tables and RPCs. Temporary old+new tables and WAL may
+exceed the Supabase Free-plan DB/disk headroom. It does not backup or restore
+the actual user database and does not authorize `publish`.
+
+Supabase `transit-schedule` v14, Android APK/AAB, Play Store, Web, user data
+and all production GTFS remain unchanged. Release automation stays locked.
