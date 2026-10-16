@@ -294,6 +294,8 @@ def main() -> int:
                 "ok":True,"scope":"disposable local PostgreSQL only","source":"Germany 4-city core",
                 "input_counts":{x:int(counts[x]) for x in ("stops","trips","stop_times")},
                 "legacy":legacy,"compact":compact,"size_reduction_pct":saved,
+                "full_stop_time_rows_verified":checked_rows,
+                "full_stop_time_mismatches":changed_rows,
                 "tested_trip_routes":checked_routes,
                 "tested_departure_windows":len(checks),
                 "departure_samples":checks,
