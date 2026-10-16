@@ -30,9 +30,10 @@ jobs:
       PYTHONUNBUFFERED: '1'
       LDP_TRANSIT_DB_URL: ${{ secrets.LDP_TRANSIT_DB_URL }}
       DATABASE_LIMIT_MB: ${{ vars.LDP_GTFS_DB_LIMIT_MB || '0' }}
+      VALIDATE_ONLY: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'validate' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Install pinned PostgreSQL driver
@@ -47,22 +48,39 @@ jobs:
             "https://download.gtfs.de/germany/nv_free/latest.zip" \
             --output "$RUNNER_TEMP/gtfs-de/source.zip"
           ls -lh "$RUNNER_TEMP/gtfs-de/source.zip"
-      - name: Extract multi-city GTFS data
+      - name: Extract GTFS subset (pilot or production scope)
         shell: bash
         run: |
           set -euo pipefail
-          python lifedashpro/transit/germany_gtfs_extract.py \
-            --zip "$RUNNER_TEMP/gtfs-de/source.zip" \
-            --out-dir "$RUNNER_TEMP/gtfs-de/subset" \
-            --service-date "$(date -u +%F)" --service-days 25 \
-            --radius-km 12 --max-trips 250000
+          if [[ "$VALIDATE_ONLY" == "true" ]]; then
+            echo "READ-ONLY PILOT: Regensburg and Nürnberg; no database publication."
+            python lifedashpro/transit/germany_gtfs_extract.py \
+              --zip "$RUNNER_TEMP/gtfs-de/source.zip" \
+              --out-dir "$RUNNER_TEMP/gtfs-de/subset" \
+              --city-ids regensburg,nuremberg --radius-km 8 \
+              --service-date "$(date -u +%F)" --service-days 25 \
+              --max-trips 250000
+          else
+            echo "PRODUCTION SCOPE: nine German cities; publication subject to safety checks."
+            python lifedashpro/transit/germany_gtfs_extract.py \
+              --zip "$RUNNER_TEMP/gtfs-de/source.zip" \
+              --out-dir "$RUNNER_TEMP/gtfs-de/subset" \
+              --service-date "$(date -u +%F)" --service-days 25 \
+              --radius-km 12 --max-trips 500000
+          fi
       - name: Validate freshness and coverage
         shell: bash
         run: |
           set -euo pipefail
-          python lifedashpro/transit/gtfs_refresh_guard.py \
-            --dir "$RUNNER_TEMP/gtfs-de/subset" \
-            --min-valid-days 12 --min-zip-mb 100
+          if [[ "$VALIDATE_ONLY" == "true" ]]; then
+            python lifedashpro/transit/gtfs_refresh_guard.py \
+              --profile pilot --dir "$RUNNER_TEMP/gtfs-de/subset" \
+              --min-valid-days 12 --min-zip-mb 100
+          else
+            python lifedashpro/transit/gtfs_refresh_guard.py \
+              --profile production --dir "$RUNNER_TEMP/gtfs-de/subset" \
+              --min-valid-days 12 --min-zip-mb 100
+          fi
       - name: Decide publish mode
         id: decide
         env:
@@ -90,7 +108,7 @@ jobs:
           fi
           python lifedashpro/transit/gtfs_refresh_guard.py \
             --dir "$RUNNER_TEMP/gtfs-de/subset" \
-            --min-valid-days 12 --min-zip-mb 100 \
+            --profile production --min-valid-days 12 --min-zip-mb 100 \
             --check-database --database-limit-mb "$DATABASE_LIMIT_MB"
       - name: Connection and schema check (read-only)
         if: steps.decide.outputs.publish == 'true'
