@@ -49,6 +49,33 @@ jobs:
       - name: Install pinned PostgreSQL driver
         run: python -m pip install --disable-pip-version-check "psycopg[binary]==3.2.10"
 
+      - name: Compile benchmark script and verify remote-DB rejection
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile lifedashpro/transit/compact_gtfs_benchmark.py
+          python - <<'PY'
+          import importlib.util
+          p="lifedashpro/transit/compact_gtfs_benchmark.py"
+          spec=importlib.util.spec_from_file_location("isolated_gtfs_benchmark",p)
+          mod=importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(mod)
+          for url in (
+              "postgresql://ldp_gtfs_scratch:pw@external.example.org:5432/ldp_gtfs_scratch",
+              "postgresql://ldp_gtfs_scratch:pw@127.0.0.1:5432/production",
+              "postgresql://postgres:pw@127.0.0.1:5432/ldp_gtfs_scratch",
+          ):
+              try:
+                  mod.validate_local_url(url)
+              except RuntimeError:
+                  pass
+              else:
+                  raise RuntimeError("Safety guard allowed forbidden DB target")
+          mod.validate_local_url(
+              "postgresql://ldp_gtfs_scratch:pw@127.0.0.1:5432/ldp_gtfs_scratch")
+          print("LOCAL-ONLY CONNECTION GUARD PASSED")
+          PY
+
       - name: Download current public national GTFS
         shell: bash
         run: |
