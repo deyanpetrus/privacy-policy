@@ -37,6 +37,39 @@ run would extract all nine cities at 12 km with the explicit 500,000-trip
 memory cap and require database credentials and storage safety gates. Do not
 run publish until the actual database quota has been verified.
 
+## Germany Free-plan storage assessment — required before publication
+
+On 2026-10-16 the actual Supabase organization was confirmed as **Free**, with
+a **500 MB database size limit**. Current database is **284 MB**; GTFS is
+**249 MB**, mainly `transit_gtfs_stop_times` (237 MB, of which indexes 127 MB).
+The valid published schedule ends **2026-10-19**.
+
+The user-confirmed initial `validate` run succeeded but tests ONLY
+Regensburg and Nürnberg in a limited area; it does **not** refresh Supabase.
+
+Before ANY database refresh:
+
+1. Run the workflow manually using mode **assess**. This downloads the same
+   official source and performs a **read-only nine-area sizing test with 5 km
+   radius**. It prints route/trip/stop_time counts and CSV sizes.
+2. Compare new extracted dataset with the current database and calculate
+   conservative transaction peak and physical disk/WAL overhead.
+3. Design and review a space-safe strategy. **Do not perform full
+   `DELETE` + `COPY` on 500 MB Free storage**: atomic transactions retain
+   old tuples until commit and can exceed the disk or read-only quota.
+4. Run an authenticated full backup and a dry-run restore in a separate
+   environment before any destructive in-place replacement.
+5. Only after controlled testing and an explicit decision set
+   GitHub Actions variable `LDP_GTFS_RELEASE_APPROVED=true` to unlock
+   publishing. It defaults to locked.
+6. After a verified manual refresh, optionally enable the separate
+   `LDP_GTFS_AUTOPUBLISH=true` variable. Do not enable this on the
+   current Free database before a safe refresh workflow is proven.
+
+If the assessed subset cannot safely fit, use a more compact schema or
+an external GTFS data store, not an invented database quota or a risky
+production rewrite. Local DB size != peak write-ahead-log / disk usage.
+
 ## For a manual publish (after checking your storage quota)
 
 1. In Supabase → Project → **Connect**, copy the **Session pooler** Postgres
