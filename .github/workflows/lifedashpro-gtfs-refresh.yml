@@ -12,6 +12,7 @@ on:
         default: validate
         options:
           - validate
+          - assess
           - publish
 
 permissions:
@@ -31,6 +32,7 @@ jobs:
       LDP_TRANSIT_DB_URL: ${{ secrets.LDP_TRANSIT_DB_URL }}
       DATABASE_LIMIT_MB: ${{ vars.LDP_GTFS_DB_LIMIT_MB || '0' }}
       VALIDATE_ONLY: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'validate' }}
+      ASSESS_ONLY: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'assess' }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -60,6 +62,13 @@ jobs:
               --city-ids regensburg,nuremberg --radius-km 8 \
               --service-date "$(date -u +%F)" --service-days 25 \
               --max-trips 250000
+          elif [[ "$ASSESS_ONLY" == "true" ]]; then
+            echo "READ-ONLY ASSESSMENT: nine regions, 5 km radius; NO DB writes."
+            python lifedashpro/transit/germany_gtfs_extract.py \
+              --zip "$RUNNER_TEMP/gtfs-de/source.zip" \
+              --out-dir "$RUNNER_TEMP/gtfs-de/subset" \
+              --service-date "$(date -u +%F)" --service-days 25 \
+              --radius-km 5 --max-trips 500000
           else
             echo "PRODUCTION SCOPE: nine German cities; publication subject to safety checks."
             python lifedashpro/transit/germany_gtfs_extract.py \
@@ -76,11 +85,22 @@ jobs:
             python lifedashpro/transit/gtfs_refresh_guard.py \
               --profile pilot --dir "$RUNNER_TEMP/gtfs-de/subset" \
               --min-valid-days 12 --min-zip-mb 100
+          elif [[ "$ASSESS_ONLY" == "true" ]]; then
+            python lifedashpro/transit/gtfs_refresh_guard.py \
+              --profile assess --dir "$RUNNER_TEMP/gtfs-de/subset" \
+              --min-valid-days 12 --min-zip-mb 100
           else
             python lifedashpro/transit/gtfs_refresh_guard.py \
               --profile production --dir "$RUNNER_TEMP/gtfs-de/subset" \
               --min-valid-days 12 --min-zip-mb 100
           fi
+      - name: Summarize subset data footprint (read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "## GTFS CSV sizes (no Supabase write yet)" >> "$GITHUB_STEP_SUMMARY"
+          du -h "$RUNNER_TEMP"/gtfs-de/subset/*.csv | sort -h | tail -12 | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "Mode: validate=$VALIDATE_ONLY assess=$ASSESS_ONLY" >> "$GITHUB_STEP_SUMMARY"
       - name: Decide publish mode
         id: decide
         env:
