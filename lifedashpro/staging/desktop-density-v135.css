@@ -1,0 +1,41 @@
+/* LifeDashPro Web v1.35 — compact visual density at 100% browser zoom.
+ * CSS-only, Desktop scoped. Does not change the browser zoom, app host,
+ * Classic UI, mobile layouts, navigation, or authenticated data.
+ */
+@media (min-width:1100px) and (min-height:640px){
+ #ldp124OS .ldp124-topstrip{height:50px!important;padding:6px 17px!important}
+ #ldp124OS .ldp124-canvas{top:50px!important;bottom:62px!important}
+ #ldp124OS .ldp124-brand{gap:8px!important;font-size:13px!important}
+ #ldp124OS .ldp124-brandmark{width:31px!important;height:31px!important}
+ #ldp124OS .ldp124-top-button{padding:6px 9px!important;font-size:10px!important}
+ #ldp124OS .ldp124-icons{
+  grid-template-columns:repeat(2,74px)!important;grid-auto-rows:86px!important;
+  left:11px!important;top:13px!important;gap:3px!important
+ }
+ #ldp124OS .ldp124-desktop-icon{padding:5px 2px!important;gap:5px!important}
+ #ldp124OS .ldp124-desktop-glyph{
+  width:41px!important;height:40px!important;font-size:21px!important;
+  border-radius:12px!important
+ }
+ #ldp124OS .ldp124-desktop-icon small{max-width:75px!important;font-size:9px!important;line-height:1.2!important}
+ #ldp124OS .ldp124-widgets{
+  width:min(284px,25vw)!important;right:11px!important;top:11px!important;
+  gap:8px!important;padding:1px 3px 6px!important
+ }
+ #ldp124OS .ldp124-widget{padding:11px 12px!important;border-radius:14px!important;min-height:54px!important}
+ #ldp124OS .ldp124-widget-head{font-size:12px!important}
+ #ldp124OS .ldp124-widget-open{min-width:25px!important;height:25px!important}
+ #ldp124OS .ldp124-taskbar{
+  height:49px!important;bottom:9px!important;border-radius:16px!important;
+  padding:3px 8px!important;gap:4px!important
+ }
+ #ldp124OS .ldp124-start{width:40px!important;height:40px!important;border-radius:12px!important}
+ #ldp124OS .ldp126-start-logo{width:30px!important;height:30px!important}
+ #ldp124OS .ldp124-task-app{width:37px!important;height:37px!important;font-size:19px!important}
+ #ldp124OS .ldp124-task-clock{min-width:79px!important;font-size:10px!important}
+ #ldp124OS .ldp124-task-clock strong{font-size:11px!important}
+ #ldp124OS .ldp124-task-home{padding:6px!important;font-size:19px!important}
+ #ldp124OS .ldp124-window-bar{height:43px!important}
+ #ldp124OS .ldp124-window-label{font-size:11px!important}
+ #ldp124OS .ldp124-window-actions button{height:27px!important;width:29px!important}
+}
