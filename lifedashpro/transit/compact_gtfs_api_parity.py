@@ -302,7 +302,38 @@ def check_departures(cur,manifest):
                 tested+=1
     if positive<20:
         raise RuntimeError("Too few nonempty departure test cases: "+str(positive))
+    # Exercise an actual after-midnight scheduled trip if the source has one.
+    # Report absence explicitly rather than falsely claiming 24h+ coverage.
+    cur.execute("""select st.stop_id,st.departure_secs,t.service_id,t.trip_id
+        from legacy_bench.stop_times st
+        join legacy_bench.trips t on t.feed_source=st.feed_source
+            and t.trip_id=st.trip_id
+        where st.departure_secs between 86400 and 100799
+        order by st.departure_secs,st.stop_id limit 150""")
+    candidates=cur.fetchall()
+    overflow_status="no 24h+ trips in selected candidates"
+    for candidate_stop,candidate_sec,service_id,trip_id in candidates:
+        chosen=None
+        for service_date in [start+timedelta(days=x) for x in range(13)]:
+            cur.execute("select legacy_bench.service_active('de-national',%s,%s)",
+                        (service_id,service_date))
+            if cur.fetchone()[0]:
+                chosen=service_date+timedelta(days=1)
+                break
+        if chosen is None:
+            continue
+        now=candidate_sec-86400
+        lookahead=now+600
+        params=(chosen,candidate_stop,now,lookahead,chosen,
+                chosen,candidate_stop,86400+now,86400+lookahead,chosen)
+        old,_=run(cur,RAW_DEPS,params)
+        new,_=run(cur,COMPACT_DEPS,params)
+        if old!=new or not any(record[1]==trip_id for record in old):
+            raise RuntimeError("Previous-service-day / 24h+ departures mismatch")
+        overflow_status=f"checked {trip_id} on {chosen.isoformat()} after midnight"
+        break
     return {"checks":tested,"nonempty_windows":positive,
+            "after_midnight_24h_plus":overflow_status,
             "median_old_ms":round(statistics.median(times_legacy),3),
             "median_compact_ms":round(statistics.median(times_compact),3),
             "regensburg_hbf_stop_id":hbf[0] if hbf else None}
@@ -356,8 +387,8 @@ def main():
             if cur.fetchone()!=(EXPECTED_DB,EXPECTED_USER):
                 raise RuntimeError("Must use isolated GitHub PostgreSQL")
             cur.execute("select to_regclass('legacy_bench.stop_times'),to_regclass('compact_bench.stop_times')")
-            if not all(cur.fetchone() if False else []):
-                pass
+            if not all(cur.fetchone()):
+                raise RuntimeError("Previous benchmark schemas are missing")
             # Actual presence and counts protect against an empty/misrouted test DB.
             cur.execute("select (select count(*) from legacy_bench.stop_times),"
                         "(select count(*) from compact_bench.stop_times)")
