@@ -38,20 +38,111 @@ FILES = {
     "stop_times": ["feed_source","trip_id","stop_sequence","stop_id","arrival_time","departure_time","arrival_secs","departure_secs","stop_headsign","pickup_type","drop_off_type"],
 }
 
+class SafePreflightError(RuntimeError):
+    """Stable diagnostic code; never include connection details or user input."""
+    def __init__(self, code: str):
+        self.code = code
+        super().__init__(code)
+
+
 def verify_target(url: str) -> None:
-    """No argument or URL can direct this utility toward original production."""
-    parsed=urlsplit(url)
-    if parsed.scheme not in ("postgres","postgresql") or not parsed.password:
-        raise RuntimeError("Missing/invalid dedicated database connection URL")
-    host=(parsed.hostname or "").lower()
-    user=parsed.username or ""
-    direct=host==f"db.{PROJECT_REF}.supabase.co" and user=="postgres"
-    pooled=(host.endswith(".pooler.supabase.com") and
-            user==f"postgres.{PROJECT_REF}")
-    if not (direct or pooled) or parsed.path!="/postgres":
-        raise RuntimeError("Safety stop: only the NEW dedicated Transit project is supported")
-    if parsed.query and "sslmode=disable" in parsed.query.lower():
-        raise RuntimeError("SSL must not be disabled")
+    """Reject original production, another Supabase tenant and malformed URLs."""
+    if not url:
+        raise SafePreflightError("SECRET_MISSING")
+    if url != url.strip() or "\n" in url or "\r" in url:
+        raise SafePreflightError("URL_HAS_WHITESPACE")
+    try:
+        parsed=urlsplit(url)
+        if parsed.scheme not in ("postgres","postgresql"):
+            raise SafePreflightError("URL_SCHEME_INVALID")
+        if not parsed.password:
+            raise SafePreflightError("URL_PASSWORD_MISSING")
+        if not parsed.hostname:
+            raise SafePreflightError("URL_HOST_INVALID")
+        host=parsed.hostname.lower()
+        user=parsed.username or ""
+        port=parsed.port
+        if parsed.path!="/postgres":
+            raise SafePreflightError("URL_DATABASE_INVALID")
+        if parsed.query and "sslmode=disable" in parsed.query.lower():
+            raise SafePreflightError("SSL_DISABLED")
+        direct=host==f"db.{PROJECT_REF}.supabase.co" and user=="postgres"
+        pooled=(host.endswith(".pooler.supabase.com") and
+                user==f"postgres.{PROJECT_REF}")
+        if not (direct or pooled):
+            # Do not output host or username (could contain private metadata).
+            raise SafePreflightError("URL_TENANT_OR_USERNAME_MISMATCH")
+        if pooled and port not in (5432,6543):
+            raise SafePreflightError("POOLER_PORT_INVALID")
+        if direct and port not in (None,5432):
+            raise SafePreflightError("DIRECT_PORT_INVALID")
+    except ValueError:
+        raise SafePreflightError("URL_PARSE_ERROR") from None
+
+
+def sanitized_error_code(exc: Exception, stage: str) -> str:
+    """Return error CLASSIFICATION ONLY; never stringify driver exceptions."""
+    if isinstance(exc, SafePreflightError):
+        return exc.code
+    if isinstance(exc, psycopg.OperationalError):
+        state=getattr(exc,"sqlstate",None)
+        if state=="28P01":
+            return "DB_PASSWORD_AUTH_FAILED"
+        if state in ("28000","3D000"):
+            return "DB_AUTH_OR_NAME_FAILED"
+        # Safe string INSPECTION; actual diagnostic text NEVER printed.
+        msg=str(exc).lower()
+        if "name or service not known" in msg or "could not translate host name" in msg:
+            return "DB_DNS_FAILED"
+        if "network is unreachable" in msg or "no route to host" in msg:
+            return "DB_NETWORK_UNREACHABLE"
+        if "connection refused" in msg:
+            return "DB_CONNECTION_REFUSED"
+        if "timeout" in msg or "timed out" in msg:
+            return "DB_CONNECTION_TIMEOUT"
+        if "password authentication failed" in msg:
+            return "DB_PASSWORD_AUTH_FAILED"
+        if "does not exist" in msg and "database" in msg:
+            return "DB_DATABASE_NAME_FAILED"
+        return "DB_CONNECTION_FAILED"
+    if isinstance(exc, psycopg.IntegrityError):
+        return "IMPORT_INTEGRITY_FAILED"
+    if isinstance(exc, psycopg.DatabaseError):
+        return "IMPORT_DATABASE_FAILED"
+    if isinstance(exc, (OSError,TimeoutError)):
+        return "NETWORK_OR_IO_FAILED"
+    return "IMPORT_INPUT_OR_VALIDATION_FAILED" if stage=="import" else "PREFLIGHT_FAILED"
+
+
+def check_new_project_connection(url: str) -> dict:
+    """Read-only preflight against NEW Transit database. No GTFS writes."""
+    verify_target(url)
+    with psycopg.connect(url,sslmode="require",connect_timeout=15,
+                         autocommit=True) as db:
+        with db.cursor() as cur:
+            cur.execute("""select current_database(),current_user,
+                            to_regnamespace('transit_data')""")
+            name,user,schema=cur.fetchone()
+            if name!="postgres" or user!="postgres":
+                raise SafePreflightError("CONNECTED_WRONG_DATABASE_ROLE")
+            if schema is None:
+                raise SafePreflightError("DEDICATED_SCHEMA_MISSING")
+            cur.execute("""select
+                has_schema_privilege('anon','transit_data','USAGE'),
+                has_schema_privilege('authenticated','transit_data','USAGE'),
+                (select count(*) from pg_class c join pg_namespace n
+                  on c.relnamespace=n.oid where n.nspname='transit_data'
+                  and c.relkind='r' and c.relrowsecurity)""")
+            anon_access,auth_access,rls_count=cur.fetchone()
+            if anon_access or auth_access or rls_count != 8:
+                raise SafePreflightError("DEDICATED_SCHEMA_SECURITY_FAILED")
+            cur.execute("""select (select count(*) from transit_data.feeds),
+                                  (select count(*) from transit_data.stop_times)""")
+            feed_count,stop_times=cur.fetchone()
+            if feed_count or stop_times:
+                raise SafePreflightError("DEDICATED_ALREADY_POPULATED")
+            return {"ok":True,"target":"new Transit project only",
+                    "schema":"private","rls_tables":rls_count,"empty":True}
 
 def optional(value):
     return None if value is None or value=="" else value
@@ -218,16 +309,23 @@ def run_import(cur,folder,manifest):
 
 def main():
     ap=argparse.ArgumentParser()
-    ap.add_argument("--dir",type=Path,required=True)
+    ap.add_argument("--dir",type=Path,required=False)
     ap.add_argument("--confirm-project-ref",required=True)
+    ap.add_argument("--diagnose-connection-only",action="store_true")
     args=ap.parse_args()
     if args.confirm_project_ref!=PROJECT_REF:
-        raise RuntimeError("Wrong destination reference")
+        raise SafePreflightError("PROJECT_CONFIRMATION_FAILED")
     if os.environ.get("LDP_TRANSIT_DB_URL"):
-        raise RuntimeError("Old production connection secret must never be present")
-    manifest=check_manifest(args.dir)
+        raise SafePreflightError("OLD_PRODUCTION_SECRET_PRESENT")
     url=os.environ.get(DB_SECRET,"")
-    verify_target(url)
+    # Verify the actual NEW project BEFORE starting a heavy 1.45M row import.
+    result=check_new_project_connection(url)
+    print("DEDICATED_CONNECTION_PREFLIGHT_PASS",json.dumps(result),flush=True)
+    if args.diagnose_connection_only:
+        return 0
+    if args.dir is None:
+        raise SafePreflightError("IMPORT_DATASET_MISSING")
+    manifest=check_manifest(args.dir)
     # Do not print a connection string or its password.
     with psycopg.connect(url,sslmode="require",connect_timeout=15,
                          autocommit=False) as db:
@@ -246,10 +344,11 @@ def main():
 if __name__=="__main__":
     try:
         raise SystemExit(main())
-    except Exception as e:
-        # Errors from psycopg may include parts of a connection string.
-        # Show a generic error; GitHub's step fails and project remains unchanged.
-        print("DEDICATED_TRANSIT_IMPORT_FAILED: validation or transaction failed; "
-              "verify input/project connectivity without sharing credentials.",
-              file=sys.stderr)
+    except Exception as exc:
+        # Database-driver errors often include host, user or connection URI.
+        # NEVER print their raw contents or a traceback to CI logs.
+        stage="diagnose" if "--diagnose-connection-only" in sys.argv else "import"
+        code=sanitized_error_code(exc,stage)
+        print("DEDICATED_TRANSIT_"+stage.upper()+"_FAILED: "+code+
+              " (no credentials were logged)",file=sys.stderr)
         raise SystemExit(1) from None

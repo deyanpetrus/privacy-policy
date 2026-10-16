@@ -17,6 +17,7 @@ on:
         default: validate
         options:
           - validate
+          - diagnose
           - import
       confirm_project_ref:
         description: For import only, type EXACT project ref gnqtngtuzbxohgwgvmpb
@@ -92,7 +93,29 @@ jobs:
           set -euo pipefail
           python lifedashpro/transit/test_dedicated_gtfs_import.py
 
+      - name: Check NEW project's database connection without writing data
+        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.mode == 'diagnose' || inputs.mode == 'import') }}
+        shell: bash
+        env:
+          LDP_DEDICATED_TRANSIT_DB_URL: ${{ secrets.LDP_DEDICATED_TRANSIT_DB_URL }}
+          CONFIRMED_PROJECT: ${{ inputs.confirm_project_ref }}
+        run: |
+          set -euo pipefail
+          if [[ "$CONFIRMED_PROJECT" != "gnqtngtuzbxohgwgvmpb" ]]; then
+            echo "::error::Wrong NEW Transit project reference (no DB accessed)."
+            exit 1
+          fi
+          if [[ -z "$LDP_DEDICATED_TRANSIT_DB_URL" ]]; then
+            echo "::error::NEW Transit GitHub Actions secret missing."
+            exit 1
+          fi
+          python lifedashpro/transit/dedicated_gtfs_import.py \
+            --diagnose-connection-only \
+            --confirm-project-ref gnqtngtuzbxohgwgvmpb
+          echo "New Transit database connection checked read-only. No GTFS data changed." >> "$GITHUB_STEP_SUMMARY"
+
       - name: Download current Germany national GTFS
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode != 'diagnose' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -104,6 +127,7 @@ jobs:
           test "$(stat -c %s "$RUNNER_TEMP/transit-new/source.zip")" -gt 100000000
 
       - name: Prepare four-region 7-weekday GTFS core
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode != 'diagnose' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -115,6 +139,7 @@ jobs:
             --service-date "$(date -u +%F)" --max-trips 500000
 
       - name: Check source freshness, coverage and 14-day service calendar
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode != 'diagnose' }}
         shell: bash
         run: |
           set -euo pipefail

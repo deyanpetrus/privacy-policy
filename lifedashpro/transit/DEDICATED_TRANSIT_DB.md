@@ -113,3 +113,44 @@ selection and >=14 days of calendar coverage.
 
 **Keep the connection secret in GitHub Secrets only**, not environment
 variables in source code and not in exported test logs.
+
+## Incident: initial manual import FAILED — safe diagnostic repair (16 Oct 2026)
+
+GitHub [run #38968722335](https://github.com/deyanpetrus/privacy-policy/actions/runs/38968722335)
+validated the national GTFS source and PASSED the disposable PostgreSQL
+smoke import, but failed in the actual remote import stage within ~0.1 s.
+GitHub confirmed the Actions secret was present (masked), but the initial
+importer deliberately printed a generic failure message, preventing precise
+diagnosis. A read-only Supabase check afterwards showed **0 rows** in new
+dedicated `transit_data` tables and **~11 MB** database usage. Production
+LifeDashPro and NotesPro were unaffected.
+
+The GitHub workflow now offers an **opt-in read-only diagnostic mode**:
+
+1. GitHub → Actions → **LifeDashPro dedicated Transit GTFS import** →
+   Run workflow, branch **main**.
+2. Set `mode=diagnose`, and
+   `confirm_project_ref=gnqtngtuzbxohgwgvmpb`.
+3. Unlike `mode=import`, diagnostic mode SKIPS the ~278 MB GTFS download
+   and extractor. It checks the (masked) GitHub secret URL against the
+   intended NEW Supabase tenant, connects over SSL, verifies the eight
+   RLS-enabled private tables and that both `feeds` and `stop_times`
+   are EMPTY. It executes **only SELECTs** in the Supabase project.
+4. A failed diagnostic prints **only a stable failure code**, never the
+   database hostname, username, connection URL, password, driver message
+   or traceback. Possible codes:
+   `SECRET_MISSING`, `URL_SCHEME_INVALID`,
+   `URL_PASSWORD_MISSING`, `URL_HAS_WHITESPACE`,
+   `URL_TENANT_OR_USERNAME_MISMATCH`, `URL_DATABASE_INVALID`,
+   `DB_PASSWORD_AUTH_FAILED`, `DB_DNS_FAILED`,
+   `DB_CONNECTION_TIMEOUT`, `DB_CONNECTION_FAILED`,
+   `DEDICATED_SCHEMA_MISSING`, `DEDICATED_ALREADY_POPULATED`.
+5. If the diagnostic is green and the main GTFS source/coverage gate is
+   still good, run `mode=import` manually with the SAME exact new project
+   ref. The importer itself also preflights the new database read-only
+   before any COPY or write operation.
+6. Never post `LDP_DEDICATED_TRANSIT_DB_URL` or a DB password in chat,
+   GitHub issues, CI logs, code or screenshots.
+
+**No data migrations, old project changes, or scheduled imports are made
+by this diagnostic update.**
