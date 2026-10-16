@@ -27,8 +27,15 @@ Manual workflow runs default to `validate`, which NEVER writes to Supabase.
 1. Go to the GitHub repo → Actions → **LifeDashPro German GTFS refresh**.
 2. Select **Run workflow**, choose mode **validate**.
 3. Review completion and the downloaded file's service dates/counts.
+   **Validate** uses a compact two-city smoke test (Regensburg and Nürnberg,
+   8 km around each); it does not attempt all nine production cities. This
+   prevents the prior 250,000-trip safety abort seen on Oct 16 in run #1.
+   It must never be used as the production replacement dataset.
 
-Even after a good result, production is unchanged.
+Even after a good result, production is unchanged. A separate **publish**
+run would extract all nine cities at 12 km with the explicit 500,000-trip
+memory cap and require database credentials and storage safety gates. Do not
+run publish until the actual database quota has been verified.
 
 ## For a manual publish (after checking your storage quota)
 

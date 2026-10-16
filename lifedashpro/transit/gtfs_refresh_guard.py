@@ -14,7 +14,7 @@ from pathlib import Path
 
 REQUIRED = ("stops", "routes", "trips", "stop_times", "calendar", "calendar_dates", "shape_points")
 
-def manifest_check(root: Path, min_days: int, min_zip_mb: int):
+def manifest_check(root: Path, min_days: int, min_zip_mb: int, profile: str):
     obj = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     if obj.get("feed_source") != "de-national":
         raise RuntimeError("Safety stop: unexpected feed source (only de-national permitted)")
@@ -24,10 +24,23 @@ def manifest_check(root: Path, min_days: int, min_zip_mb: int):
             raise RuntimeError("Safety stop: missing or invalid manifest count " + key)
     if min_zip_mb and (obj.get("source_zip_bytes") or 0) < min_zip_mb * 1024 * 1024:
         raise RuntimeError("Safety stop: GTFS source ZIP unexpectedly small")
-    if c["stops"] < 4_000 or c["routes"] < 150 or c["trips"] < 10_000 or c["stop_times"] < 250_000:
-        raise RuntimeError("Safety stop: Germany data subset too small for production")
+    if profile == "pilot":
+        # Read-only smoke test: two cities, NEVER eligible for database replacement.
+        allowed = {"regensburg", "nuremberg"}
+        selected = {str(c.get("id", "")) for c in obj.get("selection", {}).get("cities", [])}
+        if selected != allowed:
+            raise RuntimeError("Safety stop: pilot must contain Regensburg and Nürnberg only")
+        if c["stops"] < 1000 or c["routes"] < 20 or c["trips"] < 1000 or c["stop_times"] < 20000:
+            raise RuntimeError("Safety stop: GTFS pilot sample unexpectedly small")
+        required_cities = ("regensburg", "nuremberg")
+    elif profile == "production":
+        if c["stops"] < 4_000 or c["routes"] < 150 or c["trips"] < 10_000 or c["stop_times"] < 250_000:
+            raise RuntimeError("Safety stop: Germany data subset too small for production")
+        required_cities = ("regensburg", "munich", "nuremberg", "berlin", "hamburg", "cologne", "frankfurt", "dresden")
+    else:
+        raise RuntimeError("Unknown validation profile")
     cities = obj.get("city_seed_stop_counts", {})
-    for city in ("regensburg", "munich", "nuremberg", "berlin", "hamburg", "cologne", "frankfurt", "dresden"):
+    for city in required_cities:
         if int(cities.get(city) or 0) < 30:
             raise RuntimeError("Safety stop: insufficient GTFS stops in " + city)
     sel = obj["selection"]
@@ -53,7 +66,7 @@ def manifest_check(root: Path, min_days: int, min_zip_mb: int):
         p = root / (key + ".csv")
         if not p.is_file() or p.stat().st_size < 2:
             raise RuntimeError("Safety stop: required CSV missing or empty: " + str(p))
-    print(json.dumps({"preflight": "PASS", "feed": "de-national",
+    print(json.dumps({"preflight": "PASS", "profile": profile, "feed": "de-national",
         "source_zip_bytes": obj.get("source_zip_bytes"), "counts": c,
         "service_start": str(start), "service_end": str(latest)}, indent=2))
     return obj
@@ -103,11 +116,15 @@ if __name__ == "__main__":
     ap.add_argument("--dir",required=True,type=Path)
     ap.add_argument("--min-valid-days",type=int,default=12)
     ap.add_argument("--min-zip-mb",type=int,default=100)
+    ap.add_argument("--profile", choices=("pilot", "production"), default="production",
+                    help="pilot is a read-only two-city validation; production is nine-city import gate")
     ap.add_argument("--check-database",action="store_true")
     ap.add_argument("--database-limit-mb",type=int,default=0)
     args=ap.parse_args()
     try:
-        m=manifest_check(args.dir,args.min_valid_days,args.min_zip_mb)
+        if args.check_database and args.profile != "production":
+            raise RuntimeError("Safety stop: pilot profile may not connect to or modify Supabase")
+        m=manifest_check(args.dir,args.min_valid_days,args.min_zip_mb,args.profile)
         if args.check_database: database_check(m,args.database_limit_mb)
     except Exception as e:
         print(str(e),file=sys.stderr)
