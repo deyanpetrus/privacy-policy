@@ -1,0 +1,130 @@
+name: LifeDashPro isolated compact GTFS benchmark
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'lifedashpro/transit/compact_gtfs_benchmark.py'
+      - '.github/workflows/lifedashpro-compact-benchmark.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lifedashpro-isolated-gtfs-benchmark
+  cancel-in-progress: false
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 85
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ldp_gtfs_scratch
+          POSTGRES_PASSWORD: local_ephemeral_benchmark_only
+          POSTGRES_DB: ldp_gtfs_scratch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ldp_gtfs_scratch -d ldp_gtfs_scratch"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PYTHONUNBUFFERED: '1'
+      BENCH_DB_URL: postgresql://ldp_gtfs_scratch:local_ephemeral_benchmark_only@127.0.0.1:5432/ldp_gtfs_scratch
+    steps:
+      - name: Checkout benchmark only
+        uses: actions/checkout@v5
+
+      - name: Prepare Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install pinned PostgreSQL driver
+        run: python -m pip install --disable-pip-version-check "psycopg[binary]==3.2.10"
+
+      - name: Download current public national GTFS
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/gtfs-bench"
+          curl --fail --show-error --silent --location --retry 3 --retry-delay 15 \
+            --connect-timeout 30 --max-time 1500 \
+            "https://download.gtfs.de/germany/nv_free/latest.zip" \
+            --output "$RUNNER_TEMP/gtfs-bench/source.zip"
+          test "$(stat -c %s "$RUNNER_TEMP/gtfs-bench/source.zip")" -gt 100000000
+
+      - name: Extract the same four-city core GTFS scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          python lifedashpro/transit/germany_gtfs_extract.py \
+            --zip "$RUNNER_TEMP/gtfs-bench/source.zip" \
+            --out-dir "$RUNNER_TEMP/gtfs-bench/subset" \
+            --city-ids regensburg,munich,nuremberg,nittendorf \
+            --radius-km 6 --service-days 7 --service-date "$(date -u +%F)" \
+            --max-trips 500000
+
+      - name: Validate the seven-day source and 14-day service coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          python lifedashpro/transit/gtfs_refresh_guard.py \
+            --profile core --dir "$RUNNER_TEMP/gtfs-bench/subset" \
+            --min-valid-days 12 --min-zip-mb 100
+
+      - name: Benchmark raw and compact layouts on disposable PostgreSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          python lifedashpro/transit/compact_gtfs_benchmark.py \
+            --dir "$RUNNER_TEMP/gtfs-bench/subset" \
+            --db-url "$BENCH_DB_URL" \
+            --report "$RUNNER_TEMP/gtfs-bench/result.json"
+
+      - name: Publish benchmark results (not production)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          obj=json.loads((Path(os.environ['RUNNER_TEMP'])/'gtfs-bench/result.json').read_text())
+          lines=[
+            "## Isolated Germany GTFS benchmark — NOT deployed",
+            "",
+            "| Measure | Current-layout PostgreSQL | Compact PostgreSQL |",
+            "|---|---:|---:|",
+            f"| Total stops/trips/stop_times storage | {obj['legacy']['total_mb']} MB | {obj['compact']['total_mb']} MB |",
+            f"| Stop times incl. indexes | {obj['legacy']['stop_times']['total_mb']} MB | {obj['compact']['stop_times']['total_mb']} MB |",
+            f"| Departure lookup and trip route checked | {obj['tested_departure_windows']} windows / {obj['tested_trip_routes']} trips | Identical outputs |",
+            f"| Storage reduction | — | **{obj['size_reduction_pct']}%** |",
+            "",
+            "This ran on a disposable PostgreSQL service inside the GitHub runner.",
+            "**Nothing was imported to Supabase. Transit v14 / Android / Web were not modified.**",
+            "A production migration remains LOCKED pending independent backup and quota verification."
+          ]
+          with open(os.environ["GITHUB_STEP_SUMMARY"],"a",encoding="utf8") as f:
+              f.write("\n".join(lines)+"\n")
+          PY
+
+      - name: Upload detailed results (no secrets)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lifedashpro-gtfs-compact-benchmark
+          path: ${{ runner.temp }}/gtfs-bench/result.json
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Remove downloaded source
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/gtfs-bench/source.zip"
