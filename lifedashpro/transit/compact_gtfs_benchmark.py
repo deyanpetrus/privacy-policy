@@ -231,6 +231,31 @@ def main() -> int:
                 if count!=int(counts[name]):
                     raise RuntimeError("Compact count mismatch "+name+" "+str(count))
 
+            # Exhaustive validation: every imported row must still resolve to
+            # the same trip, stop, sequence and all GTFS time/boarding fields.
+            # This checks the entire dataset, in addition to representative
+            # API-shaped departures/trip-route samples below.
+            cur.execute("""
+                select count(*), count(*) filter (
+                    where sm.stop_id is distinct from st.stop_id
+                       or ct.arrival_secs is distinct from st.arrival_secs
+                       or ct.departure_secs is distinct from st.departure_secs
+                       or ct.stop_headsign is distinct from st.stop_headsign
+                       or ct.pickup_type::integer is distinct from st.pickup_type
+                       or ct.drop_off_type::integer is distinct from st.drop_off_type
+                )
+                from legacy_bench.stop_times st
+                join compact_bench.trips tm on tm.feed_source=st.feed_source
+                    and tm.trip_id=st.trip_id
+                join compact_bench.stop_times ct on ct.trip_key=tm.trip_key
+                    and ct.stop_sequence=st.stop_sequence
+                join compact_bench.stops sm on sm.stop_key=ct.stop_key
+            """)
+            checked_rows, changed_rows=cur.fetchone()
+            if checked_rows!=int(counts["stop_times"]) or changed_rows!=0:
+                raise RuntimeError("Exhaustive compact GTFS fidelity failed: "+
+                                   str(checked_rows)+" matched / "+str(changed_rows)+" changed")
+
             # Verify information retained: keys, times, all stop sequence,
             # stop-specific headsigns and pickup/drop-off flags on representative trips.
             cur.execute("""select trip_id from legacy_bench.stop_times
