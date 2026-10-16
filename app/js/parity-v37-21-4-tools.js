@@ -12,9 +12,72 @@ async function deleteCity(idv){await D.remove('weather_saved_cities',idv);await 
 async function transitPoint(){try{return await window.LifeDashLocation?.best?.(false)}catch{}try{return await Live.geo()}catch{}return null}
 const dist=(a,b)=>{const R=6371,p=Math.PI/180,dLat=(b.lat-a.lat)*p,dLon=(b.lon-a.lon)*p,q=Math.sin(dLat/2)**2+Math.cos(a.lat*p)*Math.cos(b.lat*p)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(q),Math.sqrt(1-q))};
 async function osmStops(p,radius=3000){const q=`[out:json][timeout:14];(node["highway"="bus_stop"](around:${radius},${p.lat},${p.lon});node["public_transport"~"platform|stop_position|station"](around:${radius},${p.lat},${p.lon});node["railway"~"station|halt|tram_stop|subway_entrance"](around:${radius},${p.lat},${p.lon});node["amenity"~"bus_station|ferry_terminal"](around:${radius},${p.lat},${p.lon}););out tags 60;`;const eps=['https://overpass.kumi.systems/api/interpreter','https://overpass-api.de/api/interpreter'];let last;for(const ep of eps){try{const r=await fetch(`${ep}?data=${encodeURIComponent(q)}`);if(!r.ok)throw new Error(`HTTP ${r.status}`);const j=await r.json();return(j.elements||[]).map(x=>({id:`osm-${x.id}`,name:x.tags?.name||x.tags?.ref||'Public transport stop',lat:Number(x.lat),lon:Number(x.lon),distanceKm:dist(p,{lat:Number(x.lat),lon:Number(x.lon)}),provider:'OpenStreetMap'})).filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lon)).sort((a,b)=>a.distanceKm-b.distanceKm).slice(0,30)}catch(e){last=e}}throw last||new Error('Transit stop service unavailable')}
-async function deStops(p){const url=`https://v6.db.transport.rest/locations/nearby?latitude=${encodeURIComponent(p.lat)}&longitude=${encodeURIComponent(p.lon)}&distance=5000&results=30&stops=true&poi=false&addresses=false`;const r=await fetch(url);if(!r.ok)throw new Error(`DB HTTP ${r.status}`);const j=await r.json();return(Array.isArray(j)?j:[]).filter(x=>x?.id&&x?.location).map(x=>({id:`db-${x.id}`,sourceId:String(x.id),name:x.name||'Stop',lat:Number(x.location.latitude),lon:Number(x.location.longitude),distanceKm:dist(p,{lat:Number(x.location.latitude),lon:Number(x.location.longitude)}),provider:'DB transport adapter'})).filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lon)).sort((a,b)=>a.distanceKm-b.distanceKm)}
-async function transitModal(){modal('Public Transport',`<div class="modal-body"><div class="web-parity-banner limited"><div><b>Transit v37.19 foundation</b><span>Germany uses the DB public-transport adapter when available; other areas use OpenStreetMap stop discovery.</span></div><div><span class="web-parity-pill info">LIVE / FALLBACK</span></div></div><div id="v214TransitBody"><span class="pill">Finding nearby stops…</span></div></div>`);const box=document.getElementById('v214TransitBody');try{const p=await transitPoint();if(!p)throw new Error('No location available');let rows=[],provider='OpenStreetMap';if(String(p.country||state.profile?.country||'').toUpperCase()==='DE'){try{rows=await deStops(p);provider='DB transport adapter'}catch{}}if(!rows.length)rows=await osmStops(p);box.innerHTML=`<div class="parity-card-head"><div><h3>Nearby stops</h3><span class="card-sub">${esc(provider)} · ${rows.length} results</span></div></div><div class="list">${rows.map((s,i)=>`<div class="list-item"><div class="grow"><b>${esc(s.name)}</b><span>${s.distanceKm.toFixed(1)} km · ${esc(s.provider)}</span></div>${s.sourceId?`<button class="mini-btn" data-v214-departures="${i}">Departures</button>`:''}<button class="mini-btn" data-v214-stop-map="${i}">Map</button></div>`).join('')||'<span class="card-sub">No stops found nearby.</span>'}</div>`;window.__v214Stops=rows}catch(err){box.innerHTML=`<span class="pill bad">${esc(err.message)}</span>`}}
-async function departures(i){const s=window.__v214Stops?.[i];if(!s?.sourceId)return;const box=document.getElementById('v214TransitBody');if(!box)return;box.insertAdjacentHTML('afterbegin','<div id="v214DepartureBox"><span class="pill">Loading departures…</span></div>');const out=document.getElementById('v214DepartureBox');try{const r=await fetch(`https://v6.db.transport.rest/stops/${encodeURIComponent(s.sourceId)}/departures?duration=60&results=20`);if(!r.ok)throw new Error(`DB HTTP ${r.status}`);const j=await r.json(),rows=Array.isArray(j)?j:(j.departures||[]);out.innerHTML=`<div class="settings-card"><h3>${esc(s.name)} · next departures</h3><div class="list">${rows.slice(0,20).map(x=>`<div class="list-item"><div class="grow"><b>${esc(x.line?.name||x.line?.fahrtNr||'—')} → ${esc(x.direction||'—')}</b><span>${x.when?new Date(x.when).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—'}${x.platform?' · platform '+esc(x.platform):''}${x.cancelled?' · CANCELLED':''}</span></div></div>`).join('')||'<span class="card-sub">No departures returned.</span>'}</div></div>`}catch(err){out.innerHTML=`<span class="pill bad">${esc(err.message)}</span>`}}
+async function deStops(p){
+  // Authenticated provider manager: DB supplements Transitland when local buses are missing.
+  try{
+    if(!D.client)throw new Error('Not authenticated');
+    const {data,error}=await D.client.functions.invoke('transit-schedule',{
+      body:{action:'nearby',country:'DE',lat:p.lat,lon:p.lon,radiusM:5000,limit:30}
+    });
+    if(error||!data?.ok||!Array.isArray(data?.stops))throw error||new Error('Transit Edge unavailable');
+    const rows=data.stops.map(s=>({
+      id:'edge-'+String(s.providerId||'')+'-'+String(s.id||''),
+      sourceId:String(s.id||''),providerId:String(s.providerId||''),
+      name:String(s.name||'Stop'),lat:Number(s.lat),lon:Number(s.lon),
+      distanceKm:dist(p,{lat:Number(s.lat),lon:Number(s.lon)}),
+      provider:String(s.provider||data.provider||'Germany transit'),
+      lines:Array.isArray(s.lines)?s.lines.filter(Boolean).slice(0,16):[],
+      edgeManaged:true
+    })).filter(s=>s.sourceId&&Number.isFinite(s.lat)&&Number.isFinite(s.lon));
+    if(rows.length)return rows.sort((a,b)=>a.distanceKm-b.distanceKm);
+  }catch(e){console.warn('Managed transit unavailable; using public fallback',String(e?.message||e))}
+  const url='https://v6.db.transport.rest/locations/nearby?latitude='+encodeURIComponent(p.lat)+
+    '&longitude='+encodeURIComponent(p.lon)+'&distance=5000&results=30&stops=true&poi=false&addresses=false';
+  const r=await fetch(url);if(!r.ok)throw new Error('DB HTTP '+r.status);
+  const j=await r.json();
+  return (Array.isArray(j)?j:[]).filter(x=>x?.id&&x?.location)
+   .map(x=>({id:'db-'+x.id,sourceId:String(x.id),providerId:'de-db-rest',name:x.name||'Stop',
+     lat:Number(x.location.latitude),lon:Number(x.location.longitude),
+     distanceKm:dist(p,{lat:Number(x.location.latitude),lon:Number(x.location.longitude)}),
+     provider:'DB transport adapter',lines:[],edgeManaged:false}))
+   .filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lon)).sort((a,b)=>a.distanceKm-b.distanceKm);
+}
+async function transitModal(){modal('Public Transport',`<div class="modal-body"><div class="web-parity-banner limited"><div><b>Transit v37.19 foundation</b><span>Germany uses the DB public-transport adapter when available; other areas use OpenStreetMap stop discovery.</span></div><div><span class="web-parity-pill info">LIVE / FALLBACK</span></div></div><div id="v214TransitBody"><span class="pill">Finding nearby stops…</span></div></div>`);const box=document.getElementById('v214TransitBody');try{const p=await transitPoint();if(!p)throw new Error('No location available');let rows=[],provider='OpenStreetMap';if(String(p.country||state.profile?.country||'').toUpperCase()==='DE'){try{rows=await deStops(p);provider=rows.some(x=>x.edgeManaged)?'Germany DB + Transitland':'DB transport adapter'}catch{}}if(!rows.length)rows=await osmStops(p);box.innerHTML=`<div class="parity-card-head"><div><h3>Nearby stops</h3><span class="card-sub">${esc(provider)} · ${rows.length} results</span></div></div><div class="list">${rows.map((s,i)=>`<div class="list-item"><div class="grow"><b>${esc(s.name)}</b><span>${s.distanceKm.toFixed(1)} km · ${esc(s.provider)}</span></div>${s.sourceId?`<button class="mini-btn" data-v214-departures="${i}">Departures</button>`:''}<button class="mini-btn" data-v214-stop-map="${i}">Map</button></div>`).join('')||'<span class="card-sub">No stops found nearby.</span>'}</div>`;window.__v214Stops=rows}catch(err){box.innerHTML=`<span class="pill bad">${esc(err.message)}</span>`}}
+async function departures(i){
+ const s=window.__v214Stops?.[i];if(!s?.sourceId)return;
+ const box=document.getElementById('v214TransitBody');if(!box)return;
+ document.getElementById('v214DepartureBox')?.remove();
+ box.insertAdjacentHTML('afterbegin','<div id="v214DepartureBox"><span class="pill">Loading departures…</span></div>');
+ const out=document.getElementById('v214DepartureBox');
+ try{
+  let rows=[],provider=s.provider||'Germany transit';
+  if(s.edgeManaged&&D.client){
+   const {data,error}=await D.client.functions.invoke('transit-schedule',{
+     body:{action:'departures',country:'DE',stopId:s.sourceId,lat:s.lat,lon:s.lon,
+       providerId:s.providerId,duration:90}
+   });
+   if(error||!data?.ok||!Array.isArray(data?.departures))throw error||new Error('Departure service unavailable');
+   rows=data.departures.map(x=>({
+      line:{name:String(x.line||'—')},direction:String(x.direction||'—'),
+      when:x.realtimeTime||x.scheduledTime||x.localTime||null,
+      platform:x.platform||null,cancelled:!!x.cancelled,localTime:String(x.localTime||'')
+   }));
+   provider=String(data.provider||provider);
+  }else{
+   const r=await fetch('https://v6.db.transport.rest/stops/'+encodeURIComponent(s.sourceId)+'/departures?duration=60&results=20');
+   if(!r.ok)throw new Error('DB HTTP '+r.status);
+   const j=await r.json();rows=Array.isArray(j)?j:(j.departures||[]);
+  }
+  out.innerHTML='<div class="settings-card"><h3>'+esc(s.name)+' · next departures</h3>'+
+    '<small>'+esc(provider)+'</small><div class="list">'+rows.slice(0,25).map(x=>{
+      const when=x.localTime|| (x.when?new Date(x.when).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—');
+      return '<div class="list-item"><div class="grow"><b>'+esc(x.line?.name||'—')+' → '+esc(x.direction||'—')+'</b>'+
+       '<span>'+esc(when)+(x.platform?' · platform '+esc(x.platform):'')+
+       (x.cancelled?' · CANCELLED':'')+'</span></div></div>';
+    }).join('')+
+    (rows.length?'':'<span class="card-sub">No departures returned.</span>')+'</div></div>';
+ }catch(err){out.innerHTML='<span class="pill bad">'+esc(String(err?.message||'Departures unavailable'))+'</span>'}
+}
 function reliabilityCard(){const permission='Notification'in window?Notification.permission:'unsupported',sw='serviceWorker'in navigator?'supported':'unsupported',secure=window.isSecureContext?'secure':'not secure';return`<div class="settings-card v214-reliability"><h3>Reminder reliability · Web</h3><p class="card-sub">Android v37.21.4 also checks manufacturer battery/standby restrictions. Those native Android controls do not exist in a browser, so Web reports only real browser capability.</p><div class="stat-row"><div class="stat"><b>${esc(permission)}</b><span>Notification permission</span></div><div class="stat"><b>${esc(sw)}</b><span>Service Worker</span></div><div class="stat"><b>${esc(secure)}</b><span>Secure context</span></div></div><div class="page-actions"><button class="quiet" data-v214-enable-notify>Enable notifications</button><button class="quiet" data-v214-test-notify>Test</button></div></div>`}
 const oldProfile=profilePage;profilePage=function(){const html=oldProfile(),i=html.lastIndexOf('</div>');return i<0?html:html.slice(0,i)+reliabilityCard()+html.slice(i)};
 const baseLoad=loadAll;loadAll=async function(){const r=await baseLoad.apply(this,arguments);if(!Array.isArray(state.data.weather_saved_cities))try{state.data.weather_saved_cities=await D.list('weather_saved_cities')}catch{state.data.weather_saved_cities=[]}return r};
