@@ -154,7 +154,7 @@ function shell(){
  logo.alt='LifeDashPro';logo.width=38;logo.height=38;logo.decoding='async';
  logo.src=new URL('../../assets/lifedash-icon.webp',location.href).href;
  logo.addEventListener('error',()=>logo.replaceWith(mk('span','ldp124-brandmark','LD')),{once:true});
- brand.append(logo,mk('strong','', 'LifeDashPro'),mk('span','ldp124-top-tag','DESKTOP OS · v1.33'));
+ brand.append(logo,mk('strong','', 'LifeDashPro'),mk('span','ldp124-top-tag','DESKTOP OS · v1.34'));
  const actions=mk('div','ldp124-top-actions');
  const customize=button('⚙ '+t('customize'),'ldp124-top-button',()=>toggleSettings());
  const classic=button('↩ '+t('classic'),'ldp124-top-button',switchClassic);
@@ -1108,7 +1108,7 @@ function activate(){
   if(HOST_WINDOWS_V131)restoreHostToClassic();
   newsState.owner='';newsState.country='';newsState.items=[];newsState.index=0;newsState.at=0;
   weatherCached={owner:'',city:'',at:0,data:null};weatherLoading=false;todayOffset=0;
-  todayTab='today';
+  todayCount=0;todayHover=false;todayHoldUntil=0;
   if(ui){ui.classList.remove('ldp126-max-active');$('#ldp124Windows',ui)?.replaceChildren()}
   if(saving){clearTimeout(saving);saving=0}
   owner=next;
