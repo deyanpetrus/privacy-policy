@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'lifedashpro/transit/dedicated_gtfs_import.py'
+      - 'lifedashpro/transit/test_dedicated_gtfs_import.py'
       - '.github/workflows/lifedashpro-dedicated-import.yml'
   workflow_dispatch:
     inputs:
@@ -34,7 +35,22 @@ jobs:
   dedicated:
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ldp_gtfs_scratch
+          POSTGRES_PASSWORD: local_ephemeral_benchmark_only
+          POSTGRES_DB: ldp_gtfs_scratch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ldp_gtfs_scratch -d ldp_gtfs_scratch"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     env:
+      DEDICATED_LOCAL_SMOKE_DB_URL: postgresql://ldp_gtfs_scratch:local_ephemeral_benchmark_only@127.0.0.1:5432/ldp_gtfs_scratch
       PYTHONUNBUFFERED: '1'
     steps:
       - uses: actions/checkout@v5
@@ -47,7 +63,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m py_compile lifedashpro/transit/dedicated_gtfs_import.py
+          python -m py_compile lifedashpro/transit/dedicated_gtfs_import.py lifedashpro/transit/test_dedicated_gtfs_import.py
           python - <<'PY'
           import importlib.util
           spec=importlib.util.spec_from_file_location(
@@ -69,6 +85,12 @@ jobs:
           mod.verify_target("postgresql://postgres.gnqtngtuzbxohgwgvmpb:secret@aws-0-eu-west-1.pooler.supabase.com:5432/postgres")
           print("DEDICATED_DESTINATION_GUARD_PASS")
           PY
+
+      - name: Validate compact importer in disposable local PostgreSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          python lifedashpro/transit/test_dedicated_gtfs_import.py
 
       - name: Download current Germany national GTFS
         shell: bash
