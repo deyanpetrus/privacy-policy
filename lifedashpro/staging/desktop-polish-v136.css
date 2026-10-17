@@ -67,3 +67,7 @@ html.ldp-os-running .app.radio-dock-active .content{padding-bottom:30px}
  color:#fff;font-size:12px;font-weight:750;cursor:pointer;text-align:center}
 #ldp124OS .ldp137-reorder-toggle:hover{background:rgba(136,106,223,.43)}
 #ldp124OS.ldp137-reordering [data-widget]{outline:1px dashed rgba(215,191,255,.55)}
+
+/* Optional security challenge is never shown until a public site key is set. */
+.ldp137-captcha-slot:empty{display:none}
+.ldp137-captcha-slot{min-height:0;margin:6px 0 9px}
