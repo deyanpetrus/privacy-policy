@@ -92,6 +92,11 @@ Object.assign(d,{
 'Documente private sincronizate cu Android · categorii, expirări și acces sigur',
 'Private, mit Android synchronisierte Dokumente · Kategorien, Ablaufdaten und sicherer Zugriff']
 });
+Object.assign(d,{
+'Edit':['Edit','Уреди','Uredi','Uredi','Uredi','Uredi','Uredi','Редактирай','Ndrysho','Επεξεργασία','Editează','Bearbeiten'],
+'Delete':['Delete','Избриши','Obriši','Izbriši','Obriši','Obriši','Izbriši','Изтрий','Fshi','Διαγραφή','Șterge','Löschen'],
+'Delete entry confirmation':['Delete entry confirmation','Да го избришеме овој запис? Промената се синхронизира со Android.','Obrisati zapis? Promena se sinhronizuje sa Androidom.','Izbrisati zapis? Promjena se sinkronizira s Androidom.','Obrisati zapis? Promjena se sinhronizuje s Androidom.','Obrisati zapis? Promjena se sinhronizuje sa Androidom.','Izbrisati zapis? Sprememba se sinhronizira z Androidom.','Да изтрием ли записа? Промяната се синхронизира с Android.','Të fshihet ky regjistrim? Ndryshimi sinkronizohet me Android.','Διαγραφή εγγραφής; Η αλλαγή συγχρονίζεται με Android.','Ștergi această înregistrare? Se sincronizează cu Android.','Eintrag löschen? Die Änderung wird mit Android synchronisiert.']
+});
 const toMap=Object.fromEntries(Object.entries(d).map(([key,translations])=>[key,translations]));
 function locale(){const c=String(window.LifeDashWebI18n?.locale?.()||'en').toLowerCase().split('-')[0];return codes.includes(c)?c:'en'}
 function tr(text){const k=String(text||'').replace(/^[＋✎×]\s*/,'').trim();const row=toMap[k];return row?row[codes.indexOf(locale())]||row[0]:text}
