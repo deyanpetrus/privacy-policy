@@ -65,16 +65,45 @@ const d={
 'Enter liters and total':['Enter liters and total','Внеси литри и вкупна цена','Unesi litre i ukupno','Unesi litre i ukupno','Unesi litre i ukupno','Unesi litre i ukupno','Vnesi litre in skupni znesek','Въведи литри и сума','Shkruaj litra dhe totalin','Συμπλήρωσε λίτρα και σύνολο','Introdu litri și total','Liter und Gesamtbetrag eingeben'],
 'Delete vehicle confirmation':['Delete vehicle confirmation','Сигурно да го избришеме возилото? Ова се синхронизира со Android.','Sigurno obrisati vozilo? Briše se i na Androidu.','Zaista izbrisati vozilo? Sinkronizira se s Androidom.','Sigurno obrisati vozilo? Sinhronizuje se s Androidom.','Sigurno obrisati vozilo? Sinhronizuje se sa Androidom.','Res izbrisati vozilo? Sinhronizira se z Androidom.','Да изтрием ли автомобила? Синхронизира се с Android.','Të fshihet automjeti? Sinkronizohet me Android.','Διαγραφή οχήματος; Συγχρονίζεται με Android.','Ștergi vehiculul? Se sincronizează cu Android.','Fahrzeug löschen? Wird auch mit Android synchronisiert.']
 };
+Object.assign(d,{
+'DOCUMENTS PRO':['DOCUMENTS PRO','ДОКУМЕНТИ ПРО','DOKUMENTI PRO','DOKUMENTI PRO','DOKUMENTI PRO','DOKUMENTI PRO','DOKUMENTI PRO','ДОКУМЕНТИ ПРО','DOKUMENTE PRO','ΕΓΓΡΑΦΑ PRO','DOCUMENTE PRO','DOKUMENTE PRO'],
+'VEHICLE MANAGER':['VEHICLE MANAGER','ВОЗИЛА','VOZILA','VOZILA','VOZILA','VOZILA','VOZILA','ПРЕВОЗНИ СРЕДСТВА','MENAXHERI I AUTOMJETEVE','ΔΙΑΧΕΙΡΙΣΗ ΟΧΗΜΑΤΩΝ','MANAGER VEHICULE','FAHRZEUGVERWALTUNG'],
+'JOURNEY MANAGER':['JOURNEY MANAGER','ПАТУВАЊА','PUTOVANJA','PUTOVANJA','PUTOVANJA','PUTOVANJA','POTOVANJA','ПЪТУВАНИЯ','MENAXHERI I UDHËTIMEVE','ΔΙΑΧΕΙΡΙΣΗ ΤΑΞΙΔΙΩΝ','MANAGER CĂLĂTORII','REISEVERWALTUNG'],
+'All categories':['All categories','Сите категории','Sve kategorije','Sve kategorije','Sve kategorije','Sve kategorije','Vse kategorije','Всички категории','Të gjitha kategoritë','Όλες οι κατηγορίες','Toate categoriile','Alle Kategorien'],
+'All formats':['All formats','Сите формати','Svi formati','Svi formati','Svi formati','Svi formati','Vsi formati','Всички формати','Të gjitha formatet','Όλες οι μορφές','Toate formatele','Alle Formate'],
+'Any validity':['Any validity','Секоја важност','Bilo koje važenje','Bilo koja valjanost','Bilo koje važenje','Bilo koje važenje','Vsa veljavnost','Всяка валидност','Çdo vlefshmëri','Κάθε κατάσταση','Orice valabilitate','Alle Gültigkeiten'],
+'Expiring ≤30d':['Expiring ≤30d','Истекува ≤30 дена','Ističe ≤30 dana','Istječe ≤30 dana','Ističe ≤30 dana','Ističe ≤30 dana','Poteče ≤30 dni','Изтича ≤30 дни','Skadon ≤30 ditë','Λήγει ≤30 ημ.','Expiră ≤30 zile','Läuft ≤30 Tage ab'],
+'Valid':['Valid','Важечки','Važeći','Važeći','Važeći','Važeći','Veljavni','Валидни','Të vlefshme','Έγκυρα','Valabile','Gültig'],
+'No expiry date':['No expiry date','Без рок на важност','Bez roka važenja','Bez datuma isteka','Bez roka važenja','Bez roka važenja','Brez datuma poteka','Без срок на валидност','Pa datë skadimi','Χωρίς ημερομηνία λήξης','Fără dată expirare','Kein Ablaufdatum'],
+'Expiry date':['Expiry date','Датум на истек','Datum isteka','Datum isteka','Datum isteka','Datum isteka','Datum poteka','Дата на изтичане','Data e skadimit','Ημερομηνία λήξης','Data expirării','Ablaufdatum'],
+'Recently updated':['Recently updated','Неодамна ажурирани','Nedavno ažurirani','Nedavno ažurirani','Nedavno ažurirani','Nedavno ažurirani','Nedavno posodobljeni','Наскоро обновени','Përditësuar së fundi','Πρόσφατα ενημερωμένα','Actualizate recent','Kürzlich aktualisiert'],
+'Name A–Z':['Name A–Z','Име А–Ш','Ime A–Š','Ime A–Ž','Ime A–Ž','Ime A–Š','Ime A–Ž','Име А–Я','Emër A–Z','Όνομα Α–Ω','Nume A–Z','Name A–Z'],
+'Private, Android-synced documents · categories, expiry dates and secure file access':[
+'Private, Android-synced documents · categories, expiry dates and secure file access',
+'Приватни документи синхронизирани со Android · категории, истек и безбедни датотеки',
+'Privatni dokumenti sinhronizovani sa Androidom · kategorije, rokovi i sigurne datoteke',
+'Privatni dokumenti sinkronizirani s Androidom · kategorije, rokovi i sigurne datoteke',
+'Privatni dokumenti sinhronizovani s Androidom · kategorije, rokovi i sigurne datoteke',
+'Privatni dokumenti sinhronizovani s Androidom · kategorije, rokovi i sigurne datoteke',
+'Zasebni dokumenti, sinhronizirani z Androidom · kategorije, roki in varen dostop',
+'Лични документи, синхронизирани с Android · категории, срокове и сигурен достъп',
+'Dokumente private të sinkronizuara me Android · kategori, afate dhe qasje e sigurt',
+'Ιδιωτικά έγγραφα συγχρονισμένα με Android · κατηγορίες, λήξη και ασφαλής πρόσβαση',
+'Documente private sincronizate cu Android · categorii, expirări și acces sigur',
+'Private, mit Android synchronisierte Dokumente · Kategorien, Ablaufdaten und sicherer Zugriff']
+});
 const toMap=Object.fromEntries(Object.entries(d).map(([key,translations])=>[key,translations]));
 function locale(){const c=String(window.LifeDashWebI18n?.locale?.()||'en').toLowerCase().split('-')[0];return codes.includes(c)?c:'en'}
 function tr(text){const k=String(text||'').replace(/^[＋✎×]\s*/,'').trim();const row=toMap[k];return row?row[codes.indexOf(locale())]||row[0]:text}
 const selectors=[
- '.documents-pro-page .docs-heading h2','.documents-pro-page .docs-read-only',
+ '.documents-pro-page .docs-heading h2','.documents-pro-page .docs-heading .eyebrow',
+ '.documents-pro-page .docs-heading .docs-subtitle','.documents-pro-page .docs-read-only',
  '.documents-pro-page .docs-stats .docs-stat span',
  '.documents-pro-page .docs-filter-field>span','.documents-pro-page .docs-details-button',
  '.documents-pro-page .docs-select option','#docsDetailsDialog .docs-detail-title',
  '#docsDetailsDialog .docs-detail-actions button','#docsDetailsDialog .docs-detail-pair>span',
- '.mobility-v111 .mob111-intro h2','.mobility-v111 .mob111-kpi span',
+ '.mobility-v111 .mob111-intro h2','.mobility-v111 .mob111-intro .eyebrow',
+ '.mobility-v111 .mob111-kpi span',
  '.mobility-v111 .mob111-chooser>strong','.mobility-v111 .mob111-tabs button',
  '.mobility-v111 .mob111-section-head h3','.mobility-v111 .mob111-details-grid .mob111-pair span',
  '.mobility-v111 .mob111-expiry-grid .mob111-expiry-card small',
@@ -83,9 +112,10 @@ const selectors=[
 function translateNode(n){
  if(!n||n.children?.length)return;
  const raw=n.dataset.ldp138Original||n.textContent.trim();
- if(!toMap[raw])return;
+ const prefix=(raw.match(/^[＋✎×]\s*/)||[''])[0],key=raw.slice(prefix.length);
+ if(!toMap[key])return;
  n.dataset.ldp138Original=raw;
- const value=tr(raw);if(n.textContent!==value)n.textContent=value;
+ const value=prefix+tr(key);if(n.textContent!==value)n.textContent=value;
 }
 function apply(){
  if(document.querySelector('#appView')?.classList.contains('hidden'))return;
