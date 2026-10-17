@@ -93,16 +93,16 @@ function base(){
    w:Math.min(730,width-35),h:Math.min(550,height-18),min:false,max:false};
  }
  return {version:1,wallpaper:'aurora',pinned:DEFAULT_PIN.slice(),
-  widgetOrder:WIDGETS.slice(),hiddenWidgets:[],windows:windowState,updatedAt:0};
+  widgetOrder:WIDGETS.slice(),hiddenWidgets:[],collapsedWidgets:[],windows:windowState,updatedAt:0};
 }
 function clean(input){
  const baseState=base(),src=input&&typeof input==='object'&&!Array.isArray(input)?input:{};
  const validList=(xs,allowed)=>Array.isArray(xs)?[...new Set(xs.filter(x=>allowed.includes(x)))]:[];
  const pinned=validList(src.pinned,Object.keys(INFO));
  const visible=validList(src.widgetOrder,WIDGETS);
- const result={version:1,wallpaper:COLOURS.includes(src.wallpaper)?src.wallpaper:'aurora',
+ const result={version:1,wallpaper:[...COLOURS,'custom'].includes(src.wallpaper)?src.wallpaper:'aurora',
  pinned:pinned.length?pinned:DEFAULT_PIN.slice(),widgetOrder:[...visible,...WIDGETS.filter(x=>!visible.includes(x))],
- hiddenWidgets:validList(src.hiddenWidgets,WIDGETS),windows:{},updatedAt:Math.max(0,Number(src.updatedAt)||0)};
+ hiddenWidgets:validList(src.hiddenWidgets,WIDGETS),collapsedWidgets:validList(src.collapsedWidgets,WIDGETS),windows:{},updatedAt:Math.max(0,Number(src.updatedAt)||0)};
  let list=0;
  for(const [id,w] of Object.entries(src.windows||{})){
   if(!INFO[id]||!w||typeof w!=='object'||list>=MAX_WINDOWS)continue;
@@ -154,9 +154,11 @@ function shell(){
  logo.alt='LifeDashPro';logo.width=38;logo.height=38;logo.decoding='async';
  logo.src=new URL('../../assets/lifedash-icon.webp',location.href).href;
  logo.addEventListener('error',()=>logo.replaceWith(mk('span','ldp124-brandmark','LD')),{once:true});
- brand.append(logo,mk('strong','', 'LifeDashPro'),mk('span','ldp124-top-tag','DESKTOP OS · v1.35'));
+ brand.append(logo,mk('strong','', 'LifeDashPro'),mk('span','ldp124-top-tag','DESKTOP OS · v1.36'));
  const actions=mk('div','ldp124-top-actions');
- const customize=button('⚙ '+t('customize'),'ldp124-top-button',()=>toggleSettings());
+ const customize=button('','ldp124-top-button ldp136-customize',()=>toggleSettings());
+ customize.title=t('customize');customize.setAttribute('aria-label',t('customize'));
+ customize.append(mk('span','ldp136-palette'));
  const classic=button('↩ '+t('classic'),'ldp124-top-button',switchClassic);
  const names={en:'Transit',mk:'Превоз',sr:'Prevoz',hr:'Prijevoz',bs:'Prevoz',
   cnr:'Prevoz',sl:'Prevoz',bg:'Транспорт',sq:'Transport',el:'Μεταφορές',
@@ -166,7 +168,9 @@ function shell(){
   window.open(u.toString(),'_blank','noopener');
  });
  transit.title=names[lang()]||names.en;
- actions.append(customize,transit,classic);top.append(brand,actions);
+ actions.append(customize,transit,classic);
+ const radioSlot=mk('div','ldp136-radio-slot');radioSlot.id='ldp136RadioSlot';
+ top.append(brand,radioSlot,actions);
  const canvas=mk('div','ldp124-canvas');canvas.id='ldp124Canvas';
  const icons=mk('nav','ldp124-icons');icons.id='ldp124Icons';icons.setAttribute('aria-label','Desktop applications');
  const widgets=mk('section','ldp124-widgets');widgets.id='ldp124Widgets';widgets.setAttribute('aria-label',t('widgets'));
@@ -222,6 +226,13 @@ function drawIcons(){
  const shortcuts=['dashboard','notes','finance','calendar','news','radio','world','explore','vehicles','journey','documents','profile'];
  for(const id of shortcuts)host.append(iconButton(id));
 }
+function taskbarToggle(id){
+ const w=data?.windows?.[id];
+ if(!w){openApp(id);return}
+ if(w.min){restore(id);return}
+ if(focusId===id){minimize(id);return}
+ restore(id);
+}
 function drawTaskbar(){
  const dock=$('#ldp124TaskApps',ui);if(!dock)return;
  dock.replaceChildren();
@@ -237,7 +248,7 @@ function drawTaskbar(){
  for(const id of data.pinned){
   const run=!!data.windows[id],w=data.windows[id];
   const b=button('','ldp124-task-app'+(run?' is-running':'')+(focusId===id?' is-active':''),
-   ()=>{if(w?.min){restore(id)}else if(run){raise(id)}else openApp(id)});
+   ()=>taskbarToggle(id));
   b.dataset.app=id;b.title=displayName(id);
   b.append(mk('span','',INFO[id].icon));
   if(run)b.append(mk('i','ldp124-running-dot'));
@@ -245,7 +256,7 @@ function drawTaskbar(){
  }
  // Include open apps not already pinned, so minimized windows remain accessible.
  for(const id of Object.keys(data.windows).filter(x=>!data.pinned.includes(x))){
-  const b=button(INFO[id].icon,'ldp124-task-app is-running'+(focusId===id?' is-active':''),()=>restore(id));
+  const b=button(INFO[id].icon,'ldp124-task-app is-running'+(focusId===id?' is-active':''),()=>taskbarToggle(id));
   b.title=displayName(id);b.append(mk('i','ldp124-running-dot'));dock.append(b);
  }
 }
@@ -328,10 +339,17 @@ function paintSettings(){
   if(!confirm(t('restore')+'?'))return;
   for(const id of Object.keys(data.windows))closeWindow(id,false);
   const next=base();data.wallpaper=next.wallpaper;data.widgetOrder=next.widgetOrder;
-  data.hiddenWidgets=[];data.pinned=next.pinned;data.windows={};
+  data.hiddenWidgets=[];data.collapsedWidgets=[];data.pinned=next.pinned;data.windows={};
   wallpaper();drawWidgets();drawTaskbar();persist();paintSettings();
  }));
  const status=mk('small','ldp124-status','');status.id='ldp124Status';p.append(status);
+}
+function reorderWidget(from,to){
+ if(!WIDGETS.includes(from)||!WIDGETS.includes(to)||from===to)return;
+ const a=data.widgetOrder.indexOf(from),b=data.widgetOrder.indexOf(to);
+ if(a<0||b<0)return;
+ data.widgetOrder.splice(a,1);data.widgetOrder.splice(b,0,from);
+ persist();drawWidgets();if(!$('#ldp124Settings',ui)?.hidden)paintSettings();
 }
 function shiftWidget(id,dir){
  const index=data.widgetOrder.indexOf(id),other=index+dir;
@@ -970,9 +988,35 @@ function widget(id){
  finance:displayName('finance'),world:displayName('world'),news:displayName('news')}[id]||id;
  const btn=button('↗','ldp124-widget-open',()=>openApp(id==='weather'?'world':id==='today'?'today':id));
  btn.setAttribute('aria-label','Open '+title);
- const heading=mk('div','ldp124-widget-head');
- heading.append(mk('strong','',title),btn);
- box.append(heading);
+ const heading=mk('div','ldp124-widget-head'),tools=mk('div','ldp136-card-tools');
+ const collapsed=data.collapsedWidgets.includes(id);
+ box.classList.toggle('ldp136-collapsed',collapsed);
+ const up=button('↑','ldp136-card-btn',()=>shiftWidget(id,-1));
+ const down=button('↓','ldp136-card-btn',()=>shiftWidget(id,1));
+ up.title=w136(2);down.title=w136(3);
+ up.setAttribute('aria-label',w136(2)+' '+title);down.setAttribute('aria-label',w136(3)+' '+title);
+ up.disabled=data.widgetOrder.indexOf(id)===0;down.disabled=data.widgetOrder.indexOf(id)===data.widgetOrder.length-1;
+ const fold=button(collapsed?'＋':'−','ldp136-card-btn',()=>{
+  data.collapsedWidgets=collapsed?data.collapsedWidgets.filter(x=>x!==id):[...new Set([...data.collapsedWidgets,id])];
+  persist();drawWidgets();
+ });
+ fold.title=collapsed?w136(1):w136(0);
+ fold.setAttribute('aria-label',(collapsed?w136(1):w136(0))+' '+title);
+ fold.setAttribute('aria-expanded',String(!collapsed));
+ tools.append(up,down,fold,btn);
+ heading.append(mk('strong','ldp136-card-heading',title),tools);box.append(heading);
+ box.draggable=true;
+ box.addEventListener('dragstart',event=>{
+  if(event.target.closest('button,input,select')){event.preventDefault();return}
+  event.dataTransfer.setData('text/plain',id);event.dataTransfer.effectAllowed='move';
+  box.classList.add('ldp136-dragging');
+ });
+ box.addEventListener('dragend',()=>box.classList.remove('ldp136-dragging'));
+ box.addEventListener('dragover',event=>{event.preventDefault();event.dataTransfer.dropEffect='move'});
+ box.addEventListener('drop',event=>{
+  event.preventDefault();const from=event.dataTransfer.getData('text/plain');
+  if(WIDGETS.includes(from))reorderWidget(from,id);
+ });
  if(id==='today'||id==='calendar'){
   const area=mk('div','ldp127-today-list');
   box.append(area);
