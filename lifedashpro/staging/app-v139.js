@@ -784,7 +784,12 @@ window.LifeDashMobilityBridge=Object.freeze({
   const id=String(draft?.id||('web-journey-'+(crypto.randomUUID?.()||Date.now()))).slice(0,120);
   const old=(state.data.journey_plans_beta||[]).find(x=>String(x.id)===id);
   const title=String(draft?.title||'').trim().slice(0,180),stops=draft?.stops;
-  const iso=x=>/^\d{4}-\d{2}-\d{2}$/.test(String(x||''))&&!Number.isNaN(new Date(x+'T12:00:00').getTime());
+  const iso=x=>{
+   const match=String(x||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+   if(!match)return false;
+   const d=new Date(+match[1],+match[2]-1,+match[3],12);
+   return d.getFullYear()===+match[1]&&d.getMonth()+1===+match[2]&&d.getDate()===+match[3];
+  };
   const clock=x=>!x||/^([01]\d|2[0-3]):[0-5]\d$/.test(String(x));
   if(!title||!iso(draft.startDate)||!clock(draft.startTime))throw Error('Enter valid trip name, date and time.');
   if(!Array.isArray(stops)||stops.length<2||stops.length>15)throw Error('Select between 2 and 15 map places.');
