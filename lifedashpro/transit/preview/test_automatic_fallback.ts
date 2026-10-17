@@ -60,6 +60,26 @@ const fakeFetch: typeof globalThis.fetch = async (input, init) => {
   if (url === oldUrl + "/rest/v1/rpc/transit_gtfs_nearby") {
     return legacyDown ? localJson({ error: "old RPC unavailable" }, 503) : localJson(oldRows);
   }
+  if (url === dedicatedUrl + "/rest/v1/rpc/transit_gtfs_departures" ||
+      url === dedicatedUrl + "/rest/v1/rpc/transit_gtfs_trip_route") {
+    return dedicatedDown ? localJson({error: "simulated dedicated outage"}, 503) : localJson([]);
+  }
+  if (url.startsWith("https://transit.land/api/v2/rest/")) {
+    return localJson({ stops: [], stop_times: [], departures: [] });
+  }
+  if (url.startsWith("https://v6.db.transport.rest/locations/nearby?")) {
+    return localJson([{
+      id: "8012345", name: "Regensburg Hbf", products: {bus:true},
+      location:{latitude:49.0133,longitude:12.1015},
+    }]);
+  }
+  if (url.startsWith("https://v6.db.transport.rest/stops/8012345/departures?")) {
+    return localJson([{
+      tripId:"db-native-trip-001",line:{name:"6",product:"bus"},
+      direction:"Klinikum",when:"2026-10-17T16:04:00+02:00",
+      plannedWhen:"2026-10-17T16:04:00+02:00",cancelled:false,
+    }]);
+  }
   // Absolutely NO live external network during the simulated outage.
   throw Error("Unmocked network request blocked");
 };
@@ -135,6 +155,41 @@ try {
   assert(response.status === 401 && body.ok === false,
     "Preview fallback accepted missing user credentials");
   console.log("DEDICATED_GTFS_FALLBACK_AUTH_REQUIRED_PASS");
+
+  // 5. Scoped GTFS stop IDs must never be sent to Transitland as if they
+  // were independent Onestop IDs. Resolve by coordinate for alternate DB.
+  requests.length = 0;
+  response = await post("departures", {
+    stopId:"de-national:355633",feedSource:"de-national",duration:90
+  });
+  body = await response.json();
+  assert(response.status === 200 && body.ok === true, "Outage departures response failed");
+  assert(body.departures?.length === 1 && body.departures[0].tripId === "db-native-trip-001",
+    "Coordinate-resolved DB departures missing during dedicated outage");
+  assert(body.providerId === "de-db-rest", "Wrong provider selected for alternate departures");
+  assert(!requests.some(url => url.includes("de-national%3A355633") ||
+                              url.includes("de-national:355633")),
+    "Feed-scoped stopId leaked into an unrelated provider's URL");
+  assert(requests.some(url => url.startsWith("https://v6.db.transport.rest/locations/nearby?")),
+    "DB-native station resolution by GPS missing");
+  console.log("DEDICATED_GTFS_DEPARTURES_PROVIDER_ID_ISOLATION_PASS");
+
+  // 6. Scoped GTFS trip IDs may not be forwarded to DB transport.rest.
+  requests.length = 0;
+  response = await post("trip", {
+    tripId:"959325",feedSource:"de-national",
+    providerId:"de-national",lineName:"11"
+  });
+  body = await response.json();
+  assert(response.status === 200 && body.ok === true && body.route === null,
+    "Unavailable GTFS route should fail closed with null route");
+  assert(body.providerId === "de-national" && body.attempts?.length === 1 &&
+         body.attempts[0].ok === false,
+    "Missing GTFS trip-specific failure trace");
+  assert(requests.every(url => !url.startsWith("https://v6.db.transport.rest/") &&
+                               !url.startsWith("https://transit.land/")),
+    "Dedicated tripId was passed to another provider");
+  console.log("DEDICATED_GTFS_TRIP_PROVIDER_ID_ISOLATION_PASS");
 
   console.log("DEDICATED_GTFS_OFFLINE_FALLBACK_INTEGRATION_ALL_PASS");
 } finally {
