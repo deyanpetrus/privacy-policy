@@ -44,7 +44,7 @@ jobs:
     timeout-minutes: 100
     services:
       postgres:
-        image: postgres:16
+        image: postgres:17
         env:
           POSTGRES_USER: ldp_gtfs_scratch
           POSTGRES_PASSWORD: local_ephemeral_benchmark_only
@@ -138,6 +138,25 @@ jobs:
         run: |
           set -euo pipefail
           python lifedashpro/transit/gtfs_refresh_guard.py             --profile core --dir "$RUNNER_TEMP/transit-rolling/subset"             --min-valid-days 12 --min-zip-mb 100
+      - name: Snapshot and restore-check old dedicated GTFS before refresh
+        if: ${{ steps.plan.outputs.refresh_needed == 'true' && (github.event_name == 'schedule' || inputs.mode == 'refresh') }}
+        env:
+          LDP_DEDICATED_TRANSIT_DB_URL: ${{ secrets.LDP_DEDICATED_TRANSIT_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python lifedashpro/transit/dedicated_gtfs_snapshot.py --confirm-project-ref gnqtngtuzbxohgwgvmpb --output-dir "$RUNNER_TEMP/transit-pre-refresh"
+      - name: Upload verified pre-refresh recovery archive
+        if: ${{ steps.plan.outputs.refresh_needed == 'true' && (github.event_name == 'schedule' || inputs.mode == 'refresh') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: transit-pre-refresh-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/transit-pre-refresh/transit_data.pgdump
+            ${{ runner.temp }}/transit-pre-refresh/receipt.json
+          retention-days: 14
+          compression-level: 0
+          if-no-files-found: error
       - name: Transactional GTFS refresh ONLY in NEW isolated Supabase
         if: ${{ steps.plan.outputs.refresh_needed == 'true' && (github.event_name == 'schedule' || inputs.mode == 'refresh') }}
         env:
@@ -156,4 +175,4 @@ jobs:
       - name: Remove downloaded files
         if: always()
         shell: bash
-        run: rm -rf "$RUNNER_TEMP/transit-rolling"
+        run: rm -rf "$RUNNER_TEMP/transit-rolling" "$RUNNER_TEMP/transit-pre-refresh"

@@ -1,0 +1,54 @@
+name: LifeDashPro dedicated preview fallback safety
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/preview/transit-schedule-dedicated-preview/index.ts'
+      - '.github/workflows/lifedashpro-dedicated-fallback-test.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/preview/transit-schedule-dedicated-preview/index.ts'
+      - '.github/workflows/lifedashpro-dedicated-fallback-test.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Parse preview TypeScript with Deno (legacy strict-type errors already exist)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          source=Path("lifedashpro/transit/preview/transit-schedule-dedicated-preview/index.ts").read_text()
+          Path("/tmp/ldp-preview-syntax.ts").write_text("// @ts-nocheck\n"+source)
+          PY
+          deno check /tmp/ldp-preview-syntax.ts
+      - name: Validate authenticated fallback scope
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path("lifedashpro/transit/preview/transit-schedule-dedicated-preview/index.ts").read_text()
+          assert "authenticateAndRateLimit(req,'transit-schedule',30,60)" in s
+          assert "LDP_DEDICATED_TRANSIT_SERVICE_ROLE_KEY" in s
+          assert "new Set([" in s and "transit_gtfs_trip_route" in s
+          assert "a.supabaseUrl+'/rest/v1/rpc/transit_gtfs_nearby'" in s
+          assert "authorization:'Bearer '+a.accessToken" in s
+          assert "legacyGtfsNearby(a,lat,lon,radiusM,limit)" in s
+          assert "fallbackTestOnly:true" in s
+          assert "legacyGtfsDepartures" not in s
+          assert "legacyGtfsTrip" not in s
+          assert "verify_jwt:false" not in s
+          print("DEDICATED_PREVIEW_FALLBACK_SCOPE_AND_JWT_PASS")
+          PY

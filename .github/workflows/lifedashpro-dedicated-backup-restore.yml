@@ -1,0 +1,88 @@
+name: LifeDashPro NEW Transit offsite GTFS backup and restore verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/dedicated_gtfs_snapshot.py'
+      - 'lifedashpro/transit/test_dedicated_gtfs_snapshot.py'
+      - '.github/workflows/lifedashpro-dedicated-backup-restore.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/dedicated_gtfs_snapshot.py'
+      - 'lifedashpro/transit/test_dedicated_gtfs_snapshot.py'
+      - '.github/workflows/lifedashpro-dedicated-backup-restore.yml'
+  schedule:
+    - cron: '25 3 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lifedashpro-dedicated-transit-backup
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ldp_gtfs_scratch
+          POSTGRES_PASSWORD: local_ephemeral_benchmark_only
+          POSTGRES_DB: ldp_gtfs_scratch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ldp_gtfs_scratch -d ldp_gtfs_scratch"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DEDICATED_LOCAL_SMOKE_DB_URL: postgresql://ldp_gtfs_scratch:local_ephemeral_benchmark_only@127.0.0.1:5432/ldp_gtfs_scratch
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install pinned PostgreSQL Python client
+        run: python -m pip install --disable-pip-version-check "psycopg[binary]==3.2.10"
+      - name: Compile backup code
+        run: python -m py_compile lifedashpro/transit/dedicated_gtfs_snapshot.py lifedashpro/transit/test_dedicated_gtfs_snapshot.py
+      - name: Build disposable sample database with GTFS rows
+        run: python lifedashpro/transit/test_dedicated_gtfs_import.py
+      - name: Restore local GTFS fixture from PG17 archive and verify RLS and row counts
+        run: python lifedashpro/transit/test_dedicated_gtfs_snapshot.py
+      - name: Create real remote read-only GTFS snapshot and verify full local restore
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          LDP_DEDICATED_TRANSIT_DB_URL: ${{ secrets.LDP_DEDICATED_TRANSIT_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python lifedashpro/transit/dedicated_gtfs_snapshot.py             --confirm-project-ref gnqtngtuzbxohgwgvmpb             --output-dir "$RUNNER_TEMP/transit-snapshot"
+      - name: Upload validated off-project GTFS backup (14 days)
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dedicated-transit-gtfs-verified-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/transit-snapshot/transit_data.pgdump
+            ${{ runner.temp }}/transit-snapshot/receipt.json
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+      - name: Report backup and local restore verification
+        if: ${{ github.event_name != 'pull_request' }}
+        run: |
+          echo "## NEW Transit GTFS backup VERIFIED" >> "$GITHUB_STEP_SUMMARY"
+          echo "Private 8-table GTFS schema snapshot created, fully restored and validated in disposable local PostgreSQL17." >> "$GITHUB_STEP_SUMMARY"
+          echo "Artifact retained 14 days; no old LifeDashPro/NotesPro data included." >> "$GITHUB_STEP_SUMMARY"
+      - name: Wipe temporary working snapshot
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/transit-snapshot"

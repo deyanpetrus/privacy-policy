@@ -148,14 +148,34 @@ async function transitRpc<T>(_a:AuthContext,name:string,body:Record<string,unkno
    throw new HttpError(503,'Dedicated GTFS preview connection unavailable');
  }finally{clearTimeout(timeout)}
 }
+// Failover to same OLD LifeDashPro project's own authenticated GTFS stop
+// index. Stop discovery is safe across feed vintages; trip IDs and departure
+// schedules are NOT interchangeable and are never fetched from legacy here.
+async function legacyGtfsNearby(a:AuthContext,lat:number,lon:number,radiusM:number,limit:number):Promise<any[]>{
+ const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),3000);
+ try{
+  const r=await fetch(a.supabaseUrl+'/rest/v1/rpc/transit_gtfs_nearby',{
+   method:'POST',signal:ctl.signal,
+   headers:{apikey:a.apiKey,authorization:'Bearer '+a.accessToken,
+            'content-type':'application/json',accept:'application/json'},
+   body:JSON.stringify({p_lat:lat,p_lon:lon,p_radius_m:radiusM,p_limit:limit})});
+  if(!r.ok)throw new HttpError(503,'Legacy locations unavailable');
+  const rows=await r.json();
+  if(!Array.isArray(rows))throw new HttpError(503,'Legacy locations invalid');
+  return rows;
+ }catch(_e){throw new HttpError(503,'Legacy locations unavailable')}
+ finally{clearTimeout(timer)}
+}
 function cacheClock(){const p=localParts('Europe/Berlin'),d=p.date;return{date:d.slice(0,4)+'-'+d.slice(4,6)+'-'+d.slice(6,8),seconds:p.sec}}
 async function gtfsNearby(a:AuthContext,lat:number,lon:number,radiusM:number,limit:number):Promise<Stop[]>{
- const rows=await transitRpc<any[]>(a,'transit_gtfs_nearby',{p_lat:lat,p_lon:lon,p_radius_m:radiusM,p_limit:limit});
+ let rows:any[],usedLegacy=false;
+ try{rows=await transitRpc<any[]>(a,'transit_gtfs_nearby',{p_lat:lat,p_lon:lon,p_radius_m:radiusM,p_limit:limit})}
+ catch(_error){rows=await legacyGtfsNearby(a,lat,lon,radiusM,limit);usedLegacy=true}
  return (Array.isArray(rows)?rows:[]).map(x=>({
  id:String(x.scoped_id||x.feed_source+':'+x.stop_id),name:String(x.stop_name||'Stop'),
  lat:Number(x.stop_lat),lon:Number(x.stop_lon),distanceM:Number(x.distance_m||0),lines:[],
  code:x.stop_code||undefined,platform:x.platform_code||undefined,
- providerId:String(x.feed_source||'de-national'),provider:String(x.feed_source||'Germany GTFS'),
+ providerId:String(x.feed_source||'de-national'),provider:usedLegacy?'LifeDashPro legacy GTFS locations':String(x.feed_source||'Germany GTFS'),
  feedSource:String(x.feed_source||'de-national'),sourceKind:'official-gtfs' as const,quality:'scheduled' as const
  })).filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lon));
 }
@@ -202,6 +222,9 @@ async function managedNearby(auth:AuthContext,country:string,lat:number,lon:numb
  const attempts:ProviderAttempt[]=[];
  if(country==='DE'){
  const cached=await providerAttempt('de-gtfs-cache','Germany GTFS',()=>gtfsNearby(auth,lat,lon,radiusM,limit),x=>x.length);
+ if(cached.value?.length&&cached.value[0].provider==='LifeDashPro legacy GTFS locations'){
+  cached.attempt.providerId='de-gtfs-legacy';cached.attempt.provider='Original LifeDashPro GTFS stop fallback';
+ }
  attempts.push(cached.attempt);
  if(cached.value?.length)return{stops:cached.value,providerId:cached.value[0].providerId,
  provider:cached.value[0].provider,quality:'scheduled' as TransitQuality,
@@ -336,6 +359,14 @@ Deno.serve(async req=>{
   const country=String(b?.country||'').toUpperCase();
   const action=String(b?.action||'nearby');
   if(action==='providers')return Response.json({ok:true,generatedAt:new Date().toISOString(),provider:'LifeDash Transit Provider Manager',providerId:'lifedash-transit-manager',providers:[PROVIDERS.MK,PROVIDERS.DE,PROVIDERS.CH,{country:'EU',primary:'transitland-v2',quality:'scheduled',name:'Transitland v2',sourceUrl:TRANSITLAND_SOURCE}]},{headers:{...cors,'Cache-Control':'private, max-age=3600'}});
+  if(action==='fallback-diagnostic'){
+    const lat=Number(b.lat),lon=Number(b.lon);
+    if(country!=='DE'||!Number.isFinite(lat)||!Number.isFinite(lon))throw new HttpError(400,'Germany coordinates required');
+    const rows=await legacyGtfsNearby(auth,lat,lon,1200,5);
+    return Response.json({ok:true,country:'DE',fallbackTestOnly:true,
+      providerId:'de-gtfs-legacy',itemCount:rows.length,
+      generatedAt:new Date().toISOString()},{headers:{...cors,'Cache-Control':'no-store'}});
+   }
   if(action==='cache-status'){const feeds=await gtfsStatus(auth);return Response.json({ok:true,generatedAt:new Date().toISOString(),providerId:'de-gtfs-cache',provider:'Germany GTFS cache',feeds},{headers:{...cors,'Cache-Control':'no-store'}})}
   if(action==='motis-diagnostic'){
    const fromLat=Number(b.fromLat),fromLon=Number(b.fromLon),toLat=Number(b.toLat),toLon=Number(b.toLon),departure=String(b.departure||new Date().toISOString()),language=String(b.language||'en').slice(0,8);
