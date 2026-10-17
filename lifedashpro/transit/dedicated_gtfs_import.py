@@ -222,7 +222,7 @@ def mapping(cur,table,key_column,natural_column,expected):
         raise RuntimeError("Duplicate identifier in "+table)
     return result
 
-def run_import(cur,folder,manifest):
+def run_import(cur,folder,manifest,*,size_cap_mib=390):
     counts=manifest["counts"]
     selection=manifest["selection"]
     start=date.fromisoformat(selection["service_date"])
@@ -298,8 +298,8 @@ def run_import(cur,folder,manifest):
         raise RuntimeError("Excessive missing schedule times")
     cur.execute("select pg_database_size(current_database())")
     size=cur.fetchone()[0]
-    if size > 390*1024*1024:
-        raise RuntimeError("Free project quota guard: database exceeds 390 MiB")
+    if size > size_cap_mib*1024*1024:
+        raise RuntimeError("Free project quota guard: import exceeds configured safe MiB cap")
     cur.execute("""update transit_data.feeds set active=true
         where feed_source=%s and active=false""",(EXPECTED_FEED,))
     if cur.rowcount!=1:
