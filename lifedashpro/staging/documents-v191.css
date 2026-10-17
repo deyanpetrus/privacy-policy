@@ -81,11 +81,3 @@
  .docs-detail-actions button{flex:1}
 }
 @media(prefers-reduced-motion:reduce){.docs-card,.docs-stat{transition:none!important}}
-
-/* v1.38 — override generic .card grid-column:span 4, including hosted Desktop. */
-.documents-pro-page .docs-stats{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important;align-items:stretch}
-.documents-pro-page .docs-stats>.docs-stat{grid-column:auto!important;grid-row:auto!important;width:auto!important;max-width:none!important;min-width:0!important;min-height:73px!important;padding:11px 14px!important;gap:5px!important}
-.documents-pro-page .docs-stats>.docs-stat strong{font-size:clamp(20px,1.7vw,25px);line-height:1}
-.documents-pro-page .docs-stats>.docs-stat span{font-size:10px}
-@media(max-width:780px){.documents-pro-page .docs-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-@media(max-width:420px){.documents-pro-page .docs-stats>.docs-stat{min-height:66px!important;padding:9px!important}}
