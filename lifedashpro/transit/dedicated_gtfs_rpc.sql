@@ -72,8 +72,8 @@ language sql stable security definer set search_path = ''
 as $fn$
  with params as (
  select p_lat lat,p_lon lon,
-        pg_catalog.greatest(100,pg_catalog.least(25000,coalesce(p_radius_m,3000))) radius_m,
-        pg_catalog.greatest(1,pg_catalog.least(100,coalesce(p_limit,30))) lim
+        greatest(100,least(25000,coalesce(p_radius_m,3000))) radius_m,
+        greatest(1,least(100,coalesce(p_limit,30))) lim
  ), candidates as (
   select s.*, f.feed_source source,
      2.0*6371000.0*pg_catalog.asin(pg_catalog.sqrt(
@@ -87,8 +87,8 @@ as $fn$
   where p.lat between -90 and 90 and p.lon between -180 and 180
     and s.stop_lat between p.lat-p.radius_m/111320.0 and p.lat+p.radius_m/111320.0
     and s.stop_lon between
-         p.lon-p.radius_m/pg_catalog.greatest(1000.0,111320.0*pg_catalog.cos(pg_catalog.radians(p.lat))) and
-         p.lon+p.radius_m/pg_catalog.greatest(1000.0,111320.0*pg_catalog.cos(pg_catalog.radians(p.lat)))
+         p.lon-p.radius_m/greatest(1000.0,111320.0*pg_catalog.cos(pg_catalog.radians(p.lat))) and
+         p.lon+p.radius_m/greatest(1000.0,111320.0*pg_catalog.cos(pg_catalog.radians(p.lat)))
  )
  select c.source||':'||c.stop_id, c.source,c.stop_id,c.stop_name,c.stop_code,
         c.platform_code,c.stop_lat,c.stop_lon,
@@ -108,9 +108,9 @@ returns table(feed_source text,stop_id text,trip_id text,route_id text,
 language sql stable security definer set search_path = ''
 as $fn$
  with params as (
-  select pg_catalog.greatest(0,pg_catalog.least(86399,coalesce(p_now_seconds,0))) now_s,
-         pg_catalog.greatest(1,pg_catalog.least(360,coalesce(p_window_minutes,180)))*60 win_s,
-         pg_catalog.greatest(1,pg_catalog.least(100,coalesce(p_limit,40))) lim
+  select greatest(0,least(86399,coalesce(p_now_seconds,0))) now_s,
+         greatest(1,least(360,coalesce(p_window_minutes,180)))*60 win_s,
+         greatest(1,least(100,coalesce(p_limit,40))) lim
  ), selected_stop as (
   select s.stop_key,s.stop_id,s.platform_code,s.feed_source
   from transit_data.stops s
