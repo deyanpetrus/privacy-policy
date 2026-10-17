@@ -116,7 +116,10 @@ function renderServices(vehicle,parent){
    const parts=[row.km!=null?km(row.km):'',row.cost!=null?money(row.cost,row.currency||'EUR'):''].filter(Boolean);
    if(parts.length)item.append(E('small','mob111-muted',parts.join(' · ')));
    if(txt(row.notes))item.append(E('p','',txt(row.notes,900)));
-   grid.append(item);
+   const controls=E('div','mob138-history-actions'),idx=(vehicle.services||[]).indexOf(row);
+   controls.append(action('✎ Edit',()=>window.LifeDashVehicleEditorV138?.history?.(vehicle,'services',row,idx),'secondary mob138-action'),
+    action('× Delete',()=>window.LifeDashVehicleEditorV138?.removeHistory?.(vehicle,'services',row,idx),'danger mob138-action'));
+   item.append(controls);grid.append(item);
  }
  parent.append(grid);
 }
@@ -147,7 +150,10 @@ function renderFuel(vehicle,parent){
      num(f.km)!==null?km(f.km):'',
      f.fullTank===true?'Full tank':''].filter(Boolean);
    item.append(E('small','mob111-muted',fields.join(' · ')));
-   grid.append(item);
+   const controls=E('div','mob138-history-actions'),idx=(vehicle.fuelHistory||[]).indexOf(f);
+   controls.append(action('✎ Edit',()=>window.LifeDashVehicleEditorV138?.history?.(vehicle,'fuelHistory',f,idx),'secondary mob138-action'),
+    action('× Delete',()=>window.LifeDashVehicleEditorV138?.removeHistory?.(vehicle,'fuelHistory',f,idx),'danger mob138-action'));
+   item.append(controls);grid.append(item);
  }
  parent.append(grid);
 }
