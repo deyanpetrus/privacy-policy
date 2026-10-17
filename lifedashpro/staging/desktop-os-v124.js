@@ -1159,7 +1159,9 @@ function widget(id){
    Number.isFinite(amount)?new Intl.NumberFormat(lang(),{style:'currency',currency:'EUR'}).format(amount/100):'—'));
   box.append(mk('small','ldp124-widget-muted','Monthly balance · EUR'));
  }else if(id==='weather'){
-  const city=String(dash()?.profile?.()?.city||'').trim();
+  const choice=selectedWeather;
+  const city=String(choice?.label||dash()?.profile?.()?.city||'').trim();
+  const weatherKey=choice?choice.lat.toFixed(5)+','+choice.lon.toFixed(5):city;
   const line=mk('p','ldp124-widget-muted',city||wt(6));
   const value=mk('div','ldp124-weather-value','☁ —');
   const solar=mk('div','ldp133-astro');
@@ -1203,16 +1205,16 @@ function widget(id){
   }
   async function loadWeather(force=false){
    if(weatherLoading||!city||!box.isConnected||ui?.hidden)return;
-   const id=owner,now=Date.now();
-   if(!force&&weatherCached.owner===id&&weatherCached.city===city&&
+   const id=owner,now=Date.now(),seq=weatherEpoch;
+   if(!force&&weatherCached.owner===id&&weatherCached.city===weatherKey&&
     weatherCached.data&&now-weatherCached.at<WEATHER_TTL){
     paintWeather(weatherCached.data);return;
    }
    weatherLoading=true;check.disabled=true;
    value.textContent='…';
    try{
-    const cities=await window.LifeDashExploreBridge?.cities?.(city);
-    const place=cities?.find(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lon)));
+    const cities=choice?null:await window.LifeDashExploreBridge?.cities?.(city);
+    const place=choice||cities?.find(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lon)));
     if(!place)throw new Error(wt(6));
     const fetchForecast=async(withMoon)=>{
      const url=new URL('https://api.open-meteo.com/v1/forecast');
@@ -1233,16 +1235,16 @@ function widget(id){
     let data;
     try{data=await fetchForecast(true)}
     catch(e){if(String(e.message||'').includes('HTTP 400'))data=await fetchForecast(false);else throw e}
-    if(id!==owner||!active()||!box.isConnected)return;
+    if(id!==owner||seq!==weatherEpoch||!active()||!box.isConnected)return;
     if(!Number.isFinite(Number(data?.current?.temperature_2m))||!Array.isArray(data?.daily?.time))
      throw new Error(wt(5));
-    weatherCached={owner:id,city,at:Date.now(),data};paintWeather(data);
+    weatherCached={owner:id,city:weatherKey,at:Date.now(),data};paintWeather(data);
    }catch(e){
-    if(box.isConnected&&id===owner){
+    if(box.isConnected&&id===owner&&seq===weatherEpoch){
       value.textContent=wt(5);solar.replaceChildren();
       line.textContent=city+' · '+String(e?.message||'').slice(0,55);
     }
-   }finally{weatherLoading=false;if(box.isConnected)check.disabled=false}
+   }finally{if(seq===weatherEpoch)weatherLoading=false;if(box.isConnected)check.disabled=false}
   }
   if(city)queueMicrotask(()=>void loadWeather());
 }else if(id==='world'){
