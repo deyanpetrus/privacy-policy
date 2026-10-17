@@ -116,7 +116,7 @@ const selectors=[
  '.mobility-v111 .mob111-section-head h3','.mobility-v111 .mob111-details-grid .mob111-pair span',
  '.mobility-v111 .mob111-expiry-grid .mob111-expiry-card small',
  '.mobility-v111 .mob111-panel-title .mob111-plate',
- '.mobility-v111 .mob138-action'
+ '.mobility-v111 .mob138-action','.mobility-v111 .mob139-button'
 ];
 function translateNode(n){
  if(!n||n.children?.length)return;
