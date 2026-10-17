@@ -4,6 +4,35 @@ const cfg=window.LIFEDASH_CONFIG||{};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const state={client:null,session:null,user:null,profile:null,page:'dashboard',data:{},editor:null,loading:false,syncReady:false,lastSync:null,deviceId:localStorage.getItem('lifedash_web_device_id')||`web-${crypto.randomUUID?.()||Date.now()}`};
 localStorage.setItem('lifedash_web_device_id',state.deviceId);
+// Web-only security policy; Auth server-side token lifetime must also be configured.
+const WEB_IDLE_MS=30*60*1000,WEB_ABSOLUTE_MS=12*60*60*1000;
+let webLoginPending=false,webExpiryBusy=false,webTouchAt=0;
+const webMetaKey=id=>'ldp_web_session_v137_'+id;
+function webMeta(id){try{const v=JSON.parse(localStorage.getItem(webMetaKey(id))||'null');return v&&Number.isFinite(v.start)&&Number.isFinite(v.last)?v:null}catch(_){return null}}
+function webStart(id){if(!id)return;const now=Date.now();try{localStorage.setItem(webMetaKey(id),JSON.stringify({start:now,last:now}))}catch(_){}}
+function webValid(id){const m=id&&webMeta(id),now=Date.now();
+ return !!m&&m.start>0&&m.last>=m.start&&m.start<=now+60000&&m.last<=now+60000&&now-m.last<WEB_IDLE_MS&&now-m.start<WEB_ABSOLUTE_MS}
+async function webExpire(){
+ if(webExpiryBusy||!state.client)return;
+ webExpiryBusy=true;const prior=state.user?.id;
+ try{if(prior)localStorage.removeItem(webMetaKey(prior));
+  showAuthShell(false);authMsg('Your web session expired. Sign in again.','error');
+  await state.client.auth.signOut({scope:'local'}); // never sign out Android sessions
+ }catch(_){showAuthShell(false);authMsg('Session expired. Refresh to sign in again.','error')}
+ finally{webExpiryBusy=false}
+}
+function webCheck(){if(state.user&&!webValid(state.user.id))void webExpire()}
+function webTouch(){
+ if(document.hidden||!state.user||webExpiryBusy)return;
+ if(!webValid(state.user.id)){void webExpire();return}
+ const now=Date.now();if(now-webTouchAt<15000)return;const meta=webMeta(state.user.id);
+ if(!meta)return;webTouchAt=now;
+ try{localStorage.setItem(webMetaKey(state.user.id),JSON.stringify({start:meta.start,last:now}))}catch(_){}
+}
+for(const kind of ['pointerdown','keydown','wheel','touchstart'])window.addEventListener(kind,webTouch,{passive:true});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)webCheck()});
+window.addEventListener('focus',webCheck);
+window.setInterval(webCheck,60000);
 const KINDS=['notes','finance_transactions','finance_goals','family_tasks','documents','vehicles','journey_plans_beta','manual_reminders','travel','radio_favorites','family_members'];
 const OS_CHILD=Boolean(document.documentElement.classList.contains('ldp-os-embedded')&&window.parent!==window);
 function desktopChildContext(){
@@ -68,9 +97,17 @@ async function init(){
     // Install the callback BEFORE session recovery, so sign-in still works if recovery times out.
     state.client.auth.onAuthStateChange((event,session)=>{
       const oldId=state.user?.id||null;
+      if(session?.user&&(webLoginPending||event==='PASSWORD_RECOVERY')){
+       webStart(session.user.id);webLoginPending=false;
+      }
+      if(session?.user&&!webValid(session.user.id)){
+       queueMicrotask(()=>void webExpire());return;
+      }
       state.session=session;state.user=session?.user||null;
       if(event==='PASSWORD_RECOVERY')queueMicrotask(()=>$('#passwordDialog').showModal());
       if(event==='SIGNED_OUT'){
+        if(oldId)try{localStorage.removeItem(webMetaKey(oldId))}catch(_){}
+        webLoginPending=false;
         state.data={};state.profile=null;state.lastSync=null;state.loading=false;state.syncReady=false;
         queueMicrotask(()=>showAuthShell(false));
       }else if(event==='SIGNED_IN'&&session&&(!oldId||oldId!==session.user.id)){
@@ -81,11 +118,13 @@ async function init(){
     const {data,error}=await Promise.race([state.client.auth.getSession(),new Promise((_,rej)=>setTimeout(()=>rej(new Error('Login session check timed out. Please try signing in again.')),12000))]);
     if(error)throw error;
     state.session=data.session;state.user=data.session?.user||null;
+    if(state.session&&!webValid(state.user?.id)){await webExpire();return}
     if(state.session)await enterApp();
   }catch(e){showAuthShell(false);authMsg('Secure login is temporarily unavailable: '+e.message,'error')}
 }
 function showAuthShell(needsKey){$('#appView').classList.add('hidden');$('#authView').classList.remove('hidden');$('#keySetup').classList.toggle('hidden',!needsKey);$('#authCard').classList.toggle('hidden',needsKey)}
 async function enterApp(){
+  if(!state.user||!webValid(state.user.id)){await webExpire();return}
   state.data={};state.profile=null;state.syncReady=false;
   $('#authView').classList.add('hidden');$('#appView').classList.remove('hidden');
   await loadProfile();await refreshAll();render();
@@ -169,12 +208,20 @@ function dashboardPostedStats(){
  }
  return {inc,exp,pending,bal:inc-exp,currency:[...currencies][0]||'EUR',mixed:currencies.size>1,skipped};
 }
-function timelineItems(){const out=[];for(const n of state.data.notes||[]){if(n.dueDate&&n.status!=='completed'&&n.status!=='archived')out.push({date:n.dueDate,time:n.dueTime||'',type:'Note',title:n.title||'Note'})}for(const t of state.data.family_tasks||[]){if(t.dueDate&&!t.done)out.push({date:t.dueDate,time:t.reminderTime||'',type:'Task',title:t.title||'Task'})}for(const r of state.data.manual_reminders||[]){const d=r.dueDate||r.date||String(r.scheduledFor||'').slice(0,10);if(d)out.push({date:d,time:r.time||r.reminderTime||'',type:'Reminder',title:r.title||r.text||'Reminder'})}return out.sort((a,b)=>`${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`)).slice(0,12)}
+function timelineItems(){const out=[];for(const n of state.data.notes||[]){if(n.dueDate&&n.status!=='completed'&&n.status!=='archived')out.push({date:n.dueDate,time:n.dueTime||'',type:'Note',title:n.title||'Note'})}for(const t of state.data.family_tasks||[]){if(t.dueDate&&!t.done)out.push({date:t.dueDate,time:t.reminderTime||'',type:'Task',title:t.title||'Task'})}for(const r of state.data.manual_reminders||[]){const d=r.dueDate||r.date||String(r.scheduledFor||'').slice(0,10);if(d)out.push({date:d,time:r.time||r.reminderTime||'',type:'Reminder',title:r.title||r.text||'Reminder'})}return out.sort((a,b)=>`${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))}
 function renderDashboard(){const s=dashboardPostedStats(),notes=state.data.notes||[],tasks=(state.data.family_tasks||[]).filter(x=>!x.done),journeys=state.data.journey_plans_beta||[],events=timelineItems().slice(0,3);return `<section id="androidDashboardParityV119" class="android-dashboard-parity-v119" aria-label="Android-inspired dashboard quick widgets"></section><div class="grid"><section class="card span-7"><div class="card-head"><div><p class="eyebrow">TODAY AT A GLANCE</p><h3>${esc(greeting())}, ${esc(state.profile?.name||'there')}</h3></div><span class="pill">${esc(cfg.contractVersion||'v38.13')} contract</span></div><div class="timeline">${events.length?events.map(eventHtml).join(''):'<div class="empty">Nothing urgent in the current synced timeline.</div>'}</div></section><section class="card span-5"><div class="card-head"><div><p class="eyebrow">FINANCE</p><h3>Paid transactions only</h3></div><button class="text-btn" data-go="finance">Open →</button></div><div class="kpi-grid"><div class="kpi"><strong>${fmtTotal(s,'inc')}</strong><span>Received</span></div><div class="kpi"><strong>${fmtTotal(s,'exp')}</strong><span>Paid expenses</span></div><div class="kpi"><strong>${fmtTotal(s,'bal')}</strong><span>Balance</span></div><p class="dash-finance-explain">Excludes unpaid expenses${s.pending?' · '+fmtTotal(s,'pending')+' pending':''}. Based on posted records; Android may apply other monthly settings.</p></div></section><section class="card"><div class="card-head"><div><p class="eyebrow">NOTES PRO</p><h3>${notes.length} synced notes</h3></div><button class="text-btn" data-go="notes">Open →</button></div>${miniRows(notes.slice(0,3),'note')}</section><section class="card"><div class="card-head"><div><p class="eyebrow">TASKS</p><h3>${tasks.length} waiting</h3></div><button class="text-btn" data-go="tasks">Open →</button></div>${miniRows(tasks.slice(0,3),'task')}</section><section class="card"><div class="card-head"><div><p class="eyebrow">JOURNEY</p><h3>${journeys.length} saved trips</h3></div><button class="text-btn" data-go="journey">Open →</button></div>${miniRows(journeys.slice(0,3),'journey')}</section><section class="card span-12"><p class="eyebrow">WEB ↔ ANDROID SAFETY</p><div class="info-grid"><div class="info-tile"><strong>RLS</strong><span>user-scoped database access</span></div><div class="info-tile"><strong>1 row</strong><span>record-by-record writes only</span></div><div class="info-tile"><strong>0</strong><span>full-collection replaces from web</span></div><div class="info-tile"><strong>↻</strong><span>manual refresh keeps control visible</span></div></div></section></div>`}
 function greeting(){const h=new Date().getHours();return h<12?'Good morning':h<18?'Good afternoon':'Good evening'}
 function eventHtml(x){return `<div class="timeline-item"><time>${esc(x.date)}${x.time?` · ${esc(x.time)}`:''}</time><i class="dot"></i><div><strong>${esc(x.type)}</strong> · ${esc(x.title)}</div></div>`}
 function miniRows(items,type){if(!items.length)return '<div class="empty">No synced items yet.</div>';return `<div class="list">${items.map(x=>`<div class="timeline-item"><span class="row-icon">${type==='note'?'✎':type==='task'?'✓':'⌖'}</span><div><strong>${esc(x.title||x.description||x.destination||'Item')}</strong><small>${esc(x.dueDate||x.updatedAt||x.startDate||'')}</small></div><span>›</span></div>`).join('')}</div>`}
-function renderToday(){const items=timelineItems();return pageWrap('Today & Next 5','Synced notes, tasks and reminders with due dates.',items.length?`<div class="list">${items.map(eventHtml).join('')}</div>`:'<div class="empty">No dated items found.</div>')}
+function renderToday(){
+ const from=today(),last=new Date(from+'T12:00:00');last.setDate(last.getDate()+5);
+ const through=[last.getFullYear(),String(last.getMonth()+1).padStart(2,'0'),String(last.getDate()).padStart(2,'0')].join('-');
+ // Newest scheduled item first; exclude overdue items from "Today & Next 5".
+ const items=timelineItems().filter(e=>e.date>=from&&e.date<=through)
+  .sort((a,b)=> (b.date+' '+(b.time||'')).localeCompare(a.date+' '+(a.time||'')));
+ return pageWrap('Today & Next 5','Synced notes, tasks and reminders with due dates.',
+  items.length?`<div class="list">${items.map(eventHtml).join('')}</div>`:'<div class="empty">No items due in the next 5 days.</div>');
+}
 function renderNotes(){const a=state.data.notes||[];return pageWrap('Notes Pro','Safe per-record web sync. Existing Android fields are preserved when editing.',listToolbar('New note','notes')+(a.length?`<div class="list">${a.map(n=>rowHtml('notes',n,'✎',n.title||'Untitled',n.description||n.dueDate||'',n.status||'active')).join('')}</div>`:'<div class="empty">No synced notes.</div>'))}
 function renderTasks(){const a=state.data.family_tasks||[];return pageWrap('Tasks','Safe per-record task sync. Native Android reminder scheduling remains device-local.',listToolbar('New task','tasks')+(a.length?`<div class="list">${a.map(t=>rowHtml('tasks',t,t.done?'✓':'○',t.title||'Task',`${t.assignedTo||'Me'}${t.dueDate?' · '+t.dueDate:''}`,t.done?'done':t.priority||'medium')).join('')}</div>`:'<div class="empty">No synced tasks.</div>'))}
 function renderFinance(){const a=state.data.finance_transactions||[],s=financeStats();return pageWrap('Finance','Monthly budget now counts due recurring entries in a separate read-only summary; saved history and Android-managed records remain unchanged.',`<section id="financeMonthCardV120" aria-label="Month-to-date finance including recurring transactions"></section><p class="ldp120-historical-label">Saved transaction history below · raw records, not monthly occurrence totals</p><div class="info-grid"><div class="info-tile"><strong>${fmtTotal(s,'inc')}</strong><span>Income</span></div><div class="info-tile"><strong>${fmtTotal(s,'exp')}</strong><span>Expenses</span></div><div class="info-tile"><strong>${fmtTotal(s,'bal')}</strong><span>Balance</span></div><div class="info-tile"><strong>${a.length}</strong><span>Transactions</span></div></div><div style="height:14px"></div>${listToolbar('New transaction','finance')}${a.length?`<div class="list">${a.map(t=>rowHtml('finance',t,t.type==='income'?'＋':'−',t.description||'Transaction',`${t.category||'other'} · ${t.date||''}`,fmtMoney(t.amount,t.currency||'EUR'),t.type)).join('')}</div>`:'<div class="empty">No synced transactions.</div>'}`)}
@@ -215,7 +262,7 @@ function rowHtml(mode,x,icon,title,sub,badge,cls=''){return `<div class="data-ro
 function wirePageRows(){
   $$('[data-go]').forEach(b=>b.onclick=()=>setPage(b.dataset.go));$$('[data-new]').forEach(b=>b.onclick=()=>openEditor(b.dataset.new));
   $$('[data-open]').forEach(r=>{if(r.dataset.open!=='readonly')r.onclick=()=>openEditor(r.dataset.open,r.dataset.id)});
-  $('#saveProfile')?.addEventListener('click',saveProfile);$('#logoutBtn')?.addEventListener('click',()=>state.client.auth.signOut());
+  $('#saveProfile')?.addEventListener('click',saveProfile);$('#logoutBtn')?.addEventListener('click',()=>state.client.auth.signOut({scope:'local'}));
   $('#requestEmailChangeBtn')?.addEventListener('click',requestEmailChange);
   $('#sendAccountNonceBtn')?.addEventListener('click',sendAccountNonce);
   $('#changeAccountPasswordBtn')?.addEventListener('click',changeAccountPassword);
@@ -434,9 +481,44 @@ async function changeAccountPassword(){
 }
 $$('[data-auth]').forEach(b=>b.onclick=()=>{const mode=b.dataset.auth;$$('[data-auth]').forEach(x=>x.classList.toggle('active',x===b));$('#signinForm').classList.toggle('hidden',mode!=='signin');$('#registerForm').classList.toggle('hidden',mode!=='register');authMsg('')});
 $('#saveKeyBtn').onclick=()=>{const k=$('#setupKey').value.trim();if(!k)return authMsg('Enter a public publishable/anon key.','error');if(k.startsWith('sb_secret_')||k.includes('service_role'))return authMsg('Secret/service-role keys must never be used in the browser.','error');localStorage.setItem('lifedash_web_publishable_key',k);location.reload()};
-$('#signinForm').onsubmit=async e=>{e.preventDefault();authMsg('Signing in…');const {error}=await state.client.auth.signInWithPassword({email:$('#signinEmail').value.trim(),password:$('#signinPassword').value});if(error)authMsg(error.message,'error')};
-$('#registerForm').onsubmit=async e=>{e.preventDefault();authMsg('Creating account…');const email=$('#registerEmail').value.trim(),password=$('#registerPassword').value,firstName=$('#registerFirstName').value.trim(),lastName=$('#registerLastName').value.trim(),country=$('#registerCountry').value,language=$('#registerLanguage').value;if(!firstName||firstName.length>80||lastName.length>80)return authMsg('First name is required (up to 80 characters).','error');const name=[firstName,lastName].filter(Boolean).join(' ');const emailRedirectTo=`${location.origin}${cfg.basePath||'/lifedashpro/'}`;const {data,error}=await state.client.auth.signUp({email,password,options:{emailRedirectTo,data:{name,full_name:name,first_name:firstName,last_name:lastName,country,language}}});if(error)return authMsg(error.message,'error');if(data.session){authMsg('Account created and signed in.','good')}else authMsg('Account created. Check your email to confirm, then sign in.','good')};
-$('#forgotBtn').onclick=async()=>{const email=$('#signinEmail').value.trim();if(!email)return authMsg('Enter your email first.','error');const redirectTo=`${location.origin}${cfg.basePath||'/lifedashpro/'}`;const {error}=await state.client.auth.resetPasswordForEmail(email,{redirectTo});authMsg(error?error.message:'Password reset email sent.',error?'error':'good')};
+$('#signinForm').onsubmit=async e=>{
+ e.preventDefault();const captcha=window.LifeDashCaptchaV137?.token?.('signin');
+ if(captcha===false)return;
+ authMsg('Signing in…');webLoginPending=true;
+ try{
+  const {data,error}=await state.client.auth.signInWithPassword({email:$('#signinEmail').value.trim(),
+   password:$('#signinPassword').value,...(captcha?{options:{captchaToken:captcha}}:{})});
+  if(error){webLoginPending=false;window.LifeDashCaptchaV137?.reset?.('signin');authMsg(error.message,'error')}
+  else if(data?.session&&!webValid(data.session.user.id))webStart(data.session.user.id);
+ }catch(err){webLoginPending=false;window.LifeDashCaptchaV137?.reset?.('signin');authMsg(err.message,'error')}
+};
+$('#registerForm').onsubmit=async e=>{
+ e.preventDefault();const captcha=window.LifeDashCaptchaV137?.token?.('register');if(captcha===false)return;
+ authMsg('Creating account…');
+ const email=$('#registerEmail').value.trim(),password=$('#registerPassword').value,
+  firstName=$('#registerFirstName').value.trim(),lastName=$('#registerLastName').value.trim(),
+  country=$('#registerCountry').value,language=$('#registerLanguage').value;
+ if(!firstName||firstName.length>80||lastName.length>80)return authMsg('First name is required (up to 80 characters).','error');
+ const name=[firstName,lastName].filter(Boolean).join(' '),emailRedirectTo=location.origin+(cfg.basePath||'/lifedashpro/');
+ webLoginPending=true;
+ try{
+  const {data,error}=await state.client.auth.signUp({email,password,options:{
+   emailRedirectTo,data:{name,full_name:name,first_name:firstName,last_name:lastName,country,language},
+   ...(captcha?{captchaToken:captcha}:{})}});
+  webLoginPending=false;
+  if(error){window.LifeDashCaptchaV137?.reset?.('register');return authMsg(error.message,'error')}
+  if(data.session){if(!webValid(data.session.user.id))webStart(data.session.user.id);authMsg('Account created and signed in.','good')}
+  else authMsg('Account created. Check your email to confirm, then sign in.','good');
+ }catch(err){webLoginPending=false;window.LifeDashCaptchaV137?.reset?.('register');authMsg(err.message,'error')}
+};
+$('#forgotBtn').onclick=async()=>{
+ const email=$('#signinEmail').value.trim();if(!email)return authMsg('Enter your email first.','error');
+ const captcha=window.LifeDashCaptchaV137?.token?.('signin');if(captcha===false)return;
+ const redirectTo=location.origin+(cfg.basePath||'/lifedashpro/');
+ const {error}=await state.client.auth.resetPasswordForEmail(email,{redirectTo,...(captcha?{captchaToken:captcha}:{})});
+ window.LifeDashCaptchaV137?.reset?.('signin');
+ authMsg(error?error.message:'Password reset email sent.',error?'error':'good');
+};
 $('#updatePasswordBtn').onclick=async()=>{const p=$('#newPassword').value;if(p.length<8)return $('#passwordMessage').textContent='Use at least 8 characters.';const {error}=await state.client.auth.updateUser({password:p});if(error){$('#passwordMessage').textContent=error.message;$('#passwordMessage').classList.remove('hidden');return}$('#passwordDialog').close();msg('Password updated.','good')};
 $('#refreshBtn').onclick=refreshAll;$('#quickAddBtn').onclick=()=>openEditor(state.page==='finance'?'finance':state.page==='tasks'?'tasks':'notes');$('#editorSave').onclick=saveEditor;$('#editorDelete').onclick=deleteEditor;
 $$('[data-page]').forEach(b=>b.onclick=()=>setPage(b.dataset.page));
