@@ -6,5 +6,6 @@ window.LIFEDASH_CONFIG = {
   publishableKey: 'sb_publishable_Wf4GdnVWLRlvYpQxGzqIag_jYbp05Uv',
   basePath: location.pathname.startsWith('/lifedashpro/staging/') ? '/lifedashpro/staging/' : '/lifedashpro/',
   contractVersion: 'user_data + profiles (verified 2026-10-09)',
-  webVersion: location.pathname.startsWith('/lifedashpro/staging/') ? '1.35.0-staging' : '1.35.0'
+  captchaSiteKey: '', // Cloudflare Turnstile PUBLIC site key; enable corresponding SECRET in Supabase Auth first.
+  webVersion: location.pathname.startsWith('/lifedashpro/staging/') ? '1.37.0-staging' : '1.37.0'
 };
