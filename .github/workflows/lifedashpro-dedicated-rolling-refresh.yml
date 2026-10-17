@@ -1,0 +1,159 @@
+name: LifeDashPro NEW Transit rolling GTFS refresh
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/dedicated_gtfs_refresh.py'
+      - 'lifedashpro/transit/test_dedicated_gtfs_refresh.py'
+      - 'lifedashpro/transit/dedicated_gtfs_import.py'
+      - '.github/workflows/lifedashpro-dedicated-rolling-refresh.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/dedicated_gtfs_refresh.py'
+      - 'lifedashpro/transit/test_dedicated_gtfs_refresh.py'
+      - 'lifedashpro/transit/dedicated_gtfs_import.py'
+      - '.github/workflows/lifedashpro-dedicated-rolling-refresh.yml'
+  schedule:
+    - cron: '45 2 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Read-only plan or eligible rolling refresh of NEW Transit ONLY
+        type: choice
+        required: true
+        default: plan
+        options: [plan, refresh]
+      confirm_project_ref:
+        description: For manual refresh, confirm exact NEW project ref
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lifedashpro-dedicated-transit-import
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ldp_gtfs_scratch
+          POSTGRES_PASSWORD: local_ephemeral_benchmark_only
+          POSTGRES_DB: ldp_gtfs_scratch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ldp_gtfs_scratch -d ldp_gtfs_scratch"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DEDICATED_LOCAL_SMOKE_DB_URL: postgresql://ldp_gtfs_scratch:local_ephemeral_benchmark_only@127.0.0.1:5432/ldp_gtfs_scratch
+      PYTHONUNBUFFERED: '1'
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install pinned PostgreSQL client
+        run: python -m pip install --disable-pip-version-check "psycopg[binary]==3.2.10"
+      - name: Compile and verify no broad DB targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile lifedashpro/transit/dedicated_gtfs_refresh.py lifedashpro/transit/test_dedicated_gtfs_refresh.py
+          python - <<'PY'
+          from pathlib import Path
+          s=Path("lifedashpro/transit/dedicated_gtfs_refresh.py").read_text()
+          for token in ("verify_target(url)","OLD_PRODUCTION_SECRET_MUST_NOT_BE_PRESENT",
+                        "pg_try_advisory_xact_lock","truncate table ","restart identity",
+                        "db.rollback()","MAX_PEAK_MIB = 450","pg_database_size"):
+              assert token in s,token
+          print("NEW_TRANSIT_ROLLING_REFRESH_STATIC_SAFETY_PASS")
+          PY
+      - name: Initial compact importer and data test in Docker
+        run: python lifedashpro/transit/test_dedicated_gtfs_import.py
+      - name: Four RPCs and permissions test in Docker
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os,psycopg
+          from pathlib import Path
+          url=os.environ["DEDICATED_LOCAL_SMOKE_DB_URL"]
+          assert "@127.0.0.1:5432/ldp_gtfs_scratch" in url
+          with psycopg.connect(url,autocommit=True) as db:
+              with db.cursor() as c:
+                  c.execute("create role service_role noinherit nologin")
+                  c.execute(Path("lifedashpro/transit/dedicated_gtfs_rpc.sql").read_text())
+          PY
+          python lifedashpro/transit/test_dedicated_gtfs_rpc.py
+      - name: Validate atomic failure rollback and successful replacement in Docker
+        run: python lifedashpro/transit/test_dedicated_gtfs_refresh.py
+      - name: Confirm NEW project ref for manual writes
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'refresh' }}
+        shell: bash
+        env:
+          CONFIRMED_PROJECT: ${{ inputs.confirm_project_ref }}
+        run: |
+          if [[ "$CONFIRMED_PROJECT" != "gnqtngtuzbxohgwgvmpb" ]]; then
+            echo "::error::Wrong NEW project ref; refusing remote write."
+            exit 1
+          fi
+      - name: Read-only remote refresh due preflight
+        id: plan
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+        env:
+          LDP_DEDICATED_TRANSIT_DB_URL: ${{ secrets.LDP_DEDICATED_TRANSIT_DB_URL }}
+        run: |
+          set -euo pipefail
+          python lifedashpro/transit/dedicated_gtfs_refresh.py --plan-only --confirm-project-ref gnqtngtuzbxohgwgvmpb
+      - name: Download new Germany GTFS to temporary runner
+        if: ${{ steps.plan.outputs.refresh_needed == 'true' && (github.event_name == 'schedule' || inputs.mode == 'refresh') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/transit-rolling"
+          curl --fail --show-error --silent --location --retry 3 --retry-delay 15 --connect-timeout 30 --max-time 1500             https://download.gtfs.de/germany/nv_free/latest.zip --output "$RUNNER_TEMP/transit-rolling/source.zip"
+          test "$(stat -c %s "$RUNNER_TEMP/transit-rolling/source.zip")" -gt 100000000
+      - name: Select four regions and seven weekdays
+        if: ${{ steps.plan.outputs.refresh_needed == 'true' && (github.event_name == 'schedule' || inputs.mode == 'refresh') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python lifedashpro/transit/germany_gtfs_extract.py             --zip "$RUNNER_TEMP/transit-rolling/source.zip"             --out-dir "$RUNNER_TEMP/transit-rolling/subset"             --city-ids regensburg,munich,nuremberg,nittendorf             --radius-km 6 --service-days 7 --service-date "$(date -u +%F)" --max-trips 500000
+      - name: Validate source freshness and 14-day coverage
+        if: ${{ steps.plan.outputs.refresh_needed == 'true' && (github.event_name == 'schedule' || inputs.mode == 'refresh') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python lifedashpro/transit/gtfs_refresh_guard.py             --profile core --dir "$RUNNER_TEMP/transit-rolling/subset"             --min-valid-days 12 --min-zip-mb 100
+      - name: Transactional GTFS refresh ONLY in NEW isolated Supabase
+        if: ${{ steps.plan.outputs.refresh_needed == 'true' && (github.event_name == 'schedule' || inputs.mode == 'refresh') }}
+        env:
+          LDP_DEDICATED_TRANSIT_DB_URL: ${{ secrets.LDP_DEDICATED_TRANSIT_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python lifedashpro/transit/dedicated_gtfs_refresh.py             --dir "$RUNNER_TEMP/transit-rolling/subset"             --confirm-project-ref gnqtngtuzbxohgwgvmpb
+          echo "## Dedicated Transit rolling GTFS refresh committed" >> "$GITHUB_STEP_SUMMARY"
+          echo "Atomic verified write ONLY to NEW Transit project; old LifeDashPro untouched." >> "$GITHUB_STEP_SUMMARY"
+      - name: Healthy feed skipped without writes
+        if: ${{ steps.plan.outputs.refresh_needed == 'false' }}
+        run: |
+          echo "## NEW Transit feed healthy: not due" >> "$GITHUB_STEP_SUMMARY"
+          echo "Read-only checks passed; no remote changes or GTFS download." >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove downloaded files
+        if: always()
+        shell: bash
+        run: rm -rf "$RUNNER_TEMP/transit-rolling"
