@@ -5,6 +5,7 @@
 (()=>{
 'use strict';
 const $=(selector,root=document)=>root.querySelector(selector);
+const tr=k=>window.LifeDashParityI18nV138?.tr?.(k)||k;
 const node=(tag,cls,text)=>{
   const el=document.createElement(tag);
   if(cls)el.className=cls;
@@ -247,7 +248,7 @@ function ensureDialog(){
  view.addEventListener('click',()=>loadFile(false));
  const download=node('button','secondary','Download file');download.type='button';download.id='docsDownloadBtn';
  download.addEventListener('click',()=>loadFile(true));
- const edit=node('button','secondary','✎ Edit metadata');edit.type='button';
+ const edit=node('button','secondary','✎ '+tr('Edit metadata'));edit.type='button';
  edit.addEventListener('click',()=>editMetadata(selectedId));
  actions.append(edit,view,download);wrap.append(actions);
  dialog.append(wrap);
@@ -313,12 +314,12 @@ function editMetadata(id){
  if(!doc||!bridge()?.ready?.()||typeof bridge()?.saveMetadata!=='function')return;
  const detail=$('#docsDetailsDialog');if(detail?.open)detail.close();
  const modal=node('dialog','docs-detail-dialog docs-edit-dialog'),wrap=node('div','docs-detail-wrap');
- const head=node('div','docs-detail-heading'),title=node('h3','docs-detail-title','Edit document metadata');
+ const head=node('div','docs-detail-heading'),title=node('h3','docs-detail-title',tr('Edit document metadata'));
  const x=node('button','docs-close','×');x.type='button';x.onclick=()=>modal.close();
  head.append(title,x);wrap.append(head);
  const form=node('form','docs-metadata-form');
  function field(key,label,type,value,max){
-  const container=node('label','docs-metadata-field'),caption=node('span','',label);
+  const container=node('label','docs-metadata-field'),caption=node('span','',tr(label));
   const control=node(type==='textarea'?'textarea':'input','docs-search');
   control.name=key;if(type!=='textarea')control.type=type;
   control.value=String(value??'');if(max)control.maxLength=max;
@@ -332,8 +333,8 @@ function editMetadata(id){
  form.append(node('p','docs-footnote','Metadata syncs to Android. File attachments and native reminder alarms remain untouched.'));
  const status=node('p','docs-feedback','');status.setAttribute('role','status');form.append(status);
  const buttons=node('div','docs-detail-actions');
- const cancel=node('button','secondary','Cancel');cancel.type='button';cancel.onclick=()=>modal.close();
- const save=node('button','primary','Save changes');save.type='submit';
+ const cancel=node('button','secondary',tr('Cancel'));cancel.type='button';cancel.onclick=()=>modal.close();
+ const save=node('button','primary',tr('Save changes'));save.type='submit';
  buttons.append(cancel,save);form.append(buttons);wrap.append(form);modal.append(wrap);
  modal.addEventListener('close',()=>modal.remove(),{once:true});
  form.addEventListener('submit',async ev=>{
