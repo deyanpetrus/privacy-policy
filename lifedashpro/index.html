@@ -2,7 +2,7 @@
 <html lang="en" class="ldp-canonical">
 <head>
   <base href="/lifedashpro/staging/">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://open.er-api.com https://*.api.radio-browser.info https://photon.komoot.io https://valhalla.openstreetmap.de https://valhalla1.openstreetmap.de https://router.project-osrm.org https://overpass-api.de https://overpass.kumi.systems https://overpass.private.coffee https://nominatim.openstreetmap.org https://api.open-meteo.com https://geocoding-api.open-meteo.com https://flood-api.open-meteo.com https://earthquake.usgs.gov https://opensky-network.org https://verkehr.autobahn.de https://vpic.nhtsa.dot.gov https://api.nhtsa.gov https://v6.db.transport.rest; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://challenges.cloudflare.com https://*.supabase.co wss://*.supabase.co https://open.er-api.com https://*.api.radio-browser.info https://photon.komoot.io https://valhalla.openstreetmap.de https://valhalla1.openstreetmap.de https://router.project-osrm.org https://overpass-api.de https://overpass.kumi.systems https://overpass.private.coffee https://nominatim.openstreetmap.org https://api.open-meteo.com https://geocoding-api.open-meteo.com https://flood-api.open-meteo.com https://earthquake.usgs.gov https://opensky-network.org https://verkehr.autobahn.de https://vpic.nhtsa.dot.gov https://api.nhtsa.gov https://v6.db.transport.rest; frame-src 'self' https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
   <link rel="canonical" href="https://mkdigital.app/lifedashpro/">
   <link rel="manifest" href="/lifedashpro/manifest.webmanifest">
   <style>html.ldp-canonical .staging-banner{display:none!important}</style>
@@ -50,6 +50,7 @@
   <link rel="stylesheet" href="./desktop-host-v131.css?v=1.31.0" />
   <link rel="stylesheet" href="./desktop-widgets-v133.css?v=1.33.0" />
   <link rel="stylesheet" href="./desktop-density-v135.css?v=1.35.0" />
+  <link rel="stylesheet" href="./desktop-polish-v136.css?v=1.37.0" />
 </head>
 <body>
   <div role="note" class="staging-banner"><span class="staging-dot" aria-hidden="true"></span><strong>STAGING</strong><span>Test version</span><em class="staging-detail">· Connected to the real LifeDashPro account — use test records only</em></div>
@@ -86,6 +87,7 @@
           <div><p class="eyebrow">WELCOME BACK</p><h2>Sign in to LifeDashPro</h2></div>
           <label>Email<input id="signinEmail" type="email" autocomplete="email" required /></label>
           <label>Password<input id="signinPassword" type="password" autocomplete="current-password" required minlength="6" /></label>
+          <div id="signinCaptcha" class="ldp137-captcha-slot" aria-label="Security verification"></div>
           <button class="primary full" type="submit">Sign in</button>
           <button id="forgotBtn" class="text-btn" type="button">Forgot password?</button>
         </form>
@@ -95,6 +97,7 @@
           <label>Email<input id="registerEmail" type="email" autocomplete="email" required /></label>
           <label>Password<input id="registerPassword" type="password" autocomplete="new-password" required minlength="8" /></label>
           <div class="two-col"><label>Country<select id="registerCountry"><option value="DE">Germany</option><option value="MK">North Macedonia</option><option value="RS">Serbia</option><option value="AT">Austria</option><option value="CH">Switzerland</option><option value="BG">Bulgaria</option><option value="HR">Croatia</option><option value="SI">Slovenia</option><option value="CA">Canada</option><option value="OTHER">Other</option></select></label><label>Language<select id="registerLanguage"><option value="en">English</option><option value="mk">Македонски</option><option value="de">Deutsch</option><option value="sr">Srpski</option><option value="bg">Български</option><option value="hr">Hrvatski</option><option value="sl">Slovenščina</option><option value="sq">Shqip</option><option value="tr">Türkçe</option><option value="it">Italiano</option><option value="fr">Français</option><option value="es">Español</option></select></label></div>
+          <div id="registerCaptcha" class="ldp137-captcha-slot" aria-label="Security verification"></div>
           <button class="primary full" type="submit">Create account</button>
           <small>A confirmation email may be required before the first sign-in.</small>
         </form>
@@ -170,19 +173,20 @@
   <dialog id="editorDialog" class="dialog"><form method="dialog" id="editorForm"><div class="dialog-head"><div><p id="editorEyebrow" class="eyebrow">EDIT</p><h3 id="editorTitle">Item</h3></div><button value="cancel" class="icon-btn">×</button></div><div id="editorFields" class="dialog-body"></div><div class="dialog-actions"><button value="cancel" class="secondary">Cancel</button><button id="editorDelete" type="button" class="danger hidden">Delete</button><button id="editorSave" type="button" class="primary">Save</button></div></form></dialog>
   <dialog id="passwordDialog" class="dialog small"><form method="dialog"><div class="dialog-head"><div><p class="eyebrow">ACCOUNT RECOVERY</p><h3>Set a new password</h3></div></div><div class="dialog-body"><label>New password<input id="newPassword" type="password" minlength="8" /></label><div id="passwordMessage" class="message hidden"></div></div><div class="dialog-actions"><button id="updatePasswordBtn" type="button" class="primary">Update password</button></div></form></dialog>
 
-  <script src="./config.js?v=1.35.0"></script>
-  <script src="./boot.js?v=1.31.0"></script>
+  <script src="./config.js?v=1.37.0"></script>
+  <script src="./auth-captcha-v137.js?v=1.37.0"></script>
+   <script src="./boot.js?v=1.37.0"></script>
   <script src="./polish.js?v=1.3.1"></script>
   <script src="./features.js?v=1.9.2"></script>
   <script src="./workspace-plus.js?v=1.6.1"></script>
   <script src="./radio-v17.js?v=1.7.1"></script>
-  <script src="./world-live-v18.js?v=1.8.3"></script>
+  <script src="./world-live-v18.js?v=1.36.0"></script>
   <script src="./compact-v181.js?v=1.8.1"></script>
   <script src="./world-mobility-v182.js?v=1.8.4"></script>
   <script src="./calendar-v19.js?v=1.9.0"></script>
   <script src="./documents-v191.js?v=1.9.1"></script>
   <script src="./finance-plus-v192.js?v=1.9.3"></script>
-  <script src="./explore-v110.js?v=1.10.1"></script>
+  <script src="./explore-v110.js?v=1.36.0"></script>
   <script src="./vehicles-v111.js?v=1.11.0"></script>
   <script src="./journey-v111.js?v=1.11.0"></script>
   <script src="./backup-v112.js?v=1.12.1"></script>
@@ -197,6 +201,6 @@
   <script src="./i18n-secondary-v122.js?v=1.32.0"></script>
   <script src="./desktop-workspace-v123.js?v=1.30.0"></script>
   <script src="./desktop-today-v127.js?v=1.27.0"></script>
-  <script src="./desktop-os-v124.js?v=1.35.0"></script>
+  <script src="./desktop-os-v124.js?v=1.37.0"></script>
 </body>
 </html>
