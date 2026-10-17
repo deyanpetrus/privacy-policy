@@ -64,24 +64,24 @@ function open(vehicle){
   const saved=await bridge().saveVehicle(record);owner=saved?.id||record.id;
  });
 }
-function history(vehicle,kind){
+function history(vehicle,kind,entry=null,entryIndex=-1){
  if(!bridge()?.ready?.()||!vehicle||!['services','fuelHistory'].includes(kind))return;
  owner=String(vehicle.id);const service=kind==='services';
- build(service?'Add service':'Add fuel',grid=>{
-  input(grid,'date','Date',iso(),'date');
+ build(entry?'Edit vehicle':service?'Add service':'Add fuel',grid=>{
+  input(grid,'date','Date',entry?.date||iso(),'date');
   if(service){
-   input(grid,'type','Service type','');
-   input(grid,'km','Odometer',vehicle.currentKm??'','number');
-   input(grid,'cost','Cost','','number');
-   input(grid,'currency','Currency','EUR');
-   input(grid,'notes','Notes','','textarea',800);
+   input(grid,'type','Service type',entry?.type||'');
+   input(grid,'km','Odometer',entry?.km??vehicle.currentKm??'','number');
+   input(grid,'cost','Cost',entry?.cost??'','number');
+   input(grid,'currency','Currency',entry?.currency||'EUR');
+   input(grid,'notes','Notes',entry?.notes||'','textarea',800);
   }else{
-   input(grid,'station','Station','');
-   input(grid,'liters','Liters','','number');
-   input(grid,'total','Total','','number');
-   input(grid,'km','Odometer',vehicle.currentKm??'','number');
-   input(grid,'currency','Currency','EUR');
-   input(grid,'fuelType','Fuel type',vehicle.fuelType||'');
+   input(grid,'station','Station',entry?.station||'');
+   input(grid,'liters','Liters',entry?.liters??'','number');
+   input(grid,'total','Total',entry?.total??'','number');
+   input(grid,'km','Odometer',entry?.km??vehicle.currentKm??'','number');
+   input(grid,'currency','Currency',entry?.currency||'EUR');
+   input(grid,'fuelType','Fuel type',entry?.fuelType||vehicle.fuelType||'');
   }
  },async values=>{
   if(!validDate(values.date)||!values.date)throw Error(tr('Invalid value')+': '+tr('Date'));
@@ -91,12 +91,30 @@ function history(vehicle,kind){
   if(service&&!values.type.trim())throw Error(tr('Service type'));
   values.currency=String(values.currency||'EUR').toUpperCase();
   if(!/^[A-Z]{3}$/.test(values.currency))throw Error(tr('Currency'));
-  values.id='web-entry-'+(crypto.randomUUID?.()||Date.now());
+  values.id=entry?.id||'web-entry-'+(crypto.randomUUID?.()||Date.now());
   const latest=bridge().snapshot()?.vehicles?.find(v=>String(v.id)===String(vehicle.id));
   if(!latest)throw Error(tr('Sync first'));
-  const merged={...latest,[kind]:[...(Array.isArray(latest[kind])?latest[kind]:[]),values]};
+  const array=Array.isArray(latest[kind])?latest[kind].slice():[];
+  if(entry){
+   const index=entry.id?array.findIndex(r=>String(r.id)===String(entry.id)):entryIndex;
+   if(index<0||index>=array.length)throw Error(tr('Sync first'));
+   array[index]={...array[index],...values};
+  }else array.push(values);
+  const merged={...latest,[kind]:array};
   const saved=await bridge().saveVehicle(merged);owner=saved.id;
  });
+}
+async function removeHistory(vehicle,kind,entry,entryIndex){
+ if(!bridge()?.ready?.()||!vehicle||!confirm(tr('Delete entry confirmation')))return;
+ try{
+  const latest=bridge().snapshot()?.vehicles?.find(v=>String(v.id)===String(vehicle.id));
+  if(!latest)throw Error(tr('Sync first'));
+  const array=Array.isArray(latest[kind])?latest[kind].slice():[];
+  const index=entry?.id?array.findIndex(x=>String(x.id)===String(entry.id)):entryIndex;
+  if(index<0||index>=array.length)throw Error(tr('Sync first'));
+  array.splice(index,1);await bridge().saveVehicle({...latest,[kind]:array});
+  document.dispatchEvent(new CustomEvent('lifedash:vehicle-saved',{detail:{id:vehicle.id}}));
+ }catch(err){alert(tr('Save failed')+': '+text(err?.message,170))}
 }
 async function remove(vehicle){
  if(!bridge()?.ready?.()||!vehicle)return;
@@ -105,5 +123,5 @@ async function remove(vehicle){
   document.dispatchEvent(new CustomEvent('lifedash:vehicle-saved',{detail:{id:''}}));
  }catch(e){alert(tr('Save failed')+': '+text(e?.message,170))}
 }
-window.LifeDashVehicleEditorV138=Object.freeze({open,history,remove});
+window.LifeDashVehicleEditorV138=Object.freeze({open,history,remove,removeHistory});
 })();
