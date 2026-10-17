@@ -58,3 +58,12 @@ html.ldp-os-running .app.radio-dock-active .content{padding-bottom:30px}
  #ldp124OS .ldp136-radio-slot #radioDock .radio-dock-controls{margin-left:auto}
  #ldp124OS .ldp136-radio-slot #radioDock{padding:3px 5px;min-width:0}
 }
+
+/* v1.37: the reorder controls are explicitly enabled from Customize only. */
+#ldp124OS .ldp137-reorder-only{display:none!important}
+#ldp124OS.ldp137-reordering .ldp137-reorder-only{display:grid!important}
+#ldp124OS .ldp137-reorder-toggle{width:100%;padding:10px 12px;margin:4px 0 12px;
+ border:1px solid rgba(255,255,255,.30);border-radius:10px;background:rgba(136,106,223,.26);
+ color:#fff;font-size:12px;font-weight:750;cursor:pointer;text-align:center}
+#ldp124OS .ldp137-reorder-toggle:hover{background:rgba(136,106,223,.43)}
+#ldp124OS.ldp137-reordering [data-widget]{outline:1px dashed rgba(215,191,255,.55)}
