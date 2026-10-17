@@ -29,7 +29,7 @@ QUOTA_MIB = 500
 MAX_PEAK_MIB = 450
 EXPECTED_RPC_COUNT = 4
 
-def status(cur):
+def status(cur,*,local_fixture=False):
     cur.execute("""select current_database(),current_user,
       has_schema_privilege('anon','transit_data','USAGE'),
       has_schema_privilege('authenticated','transit_data','USAGE'),
@@ -47,7 +47,13 @@ def status(cur):
         join pg_namespace cn on cn.oid=child.relnamespace
         where fk.contype='f' and pn.nspname='transit_data' and cn.nspname!='transit_data')""")
     dbname,user,anon_access,user_access,rls,rpcs,external_refs=cur.fetchone()
-    if (dbname,user)!=("postgres","postgres") or anon_access or user_access or rls!=8 or rpcs!=EXPECTED_RPC_COUNT or external_refs:
+    if local_fixture:
+        # Never relax the safety gate for a remote database.
+        cur.execute("select inet_server_addr()::text")
+        if (dbname,user)!=("ldp_gtfs_scratch","ldp_gtfs_scratch") or cur.fetchone()[0] not in ("127.0.0.1","::1"):
+            raise SafePreflightError("REFRESH_LOCAL_FIXTURE_IS_NOT_LOCAL")
+    if ((not local_fixture and (dbname,user)!=("postgres","postgres")) or
+        anon_access or user_access or rls!=8 or rpcs!=EXPECTED_RPC_COUNT or external_refs):
         raise SafePreflightError("REFRESH_DESTINATION_OR_SECURITY_FAILED")
     cur.execute("""select feed_source,active,selected_from,selected_until,imported_at
                    from transit_data.feeds""")
@@ -56,7 +62,7 @@ def status(cur):
         raise SafePreflightError("REFRESH_ACTIVE_FEED_MISMATCH")
     cur.execute("select count(*) from transit_data.stop_times")
     n=cur.fetchone()[0]
-    if n<500_000 or n>2_500_000:
+    if n<(1 if local_fixture else 500_000) or n>(100 if local_fixture else 2_500_000):
         raise SafePreflightError("REFRESH_EXISTING_COVERAGE_INVALID")
     cur.execute("select pg_database_size(current_database())")
     db_bytes=int(cur.fetchone()[0])
@@ -80,7 +86,7 @@ def should_refresh(state, today:date, force:bool=False):
         return False
     return True
 
-def validate_new(state,manifest,today):
+def validate_new(state,manifest,today,*,local_fixture=False):
     selected=manifest["selection"]
     start=date.fromisoformat(selected["service_date"])
     if abs((start-today).days)>1:
@@ -93,7 +99,7 @@ def validate_new(state,manifest,today):
     new=int(counts["stop_times"])
     if not 0.65*old<=new<=1.5*old:
         raise SafePreflightError("REFRESH_STOP_TIMES_COVERAGE_CHANGE")
-    if not 500_000<=new<=2_500_000:
+    if not (1 if local_fixture else 500_000)<=new<=(100 if local_fixture else 2_500_000):
         raise SafePreflightError("REFRESH_STOP_TIMES_OUT_OF_RANGE")
     # Conservative peak projection: old files plus new table/index copies,
     # plus a 25% growth buffer. Unlike DELETE, TRUNCATE rolls back in one tx.
@@ -105,7 +111,7 @@ def validate_new(state,manifest,today):
     return {"new_until":new_until,"expected_stop_times":new,
             "estimated_peak_mib":round(projected/1048576,2)}
 
-def refresh(cur,folder:Path,manifest,*,force_failure=False):
+def refresh(cur,folder:Path,manifest,*,force_failure=False,local_fixture=False):
     """Caller owns a DB transaction. All GTFS writes are in that transaction."""
     cur.execute("select pg_try_advisory_xact_lock(820617,20261017)")
     if not cur.fetchone()[0]:
@@ -113,15 +119,15 @@ def refresh(cur,folder:Path,manifest,*,force_failure=False):
     cur.execute("set local lock_timeout = '15s'")
     cur.execute("set local statement_timeout = '15min'")
     cur.execute("set local idle_in_transaction_session_timeout = '16min'")
-    before=status(cur)
+    before=status(cur,local_fixture=local_fixture)
     today=datetime.now(timezone.utc).date()
-    validated=validate_new(before,manifest,today)
+    validated=validate_new(before,manifest,today,local_fixture=local_fixture)
     # ALL 8 tables, every FK chain included. NO CASCADE, NO DROP.
     # PostgreSQL TRUNCATE is TRANSACTIONAL, including RESTART IDENTITY.
     targets=", ".join("transit_data."+name for name in reversed(TABLES))
     cur.execute("truncate table "+targets+" restart identity")
     report=run_import(cur,folder,manifest,size_cap_mib=MAX_PEAK_MIB)
-    after=status(cur)
+    after=status(cur,local_fixture=local_fixture)
     if after["stop_times"]!=validated["expected_stop_times"]:
         raise SafePreflightError("REFRESH_POSTIMPORT_COUNT_FAILED")
     if after["selected_until"]!=validated["new_until"]:
