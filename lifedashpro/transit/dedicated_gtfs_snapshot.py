@@ -90,7 +90,8 @@ def local_restore(archive,expected,*,local_fixture=False):
     if (not local.startswith("postgresql://ldp_gtfs_scratch:") or
         "@127.0.0.1:5432/ldp_gtfs_scratch" not in local):
         raise SafePreflightError("SNAPSHOT_RESTORE_MUST_BE_LOCAL")
-    restore=urlsplit(local)._replace(path="/ldp_gtfs_restore").geturl()
+    dbname="ldp_gtfs_fixture_restore" if local_fixture else "ldp_gtfs_restore"
+    restore=urlsplit(local)._replace(path="/"+dbname).geturl()
     # Cannot accidentally connect to a cloud endpoint from LOCAL_URI.
     if urlsplit(restore).hostname!="127.0.0.1":
         raise SafePreflightError("SNAPSHOT_RESTORE_REMOTE_REJECTED")
@@ -99,7 +100,7 @@ def local_restore(archive,expected,*,local_fixture=False):
             cur.execute("select current_database(),current_user")
             if cur.fetchone()!=("ldp_gtfs_scratch","ldp_gtfs_scratch"):
                 raise SafePreflightError("SNAPSHOT_LOCAL_DB_ROLE_FAILED")
-            cur.execute("create database ldp_gtfs_restore template template0")
+            cur.execute("create database "+dbname+" template template0")
     # PG17 client restores pg_dump custom archive to a NEW LOCAL Postgres DB.
     folder=archive.parent
     run_docker([folder,"sh","-ec",
