@@ -191,6 +191,9 @@
     activeCity=next;generation++;openedDetails=null;
     disposeDetailMap();
     document.dispatchEvent(new CustomEvent('lifedash:world-city-change',{detail:{id:next[0]}}));
+    document.dispatchEvent(new CustomEvent('lifedash:location-change',{
+     detail:{lat:next[2],lon:next[3],label:next[1],source:'world',transient:false}
+    }));
     try{localStorage.setItem(PREFERENCE,next[0])}catch(_){}
     updateView();
     refresh(false);

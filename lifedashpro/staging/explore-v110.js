@@ -62,6 +62,9 @@ function setOrigin(next){
  const picker=$('#exploreCitySelect');
  if(picker)picker.value=origin.presetId||'custom';
  updateMap();updateList();
+ document.dispatchEvent(new CustomEvent('lifedash:location-change',{
+  detail:{lat:origin.lat,lon:origin.lon,label:origin.label,source:'around',transient:!!next.transient}
+ }));
  search();
 }
 function loadPreset(id){
@@ -238,7 +241,7 @@ function useGps(){
      const lat=position.coords.latitude,lon=position.coords.longitude;
      if(!Number.isFinite(lat)||!Number.isFinite(lon))return;
      status.textContent='Approximate current location selected (not stored).';
-     setOrigin({lat,lon,label:'My current location'});
+     setOrigin({lat,lon,label:'My current location',transient:true});
    },
    e=>{button.disabled=false;status.textContent='Location unavailable or permission denied ('+e.code+'). Choose a city instead.'},
    {enableHighAccuracy:false,timeout:12000,maximumAge:60000}
