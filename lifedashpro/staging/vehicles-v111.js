@@ -103,8 +103,7 @@ function renderDeadlines(vehicle,parent){
 }
 function renderServices(vehicle,parent){
  const list=Array.isArray(vehicle.services)?vehicle.services.slice(0,100):[];
- parent.append(sectionHeading('Service history','Synced service entries shared with Android.'));
- parent.append(action('＋ Add service',()=>window.LifeDashVehicleEditorV138?.history?.(vehicle,'services'),'secondary mob138-action'));
+ parent.append(sectionHeading('Service history','Historical records synchronized from Android; editing remains Android-first.'));
  if(!list.length){parent.append(E('p','mob111-empty','No service entries saved for this vehicle.'));return}
  list.sort((a,b)=>datestr(b.date).localeCompare(datestr(a.date)));
  const grid=E('div','mob111-history');
@@ -122,8 +121,7 @@ function renderServices(vehicle,parent){
 }
 function renderFuel(vehicle,parent){
  const list=Array.isArray(vehicle.fuelHistory)?vehicle.fuelHistory.slice(0,100):[];
- parent.append(sectionHeading('Fuel history','Recorded fills, fuel volume, price and odometer.'));
- parent.append(action('＋ Add fuel',()=>window.LifeDashVehicleEditorV138?.history?.(vehicle,'fuelHistory'),'secondary mob138-action'));
+ parent.append(sectionHeading('Fuel history','Recorded fills, fuel volume, price and odometer. No guessed consumption.'));
  if(!list.length){parent.append(E('p','mob111-empty','No fuel entries recorded.'));return}
  const totals=new Map();let liters=0;
  for(const item of list){
@@ -184,7 +182,7 @@ function draw(){
  const top=E('div','mob111-intro');
  const title=E('div');title.append(E('p','eyebrow','VEHICLE MANAGER'),E('h2','','My garage'),
    E('p','mob111-muted','Vehicles, maintenance, refueling and expiry dates from your Android account.'));
- top.append(title,action('＋ Add vehicle',()=>window.LifeDashVehicleEditorV138?.open?.(null),'secondary mob138-action'),action('View journeys →',()=>$('#nav [data-page="journey"]')?.click()));
+ top.append(title,action('View journeys →',()=>$('#nav [data-page="journey"]')?.click()));
  host.append(top);
  const counters=E('div','mob111-kpis');
  const alerts=vehicles.flatMap(v=>[v.insuranceExpires,v.registrationExpires,v.technicalExpires]
@@ -213,9 +211,6 @@ function draw(){
  const info=E('div','mob111-panel-title');
  info.append(E('h3','',display(vehicle)),E('span','mob111-plate',txt(vehicle.licensePlate)||'No plate'));
  panel.append(info);
- const actions=E('div','mob138-vehicle-actions');
- actions.append(action('✎ Edit vehicle',()=>window.LifeDashVehicleEditorV138?.open?.(vehicle),'secondary mob138-action'),action('× Delete vehicle',()=>window.LifeDashVehicleEditorV138?.remove?.(vehicle),'danger mob138-action'));
- panel.append(actions);
  const tabs=E('div','mob111-tabs');
  for(const [key,label]of [['overview','Overview'],['services','Services'],['fuel','Fuel'],['documents','Documents']]){
    const tab=action(label,()=>{section=key;draw()},'mob111-tab');
@@ -228,7 +223,7 @@ function draw(){
  else renderOverview(vehicle,panel);
  layout.append(side,panel);host.append(layout);
  host.append(E('p','mob111-footnote',
-   'Vehicle details and service/fuel history synchronize through the shared account. Android alone schedules native reminders and alarms.'));
+   'Read-only view of Android vehicle records. Expiry dates are reminders for planning, not authoritative coverage or legal validity checks. Android maintains service entries and native alarms.'));
 }
 function sync(){
  if(!bridge()?.ready()||app.classList.contains('hidden')){
@@ -243,7 +238,6 @@ function sync(){
  const host=$('#vehicleManagerV111',content);
  if(host&&!host.dataset.mob111Ready)draw();
 }
-document.addEventListener('lifedash:vehicle-saved',e=>{if(e.detail?.id)selected=String(e.detail.id);sync();if($('#vehicleManagerV111',content))draw()});
 new MutationObserver(sync).observe(content,{childList:true});
 new MutationObserver(sync).observe(app,{attributes:true,attributeFilter:['class']});
 sync();
