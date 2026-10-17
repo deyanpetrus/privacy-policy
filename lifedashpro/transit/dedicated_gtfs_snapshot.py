@@ -90,7 +90,7 @@ def local_restore(archive,expected,*,local_fixture=False):
     if (not local.startswith("postgresql://ldp_gtfs_scratch:") or
         "@127.0.0.1:5432/ldp_gtfs_scratch" not in local):
         raise SafePreflightError("SNAPSHOT_RESTORE_MUST_BE_LOCAL")
-    restore=local.replace("/ldp_gtfs_scratch","/ldp_gtfs_restore",1)
+    restore=urlsplit(local)._replace(path="/ldp_gtfs_restore").geturl()
     # Cannot accidentally connect to a cloud endpoint from LOCAL_URI.
     if urlsplit(restore).hostname!="127.0.0.1":
         raise SafePreflightError("SNAPSHOT_RESTORE_REMOTE_REJECTED")
