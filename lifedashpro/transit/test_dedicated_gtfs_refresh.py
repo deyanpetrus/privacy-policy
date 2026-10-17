@@ -52,8 +52,9 @@ with tempfile.TemporaryDirectory() as temporary:
         with db.cursor() as cur:
             old_state=status(cur,local_fixture=True)
             assert old_state["stop_times"]==2
-            cur.execute("update transit_data.feeds set selected_until=%s,imported_at=%s where feed_source='de-national'",
-                        (today-timedelta(days=1),datetime.now(timezone.utc)-timedelta(days=10)))
+            cur.execute("update transit_data.feeds set selected_from=%s,selected_until=%s,imported_at=%s where feed_source='de-national'",
+                        (today-timedelta(days=14),today-timedelta(days=1),
+                         datetime.now(timezone.utc)-timedelta(days=10)))
             cur.execute("select stop_name from transit_data.stops where stop_id='s1'")
             assert cur.fetchone()[0]=="City centre"
             assert should_refresh(status(cur,local_fixture=True),today)
