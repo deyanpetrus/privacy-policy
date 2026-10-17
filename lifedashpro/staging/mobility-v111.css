@@ -92,3 +92,23 @@
 .mob111-kpi{padding:12px}
 }
 @media(prefers-reduced-motion:reduce){.mob111-choice,.mob111-tab{transition:none!important}}
+
+/* v1.38 vehicle editing controls, responsive and scoped. */
+.mob138-vehicle-actions{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 13px}
+.mob138-action{padding:8px 12px;min-height:34px;font-size:11px;white-space:nowrap}
+.mob138-dialog{width:min(680px,calc(100vw - 20px));max-height:min(92vh,900px);
+ border:1px solid var(--line);background:var(--panel);color:var(--text);
+ border-radius:18px;padding:0;box-shadow:0 20px 70px rgba(0,0,0,.4);overflow-y:auto}
+.mob138-dialog::backdrop{background:rgba(2,7,20,.65)}
+.mob138-form{padding:20px;display:grid;gap:16px}
+.mob138-heading{display:flex;align-items:center;justify-content:space-between;gap:15px}
+.mob138-heading h2{margin:0;font-size:19px}
+.mob138-close{width:32px;height:32px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);color:var(--text);font-size:22px;cursor:pointer}
+.mob138-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.mob138-field{display:grid;gap:5px;min-width:0;color:var(--muted);font-size:11px}
+.mob138-field input,.mob138-field textarea{width:100%;min-width:0;border:1px solid var(--line);
+ border-radius:9px;padding:9px 11px;background:var(--panel2);color:var(--text);font:inherit;font-size:13px}
+.mob138-field textarea{min-height:75px;resize:vertical}
+.mob138-status{font-size:11px;color:var(--muted)}
+.mob138-footer{display:flex;justify-content:flex-end;gap:9px}
+@media(max-width:570px){.mob138-form-grid{grid-template-columns:minmax(0,1fr)}.mob138-form{padding:14px}.mob138-vehicle-actions>*{flex:1}}
