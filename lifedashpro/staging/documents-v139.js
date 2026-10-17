@@ -307,7 +307,7 @@ function showDetails(id){
  }
  $('#docsPreviewBtn').disabled=!hasCloud(doc);
  $('#docsDownloadBtn').disabled=!hasCloud(doc);
- dialog.showModal();
+ dialog.showModal();document.dispatchEvent(new Event('lifedash:document-details-opened'));
 }
 function editMetadata(id){
  const doc=docs.find(x=>String(x.id)===String(id));
