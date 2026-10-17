@@ -119,7 +119,15 @@ as $fn$
  ), matching as (
   select s.feed_source,s.stop_id,t.trip_id,r.route_id,
          coalesce(nullif(r.route_short_name,''),nullif(r.route_long_name,''),r.route_id) line,
-         coalesce(nullif(t.trip_headsign,''),nullif(t.trip_short_name,''),'—') direction,
+         coalesce(
+           nullif(st.stop_headsign,''), nullif(t.trip_headsign,''),
+           nullif(t.trip_short_name,''),
+           (select nullif(final_stop.stop_name,'')
+            from transit_data.stop_times final_time
+            join transit_data.stops final_stop on final_stop.stop_key=final_time.stop_key
+            where final_time.trip_key=t.trip_key
+            order by final_time.stop_sequence desc limit 1),
+           '—') direction,
          p_service_date as service_date,
          coalesce(st.departure_secs,st.arrival_secs) as departure_secs,
          coalesce(st.departure_secs,st.arrival_secs) as display_seconds,
@@ -135,7 +143,15 @@ as $fn$
   union all
   select s.feed_source,s.stop_id,t.trip_id,r.route_id,
          coalesce(nullif(r.route_short_name,''),nullif(r.route_long_name,''),r.route_id) line,
-         coalesce(nullif(t.trip_headsign,''),nullif(t.trip_short_name,''),'—') direction,
+         coalesce(
+           nullif(st.stop_headsign,''), nullif(t.trip_headsign,''),
+           nullif(t.trip_short_name,''),
+           (select nullif(final_stop.stop_name,'')
+            from transit_data.stop_times final_time
+            join transit_data.stops final_stop on final_stop.stop_key=final_time.stop_key
+            where final_time.trip_key=t.trip_key
+            order by final_time.stop_sequence desc limit 1),
+           '—') direction,
          (p_service_date-1) as service_date,
          coalesce(st.departure_secs,st.arrival_secs) as departure_secs,
          coalesce(st.departure_secs,st.arrival_secs)-86400 as display_seconds,
@@ -196,7 +212,7 @@ as $fn$
  )
  select pg_catalog.jsonb_build_object(
    'feedSource',t.feed_source,'tripId',t.trip_id,'routeId',t.route_id,
-   'direction',coalesce(nullif(t.trip_headsign,''),nullif(t.trip_short_name,''),'—'),
+   'direction',coalesce(nullif(t.trip_headsign,''),nullif(t.trip_short_name,''),nullif(((sj.stops -> -1) ->> 'name'),''),'—'),
    'geometryKind',case when pg_catalog.jsonb_array_length(coalesce(ex.points,'[]'::jsonb))>=2
       then 'shape' else 'stops' end,
    'approximate',(pg_catalog.jsonb_array_length(coalesce(ex.points,'[]'::jsonb))<2),
