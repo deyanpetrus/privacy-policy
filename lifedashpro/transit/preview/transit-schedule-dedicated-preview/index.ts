@@ -135,7 +135,9 @@ async function transitRpc<T>(_a:AuthContext,name:string,body:Record<string,unkno
  try {
    const response=await fetch(DEDICATED_GTFS_URL+'/rest/v1/rpc/'+name,{
      method:'POST',signal:controller.signal,
-     headers:{apikey:key,authorization:'Bearer '+key,
+     // Opaque sb_secret_ keys are NOT JWTs: put them only in apikey.
+     // Legacy service_role JWTs can additionally use Authorization: Bearer.
+     headers:{apikey:key,...(key.startsWith('eyJ')?{authorization:'Bearer '+key}:{}),
        'content-type':'application/json','accept':'application/json'},
      body:JSON.stringify(body)
    });
