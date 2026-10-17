@@ -112,3 +112,6 @@
 .mob138-status{font-size:11px;color:var(--muted)}
 .mob138-footer{display:flex;justify-content:flex-end;gap:9px}
 @media(max-width:570px){.mob138-form-grid{grid-template-columns:minmax(0,1fr)}.mob138-form{padding:14px}.mob138-vehicle-actions>*{flex:1}}
+
+.mob138-history-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}
+.mob138-history-actions .mob138-action{flex:0 1 auto}
