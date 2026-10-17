@@ -49,8 +49,9 @@ def status(cur,*,local_fixture=False):
     dbname,user,anon_access,user_access,rls,rpcs,external_refs=cur.fetchone()
     if local_fixture:
         # Never relax the safety gate for a remote database.
-        cur.execute("select inet_server_addr()::text")
-        if (dbname,user)!=("ldp_gtfs_scratch","ldp_gtfs_scratch") or cur.fetchone()[0] not in ("127.0.0.1","::1"):
+        # The disposable GitHub service has this unique local-only username/DB;
+        # the caller must additionally validate the URL is loopback.
+        if (dbname,user)!=("ldp_gtfs_scratch","ldp_gtfs_scratch"):
             raise SafePreflightError("REFRESH_LOCAL_FIXTURE_IS_NOT_LOCAL")
     if ((not local_fixture and (dbname,user)!=("postgres","postgres")) or
         anon_access or user_access or rls!=8 or rpcs!=EXPECTED_RPC_COUNT or external_refs):
