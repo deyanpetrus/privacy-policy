@@ -38,6 +38,8 @@ const WORDS_V136={
  el:['Σύμπτυξη','Ανάπτυξη','Πάνω','Κάτω','Σύρετε για ταξινόμηση','Μεταφόρτωση εικόνας','Αφαίρεση εικόνας','Αποθήκευση στη συσκευή','JPG, PNG, WebP κάτω από 8 MB','Αποτυχία αποθήκευσης'],
  ro:['Restrânge','Extinde','Sus','Jos','Trage pentru ordonare','Încarcă imagine','Șterge imaginea','Salvat pe dispozitiv','JPG, PNG, WebP sub 8 MB','Nu s-a salvat']
 };
+const REORDER_WORDS={en:['Reorder widgets','Done reordering'],mk:['Подреди виџети','Заврши со подредување'],de:['Widgets sortieren','Sortieren beenden'],sr:['Poređaj vidžete','Završi raspored'],hr:['Posloži widgete','Završi raspored'],bs:['Poredaj vidžete','Završi raspored'],cnr:['Poređaj vidžete','Završi raspored'],sl:['Razvrsti gradnike','Končaj razvrščanje'],bg:['Подреди уиджетите','Край на подреждането'],sq:['Rendit widget-et','Përfundo renditjen'],el:['Ταξινόμηση γραφικών στοιχείων','Τέλος ταξινόμησης'],ro:['Reordonează widgeturile','Termină reordonarea']};
+function reorderText(i){return (REORDER_WORDS[lang()]||REORDER_WORDS.en)[i]}
 function w136(i){return (WORDS_V136[lang()]||WORDS_V136.en)[i]}
 let selectedWeather=null,weatherEpoch=0,radioOriginalParent=null,radioOriginalNext=null;
 let customPictureURL='',customPictureOwner='',pictureEpoch=0;
@@ -117,6 +119,7 @@ const RSS_KEY='lifedash_web_news_country_v116_';
 const RSS_TTL=15*60*1000;
 const newsState={owner:'',country:'',items:[],index:0,at:0,loading:false,controller:null};
 let todayOffset=0,todayHover=false,todayHoldUntil=0,todayCount=0;
+let widgetsReordering=false;
 const WEATHER_TTL=35*60*1000;
 let weatherCached={owner:'',city:'',at:0,data:null},weatherLoading=false;
 const WEATHER_WORDS={
@@ -229,21 +232,13 @@ function shell(){
  logo.alt='LifeDashPro';logo.width=38;logo.height=38;logo.decoding='async';
  logo.src=new URL('../../assets/lifedash-icon.webp',location.href).href;
  logo.addEventListener('error',()=>logo.replaceWith(mk('span','ldp124-brandmark','LD')),{once:true});
- brand.append(logo,mk('strong','', 'LifeDashPro'),mk('span','ldp124-top-tag','DESKTOP OS · v1.36'));
+ brand.append(logo,mk('strong','', 'LifeDashPro'),mk('span','ldp124-top-tag','DESKTOP OS'));
  const actions=mk('div','ldp124-top-actions');
  const customize=button('','ldp124-top-button ldp136-customize',()=>toggleSettings());
  customize.title=t('customize');customize.setAttribute('aria-label',t('customize'));
  customize.append(mk('span','ldp136-palette'));
  const classic=button('↩ '+t('classic'),'ldp124-top-button',switchClassic);
- const names={en:'Transit',mk:'Превоз',sr:'Prevoz',hr:'Prijevoz',bs:'Prevoz',
-  cnr:'Prevoz',sl:'Prevoz',bg:'Транспорт',sq:'Transport',el:'Μεταφορές',
-  ro:'Transport',de:'Nahverkehr'};
- const transit=button('🚌 '+(names[lang()]||names.en),'ldp124-top-button',()=>{
-  const u=new URL('/lifedashpro/legacy.html?workspace=desktop',location.origin);
-  window.open(u.toString(),'_blank','noopener');
- });
- transit.title=names[lang()]||names.en;
- actions.append(customize,transit,classic);
+ actions.append(customize,classic);
  const radioSlot=mk('div','ldp136-radio-slot');radioSlot.id='ldp136RadioSlot';
  top.append(brand,radioSlot,actions);
  const canvas=mk('div','ldp124-canvas');canvas.id='ldp124Canvas';
@@ -418,6 +413,12 @@ function paintSettings(){
   }));
  }
  p.append(mk('h3','',t('widgets')));
+ const reorder=button(widgetsReordering?reorderText(1):reorderText(0),'ldp137-reorder-toggle',()=>{
+  widgetsReordering=!widgetsReordering;
+  ui.classList.toggle('ldp137-reordering',widgetsReordering);
+  drawWidgets();p.hidden=true;
+ });
+ reorder.setAttribute('aria-pressed',String(widgetsReordering));p.append(reorder);
  for(const key of data.widgetOrder){
   const row=mk('label','ldp124-check');
   const box=mk('input');box.type='checkbox';box.checked=!data.hiddenWidgets.includes(key);
@@ -426,14 +427,7 @@ function paintSettings(){
    persist();drawWidgets();
   });
   row.append(box,mk('span','',key==='today'?t('waiting'):displayName(key)));
-  const move=mk('span','ldp124-widget-order');
-  const up=button('↑','ldp124-widget-arrow',()=>shiftWidget(key,-1));
-  const down=button('↓','ldp124-widget-arrow',()=>shiftWidget(key,1));
-  up.disabled=data.widgetOrder.indexOf(key)===0;
-  down.disabled=data.widgetOrder.indexOf(key)===data.widgetOrder.length-1;
-  up.setAttribute('aria-label','Move '+key+' up');
-  down.setAttribute('aria-label','Move '+key+' down');
-  move.append(up,down);row.append(move);p.append(row);
+  p.append(row);
  }
  p.append(mk('h3','',t('apps')));
  for(const [id,icon,title] of APPS){
@@ -1101,8 +1095,8 @@ function widget(id){
  const heading=mk('div','ldp124-widget-head'),tools=mk('div','ldp136-card-tools');
  const collapsed=data.collapsedWidgets.includes(id);
  box.classList.toggle('ldp136-collapsed',collapsed);
- const up=button('↑','ldp136-card-btn',()=>shiftWidget(id,-1));
- const down=button('↓','ldp136-card-btn',()=>shiftWidget(id,1));
+ const up=button('↑','ldp136-card-btn ldp137-reorder-only',()=>shiftWidget(id,-1));
+ const down=button('↓','ldp136-card-btn ldp137-reorder-only',()=>shiftWidget(id,1));
  up.title=w136(2);down.title=w136(3);
  up.setAttribute('aria-label',w136(2)+' '+title);down.setAttribute('aria-label',w136(3)+' '+title);
  up.disabled=data.widgetOrder.indexOf(id)===0;down.disabled=data.widgetOrder.indexOf(id)===data.widgetOrder.length-1;
@@ -1115,15 +1109,16 @@ function widget(id){
  fold.setAttribute('aria-expanded',String(!collapsed));
  tools.append(up,down,fold,btn);
  heading.append(mk('strong','ldp136-card-heading',title),tools);box.append(heading);
- box.draggable=true;
+ box.draggable=widgetsReordering;
  box.addEventListener('dragstart',event=>{
-  if(event.target.closest('button,input,select')){event.preventDefault();return}
+  if(!widgetsReordering||event.target.closest('button,input,select')){event.preventDefault();return}
   event.dataTransfer.setData('text/plain',id);event.dataTransfer.effectAllowed='move';
   box.classList.add('ldp136-dragging');
  });
  box.addEventListener('dragend',()=>box.classList.remove('ldp136-dragging'));
  box.addEventListener('dragover',event=>{event.preventDefault();event.dataTransfer.dropEffect='move'});
  box.addEventListener('drop',event=>{
+  if(!widgetsReordering)return;
   event.preventDefault();const from=event.dataTransfer.getData('text/plain');
   if(WIDGETS.includes(from))reorderWidget(from,id);
  });
@@ -1281,7 +1276,8 @@ function activate(){
   data=clean(cloud&&Number(cloud.updatedAt||0)>=Number(local?.updatedAt||0)?cloud:local);
   if(!cloud&&!local)data=base();
  }
- shell();ui.hidden=false;placeHeaderRadio();wallpaper();drawIcons();drawWidgets();
+ shell();ui.hidden=false;ui.classList.toggle('ldp137-reordering',widgetsReordering);
+ placeHeaderRadio();wallpaper();drawIcons();drawWidgets();
  document.documentElement.classList.add('ldp-os-running');
  document.documentElement.classList.remove('ldp-os-launch-pending');
  updateWindows();drawTaskbar();updateClock();
@@ -1289,6 +1285,7 @@ function activate(){
 }
 function deactivate(){
  if(HOST_WINDOWS_V131&&hostActiveId)restoreHostToClassic();
+ widgetsReordering=false;if(ui)ui.classList.remove('ldp137-reordering');
  if(ui&&!ui.hidden){
   ui.hidden=true;hideStart();closeSettings();returnHeaderRadio();
   document.documentElement.classList.remove('ldp-os-running');
