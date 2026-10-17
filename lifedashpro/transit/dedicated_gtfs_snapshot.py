@@ -73,7 +73,7 @@ def run_docker(args,uri=None):
     if result.returncode:
         raise SafePreflightError("SNAPSHOT_DOCKER_PG_COMMAND_FAILED")
 
-def create_archive(url,folder):
+def create_archive(url,folder,*,local_fixture=False):
     folder.mkdir(parents=True,exist_ok=True)
     # URI exists only in PRIVATE process environment, never in argv, logs, or artifact.
     # Absolute trusted GitHub runner temp path is mounted, no arbitrary user path.
@@ -81,7 +81,7 @@ def create_archive(url,folder):
        'exec pg_dump --dbname "$PGURI" --format=custom --compress=6 '
        '--schema=transit_data --no-owner --no-acl --file=/snapshot/transit_data.pgdump'],url)
     archive=folder/"transit_data.pgdump"
-    if not archive.exists() or archive.stat().st_size<100_000:
+    if not archive.exists() or archive.stat().st_size<(1000 if local_fixture else 100_000):
         raise SafePreflightError("SNAPSHOT_ARCHIVE_TOO_SMALL")
     return archive
 
