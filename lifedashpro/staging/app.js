@@ -744,48 +744,15 @@ window.LifeDashBackupBridge=Object.freeze({
   }
 });
 window.LifeDashMobilityBridge=Object.freeze({
- ready:()=>Boolean(state.user&&state.session&&state.syncReady),
- identity:()=>state.user?.id||null,
- snapshot:()=>{
-  if(!state.user||!state.session||!state.syncReady)return null;
-  const kinds=['vehicles','journey_plans_beta','documents'];
-  return Object.fromEntries(kinds.map(kind=>[kind,(state.data[kind]||[]).map(item=>({...item}))]));
- },
- saveVehicle:async patch=>{
-  if(!state.user||!state.session||!state.syncReady||OS_CHILD)throw Error('Sign in and finish sync first.');
-  if(!patch||typeof patch!=='object')throw Error('Missing vehicle data.');
-  const id=String(patch.id||('web-vehicle-'+(crypto.randomUUID?.()||Date.now()))).slice(0,120);
-  const found=(state.data.vehicles||[]).find(x=>String(x.id)===id);
-  const allowed=['name','brand','model','year','licensePlate','color','fuelType','notes','currentKm',
-   'nextServiceKm','lastService','insuranceExpires','registrationExpires','technicalExpires','services','fuelHistory'];
-  const data={...found,id};
-  for(const key of allowed)if(Object.prototype.hasOwnProperty.call(patch,key))data[key]=patch[key];
-  const textKeys=['name','brand','model','year','licensePlate','color','fuelType','notes'];
-  for(const key of textKeys)if(data[key]!==undefined&&data[key]!==null)data[key]=String(data[key]).trim().slice(0,key==='notes'?2000:120);
-  if(!data.name&&!data.brand&&!data.model)throw Error('Enter a vehicle name, brand or model.');
-  for(const key of ['currentKm','nextServiceKm']){
-   if(data[key]===''||data[key]===undefined||data[key]===null){delete data[key];continue}
-   const v=Number(data[key]);if(!Number.isFinite(v)||v<0||v>50000000)throw Error('Invalid mileage.');
-   data[key]=v;
+  ready:()=>Boolean(state.user&&state.session&&state.syncReady),
+  identity:()=>state.user?.id||null,
+  snapshot:()=>{
+    if(!state.user||!state.session||!state.syncReady)return null;
+    const kinds=['vehicles','journey_plans_beta','documents'];
+    return Object.fromEntries(kinds.map(kind=>[
+      kind,(state.data[kind]||[]).map(item=>({...item}))
+    ]));
   }
-  for(const key of ['insuranceExpires','registrationExpires','technicalExpires','lastService']){
-   if(!data[key]){delete data[key];continue}
-   if(!/^\d{4}-\d{2}-\d{2}$/.test(String(data[key])))throw Error('Invalid date.');
-  }
-  for(const key of ['services','fuelHistory'])
-   if(data[key]!==undefined&&(!Array.isArray(data[key])||data[key].length>300))throw Error('Too many history items.');
-  data.createdAt=found?.createdAt||patch.createdAt||new Date().toISOString();
-  data.updatedAt=new Date().toISOString();
-  await upsertRecord('vehicles',data);
-  return (state.data.vehicles||[]).find(x=>String(x.id)===id);
- },
- deleteVehicle:async id=>{
-  if(!state.user||!state.session||!state.syncReady||OS_CHILD)throw Error('Sign in and finish sync first.');
-  const target=(state.data.vehicles||[]).find(x=>String(x.id)===String(id));
-  if(!target)throw Error('Vehicle not found. Refresh data.');
-  await tombstoneRecord('vehicles',String(id));
-  return true;
- }
 });
 window.LifeDashDocumentsBridge=Object.freeze({
   ready:()=>Boolean(state.user&&state.session&&state.syncReady),
