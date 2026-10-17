@@ -1,0 +1,91 @@
+name: LifeDashPro dedicated Transit RPC security and API contract
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/dedicated_gtfs_rpc.sql'
+      - 'lifedashpro/transit/test_dedicated_gtfs_rpc.py'
+      - 'lifedashpro/transit/preview/transit-schedule-dedicated-preview/index.ts'
+      - '.github/workflows/lifedashpro-dedicated-rpc-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ldp_gtfs_scratch
+          POSTGRES_PASSWORD: local_ephemeral_benchmark_only
+          POSTGRES_DB: ldp_gtfs_scratch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ldp_gtfs_scratch -d ldp_gtfs_scratch"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DEDICATED_LOCAL_SMOKE_DB_URL: postgresql://ldp_gtfs_scratch:local_ephemeral_benchmark_only@127.0.0.1:5432/ldp_gtfs_scratch
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install local test database driver
+        run: python -m pip install --disable-pip-version-check "psycopg[binary]==3.2.10"
+      - name: Validate GTFS input fixture and compact schema
+        run: |
+          python lifedashpro/transit/test_dedicated_gtfs_import.py
+      - name: Deploy RPC SQL ONLY to disposable LOCAL PostgreSQL
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          import psycopg
+          from pathlib import Path
+          uri=os.environ["DEDICATED_LOCAL_SMOKE_DB_URL"]
+          if "@127.0.0.1:5432/ldp_gtfs_scratch" not in uri:
+              raise SystemExit("Refuse a non-local test database")
+          with psycopg.connect(uri,autocommit=True) as db:
+              with db.cursor() as c:
+                  c.execute("create role service_role noinherit nologin")
+                  c.execute(Path("lifedashpro/transit/dedicated_gtfs_rpc.sql").read_text())
+                  print("PRIVATE_SERVICE_ROLE_RPC_DDL_PASS")
+          PY
+      - name: Check read-only endpoint outputs and RLS permissions
+        run: python lifedashpro/transit/test_dedicated_gtfs_rpc.py
+      - name: Check preview adapter never embeds live credentials
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path("lifedashpro/transit/preview/transit-schedule-dedicated-preview/index.ts")
+          s=p.read_text(encoding="utf-8")
+          assert "gnqtngtuzbxohgwgvmpb.supabase.co" in s
+          assert "LDP_DEDICATED_TRANSIT_SERVICE_ROLE_KEY" in s
+          assert "authenticateAndRateLimit(req,'transit-schedule',30,60)" in s
+          assert "requireAuthenticatedUser(req)" in s
+          assert "const DEDICATED_RPC_ALLOWLIST" in s
+          assert "key.startsWith('eyJ')" in s
+          assert "if(!key)throw new HttpError(503," in s
+          assert "Deno.serve(" in s
+          assert "sb_secret_" in s
+          assert "LDP_DEDICATED_TRANSIT_DB_URL" not in s
+          assert "db.gnqtngtuzbxohgwgvmpb.supabase.co" not in s
+          assert "db.djbxhyhqefylyqqlifan.supabase.co" not in s
+          print("PREVIEW_AUTH_AND_SECRET_ISOLATION_PASS")
+          PY
+      - name: Summary
+        shell: bash
+        run: |
+          echo '## Dedicated Transit server RPC' >> "$GITHUB_STEP_SUMMARY"
+          echo 'PASS: four service_role-only functions, RLS denies users, cache, nearby, departures, midnight and trip route.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'TEST ENVIRONMENT: disposable PostgreSQL 16. No production secrets or credentials.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'The new preview function does not modify LifeDashPro v14 or Android/Web.' >> "$GITHUB_STEP_SUMMARY"
