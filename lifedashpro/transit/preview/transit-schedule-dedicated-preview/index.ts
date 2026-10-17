@@ -297,6 +297,9 @@ async function managedDepartures(auth:AuthContext,country:string,stopId:string,l
  }
  let id=String(stopId||'');
  const isDbId=country==='DE'&&/^\d{5,}$/.test(id);
+ // A dedicated GTFS stop ID is not a Transitland Onestop ID. After an
+ // outage use nearby GPS resolution, never direct cross-provider stop IDs.
+ const isScopedGtfsId=country==='DE'&&/^de-(?:rvv|mvv|national):/.test(id);
  // DB stop identifiers and Transitland Onestop IDs are not interchangeable.
  if(isDbId){
   const db=await providerAttempt('de-db-rest','Germany DB fallback',()=>departuresDE(id,duration),x=>x.length);
@@ -306,7 +309,7 @@ async function managedDepartures(auth:AuthContext,country:string,stopId:string,l
    return{departures:rows,stop,providerId:'de-db-rest',provider:'Germany DB fallback',quality:rows.some(x=>x.realtime)?'live' as TransitQuality:'scheduled' as TransitQuality,sourceUrl:'https://v6.db.transport.rest/api.html',attempts};
   }
  }
- if(id&&!isDbId){
+ if(id&&!isDbId&&!isScopedGtfsId){
   const tl=await providerAttempt('eu-transitland','Transitland v2',()=>departuresTransitland(id,duration),x=>x.length);
   attempts.push(tl.attempt);
   if(tl.value?.length){
@@ -388,6 +391,11 @@ Deno.serve(async req=>{
    const result=await providerAttempt(feed,'Germany GTFS',()=>gtfsTrip(auth,feed,tripId,lineName),x=>x?1:0);
    attempts.push(result.attempt);
    if(result.value)return Response.json({ok:true,country,route:result.value,providerId:feed,provider:feed,attempts});
+   // A dedicated trip_id is only meaningful in that GTFS feed: do not ask
+   // unrelated DB/Transitland providers for a coincidentally matching ID.
+   return Response.json({ok:true,country,generatedAt:new Date().toISOString(),
+      providerId:feed,provider:feed,route:null,attempts},
+      {headers:{...cors,'Cache-Control':'no-store'}});
    }
    if(providerId==='eu-transitland'&&routeId){const started=Date.now();const route=await tripTransitland(routeId,tripId,lineName);attempts.push({providerId:'eu-transitland',provider:'Transitland v2 trip map',ok:!!route,durationMs:Date.now()-started,itemCount:route?1:0,...(!route?{error:'Trip geometry unavailable'}:{})});if(route)return Response.json({ok:true,country,generatedAt:new Date().toISOString(),provider:'Transitland v2 trip map',providerId:'eu-transitland',route,attempts},{headers:{...cors,'Cache-Control':'private, max-age=30'}})}
    if(country==='DE'){const started=Date.now();const route=await tripDE(tripId,lineName);attempts.push({providerId:'de-db-rest',provider:'Germany DB trip map',ok:!!route,durationMs:Date.now()-started,itemCount:route?1:0,...(!route?{error:'Trip geometry unavailable'}:{})});return Response.json({ok:true,country,generatedAt:new Date().toISOString(),provider:'Germany DB trip map',providerId:'de-db-rest',route,attempts},{headers:{...cors,'Cache-Control':'private, max-age=30'}})}
