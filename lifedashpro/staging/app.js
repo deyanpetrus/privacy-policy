@@ -262,7 +262,7 @@ function rowHtml(mode,x,icon,title,sub,badge,cls=''){return `<div class="data-ro
 function wirePageRows(){
   $$('[data-go]').forEach(b=>b.onclick=()=>setPage(b.dataset.go));$$('[data-new]').forEach(b=>b.onclick=()=>openEditor(b.dataset.new));
   $$('[data-open]').forEach(r=>{if(r.dataset.open!=='readonly')r.onclick=()=>openEditor(r.dataset.open,r.dataset.id)});
-  $('#saveProfile')?.addEventListener('click',saveProfile);$('#logoutBtn')?.addEventListener('click',()=>state.client.auth.signOut());
+  $('#saveProfile')?.addEventListener('click',saveProfile);$('#logoutBtn')?.addEventListener('click',()=>state.client.auth.signOut({scope:'local'}));
   $('#requestEmailChangeBtn')?.addEventListener('click',requestEmailChange);
   $('#sendAccountNonceBtn')?.addEventListener('click',sendAccountNonce);
   $('#changeAccountPasswordBtn')?.addEventListener('click',changeAccountPassword);
@@ -492,8 +492,33 @@ $('#signinForm').onsubmit=async e=>{
   else if(data?.session&&!webValid(data.session.user.id))webStart(data.session.user.id);
  }catch(err){webLoginPending=false;window.LifeDashCaptchaV137?.reset?.('signin');authMsg(err.message,'error')}
 };
-$('#registerForm').onsubmit=async e=>{e.preventDefault();authMsg('Creating account…');const email=$('#registerEmail').value.trim(),password=$('#registerPassword').value,firstName=$('#registerFirstName').value.trim(),lastName=$('#registerLastName').value.trim(),country=$('#registerCountry').value,language=$('#registerLanguage').value;if(!firstName||firstName.length>80||lastName.length>80)return authMsg('First name is required (up to 80 characters).','error');const name=[firstName,lastName].filter(Boolean).join(' ');const emailRedirectTo=`${location.origin}${cfg.basePath||'/lifedashpro/'}`;const {data,error}=await state.client.auth.signUp({email,password,options:{emailRedirectTo,data:{name,full_name:name,first_name:firstName,last_name:lastName,country,language}}});if(error)return authMsg(error.message,'error');if(data.session){authMsg('Account created and signed in.','good')}else authMsg('Account created. Check your email to confirm, then sign in.','good')};
-$('#forgotBtn').onclick=async()=>{const email=$('#signinEmail').value.trim();if(!email)return authMsg('Enter your email first.','error');const redirectTo=`${location.origin}${cfg.basePath||'/lifedashpro/'}`;const {error}=await state.client.auth.resetPasswordForEmail(email,{redirectTo});authMsg(error?error.message:'Password reset email sent.',error?'error':'good')};
+$('#registerForm').onsubmit=async e=>{
+ e.preventDefault();const captcha=window.LifeDashCaptchaV137?.token?.('register');if(captcha===false)return;
+ authMsg('Creating account…');
+ const email=$('#registerEmail').value.trim(),password=$('#registerPassword').value,
+  firstName=$('#registerFirstName').value.trim(),lastName=$('#registerLastName').value.trim(),
+  country=$('#registerCountry').value,language=$('#registerLanguage').value;
+ if(!firstName||firstName.length>80||lastName.length>80)return authMsg('First name is required (up to 80 characters).','error');
+ const name=[firstName,lastName].filter(Boolean).join(' '),emailRedirectTo=location.origin+(cfg.basePath||'/lifedashpro/');
+ webLoginPending=true;
+ try{
+  const {data,error}=await state.client.auth.signUp({email,password,options:{
+   emailRedirectTo,data:{name,full_name:name,first_name:firstName,last_name:lastName,country,language},
+   ...(captcha?{captchaToken:captcha}:{})}});
+  webLoginPending=false;
+  if(error){window.LifeDashCaptchaV137?.reset?.('register');return authMsg(error.message,'error')}
+  if(data.session){if(!webValid(data.session.user.id))webStart(data.session.user.id);authMsg('Account created and signed in.','good')}
+  else authMsg('Account created. Check your email to confirm, then sign in.','good');
+ }catch(err){webLoginPending=false;window.LifeDashCaptchaV137?.reset?.('register');authMsg(err.message,'error')}
+};
+$('#forgotBtn').onclick=async()=>{
+ const email=$('#signinEmail').value.trim();if(!email)return authMsg('Enter your email first.','error');
+ const captcha=window.LifeDashCaptchaV137?.token?.('signin');if(captcha===false)return;
+ const redirectTo=location.origin+(cfg.basePath||'/lifedashpro/');
+ const {error}=await state.client.auth.resetPasswordForEmail(email,{redirectTo,...(captcha?{captchaToken:captcha}:{})});
+ window.LifeDashCaptchaV137?.reset?.('signin');
+ authMsg(error?error.message:'Password reset email sent.',error?'error':'good');
+};
 $('#updatePasswordBtn').onclick=async()=>{const p=$('#newPassword').value;if(p.length<8)return $('#passwordMessage').textContent='Use at least 8 characters.';const {error}=await state.client.auth.updateUser({password:p});if(error){$('#passwordMessage').textContent=error.message;$('#passwordMessage').classList.remove('hidden');return}$('#passwordDialog').close();msg('Password updated.','good')};
 $('#refreshBtn').onclick=refreshAll;$('#quickAddBtn').onclick=()=>openEditor(state.page==='finance'?'finance':state.page==='tasks'?'tasks':'notes');$('#editorSave').onclick=saveEditor;$('#editorDelete').onclick=deleteEditor;
 $$('[data-page]').forEach(b=>b.onclick=()=>setPage(b.dataset.page));
