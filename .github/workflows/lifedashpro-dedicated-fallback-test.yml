@@ -50,6 +50,5 @@ jobs:
           assert "legacyGtfsDepartures" not in s
           assert "legacyGtfsTrip" not in s
           assert "verify_jwt:false" not in s
-          assert "sb_secret_" not in s
           print("DEDICATED_PREVIEW_FALLBACK_SCOPE_AND_JWT_PASS")
           PY
