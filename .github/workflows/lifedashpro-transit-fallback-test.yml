@@ -1,0 +1,44 @@
+name: LifeDashPro Transit isolated preview automatic fallback test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/preview/transit-schedule-dedicated-preview/index.ts'
+      - 'lifedashpro/transit/preview/test_automatic_fallback.ts'
+      - '.github/workflows/lifedashpro-transit-fallback-test.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/preview/transit-schedule-dedicated-preview/index.ts'
+      - 'lifedashpro/transit/preview/test_automatic_fallback.ts'
+      - '.github/workflows/lifedashpro-transit-fallback-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Verify actual preview handler with an in-memory Supabase gateway
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Deno can download public npm:jszip (from the original source file).
+          # The test's fetch mock prevents any outbound runtime database calls.
+          deno run --no-check --allow-read=lifedashpro/transit/preview \
+            --allow-write=lifedashpro/transit/preview \
+            --allow-env \
+            lifedashpro/transit/preview/test_automatic_fallback.ts
+      - name: Record preview-only test result
+        run: |
+          echo "## PASS: isolated preview automatic GTFS failover" >> "$GITHUB_STEP_SUMMARY"
+          echo "Validated new GTFS, simulated dedicated 503, old GTFS recovery, diagnostic, and user auth requirement." >> "$GITHUB_STEP_SUMMARY"
+          echo "No Supabase projects, users, GitHub secrets, or production Edge functions were modified." >> "$GITHUB_STEP_SUMMARY"
