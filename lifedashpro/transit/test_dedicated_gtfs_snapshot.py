@@ -17,7 +17,7 @@ with psycopg.connect(url,autocommit=True) as db:
         cur.execute("select selected_until from transit_data.feeds where feed_source='de-national' and active")
         until=str(cur.fetchone()[0])
 with tempfile.TemporaryDirectory() as root:
-    archive=create_archive(url,Path(root))
+    archive=create_archive(url,Path(root),local_fixture=True)
     assert archive.is_file() and archive.stat().st_size>1000
     result=local_restore(archive,{"selected_until":until,"stop_times":2},local_fixture=True)
     assert result["rows"]==2 and result["rls_tables"]==8 and result["dangling"]==0
