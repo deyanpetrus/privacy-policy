@@ -85,7 +85,7 @@ def create_archive(url,folder):
         raise SafePreflightError("SNAPSHOT_ARCHIVE_TOO_SMALL")
     return archive
 
-def local_restore(archive,expected):
+def local_restore(archive,expected,*,local_fixture=False):
     local=os.environ.get(LOCAL_VAR,"")
     if (not local.startswith("postgresql://ldp_gtfs_scratch:") or
         "@127.0.0.1:5432/ldp_gtfs_scratch" not in local):
@@ -123,7 +123,7 @@ def local_restore(archive,expected):
             dangling=cur.fetchone()[0]
             cur.execute("select count(*) from transit_data.stops")
             stops=cur.fetchone()[0]
-            if rows!=expected["stop_times"] or feed!=1 or rls!=8 or dangling!=0 or stops<5000:
+            if rows!=expected["stop_times"] or feed!=1 or rls!=8 or dangling!=0 or stops<(2 if local_fixture else 5000):
                 raise SafePreflightError("SNAPSHOT_RESTORED_COUNTS_OR_RLS_FAILED")
     return {"rows":rows,"feeds":feed,"rls_tables":rls,"dangling":dangling,"stops":stops}
 
