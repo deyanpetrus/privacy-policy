@@ -4,6 +4,35 @@ const cfg=window.LIFEDASH_CONFIG||{};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const state={client:null,session:null,user:null,profile:null,page:'dashboard',data:{},editor:null,loading:false,syncReady:false,lastSync:null,deviceId:localStorage.getItem('lifedash_web_device_id')||`web-${crypto.randomUUID?.()||Date.now()}`};
 localStorage.setItem('lifedash_web_device_id',state.deviceId);
+// Web-only security policy; Auth server-side token lifetime must also be configured.
+const WEB_IDLE_MS=30*60*1000,WEB_ABSOLUTE_MS=12*60*60*1000;
+let webLoginPending=false,webExpiryBusy=false,webTouchAt=0;
+const webMetaKey=id=>'ldp_web_session_v137_'+id;
+function webMeta(id){try{const v=JSON.parse(localStorage.getItem(webMetaKey(id))||'null');return v&&Number.isFinite(v.start)&&Number.isFinite(v.last)?v:null}catch(_){return null}}
+function webStart(id){if(!id)return;const now=Date.now();try{localStorage.setItem(webMetaKey(id),JSON.stringify({start:now,last:now}))}catch(_){}}
+function webValid(id){const m=id&&webMeta(id),now=Date.now();
+ return !!m&&m.start>0&&m.last>=m.start&&m.start<=now+60000&&m.last<=now+60000&&now-m.last<WEB_IDLE_MS&&now-m.start<WEB_ABSOLUTE_MS}
+async function webExpire(){
+ if(webExpiryBusy||!state.client)return;
+ webExpiryBusy=true;const prior=state.user?.id;
+ try{if(prior)localStorage.removeItem(webMetaKey(prior));
+  showAuthShell(false);authMsg('Your web session expired. Sign in again.','error');
+  await state.client.auth.signOut({scope:'local'}); // never sign out Android sessions
+ }catch(_){showAuthShell(false);authMsg('Session expired. Refresh to sign in again.','error')}
+ finally{webExpiryBusy=false}
+}
+function webCheck(){if(state.user&&!webValid(state.user.id))void webExpire()}
+function webTouch(){
+ if(document.hidden||!state.user||webExpiryBusy)return;
+ if(!webValid(state.user.id)){void webExpire();return}
+ const now=Date.now();if(now-webTouchAt<15000)return;const meta=webMeta(state.user.id);
+ if(!meta)return;webTouchAt=now;
+ try{localStorage.setItem(webMetaKey(state.user.id),JSON.stringify({start:meta.start,last:now}))}catch(_){}
+}
+for(const kind of ['pointerdown','keydown','wheel','touchstart'])window.addEventListener(kind,webTouch,{passive:true});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)webCheck()});
+window.addEventListener('focus',webCheck);
+window.setInterval(webCheck,60000);
 const KINDS=['notes','finance_transactions','finance_goals','family_tasks','documents','vehicles','journey_plans_beta','manual_reminders','travel','radio_favorites','family_members'];
 const OS_CHILD=Boolean(document.documentElement.classList.contains('ldp-os-embedded')&&window.parent!==window);
 function desktopChildContext(){
@@ -68,9 +97,17 @@ async function init(){
     // Install the callback BEFORE session recovery, so sign-in still works if recovery times out.
     state.client.auth.onAuthStateChange((event,session)=>{
       const oldId=state.user?.id||null;
+      if(session?.user&&(webLoginPending||event==='PASSWORD_RECOVERY')){
+       webStart(session.user.id);webLoginPending=false;
+      }
+      if(session?.user&&!webValid(session.user.id)){
+       queueMicrotask(()=>void webExpire());return;
+      }
       state.session=session;state.user=session?.user||null;
       if(event==='PASSWORD_RECOVERY')queueMicrotask(()=>$('#passwordDialog').showModal());
       if(event==='SIGNED_OUT'){
+        if(oldId)try{localStorage.removeItem(webMetaKey(oldId))}catch(_){}
+        webLoginPending=false;
         state.data={};state.profile=null;state.lastSync=null;state.loading=false;state.syncReady=false;
         queueMicrotask(()=>showAuthShell(false));
       }else if(event==='SIGNED_IN'&&session&&(!oldId||oldId!==session.user.id)){
@@ -81,11 +118,13 @@ async function init(){
     const {data,error}=await Promise.race([state.client.auth.getSession(),new Promise((_,rej)=>setTimeout(()=>rej(new Error('Login session check timed out. Please try signing in again.')),12000))]);
     if(error)throw error;
     state.session=data.session;state.user=data.session?.user||null;
+    if(state.session&&!webValid(state.user?.id)){await webExpire();return}
     if(state.session)await enterApp();
   }catch(e){showAuthShell(false);authMsg('Secure login is temporarily unavailable: '+e.message,'error')}
 }
 function showAuthShell(needsKey){$('#appView').classList.add('hidden');$('#authView').classList.remove('hidden');$('#keySetup').classList.toggle('hidden',!needsKey);$('#authCard').classList.toggle('hidden',needsKey)}
 async function enterApp(){
+  if(!state.user||!webValid(state.user.id)){await webExpire();return}
   state.data={};state.profile=null;state.syncReady=false;
   $('#authView').classList.add('hidden');$('#appView').classList.remove('hidden');
   await loadProfile();await refreshAll();render();
@@ -442,7 +481,17 @@ async function changeAccountPassword(){
 }
 $$('[data-auth]').forEach(b=>b.onclick=()=>{const mode=b.dataset.auth;$$('[data-auth]').forEach(x=>x.classList.toggle('active',x===b));$('#signinForm').classList.toggle('hidden',mode!=='signin');$('#registerForm').classList.toggle('hidden',mode!=='register');authMsg('')});
 $('#saveKeyBtn').onclick=()=>{const k=$('#setupKey').value.trim();if(!k)return authMsg('Enter a public publishable/anon key.','error');if(k.startsWith('sb_secret_')||k.includes('service_role'))return authMsg('Secret/service-role keys must never be used in the browser.','error');localStorage.setItem('lifedash_web_publishable_key',k);location.reload()};
-$('#signinForm').onsubmit=async e=>{e.preventDefault();authMsg('Signing in…');const {error}=await state.client.auth.signInWithPassword({email:$('#signinEmail').value.trim(),password:$('#signinPassword').value});if(error)authMsg(error.message,'error')};
+$('#signinForm').onsubmit=async e=>{
+ e.preventDefault();const captcha=window.LifeDashCaptchaV137?.token?.('signin');
+ if(captcha===false)return;
+ authMsg('Signing in…');webLoginPending=true;
+ try{
+  const {data,error}=await state.client.auth.signInWithPassword({email:$('#signinEmail').value.trim(),
+   password:$('#signinPassword').value,...(captcha?{options:{captchaToken:captcha}}:{})});
+  if(error){webLoginPending=false;window.LifeDashCaptchaV137?.reset?.('signin');authMsg(error.message,'error')}
+  else if(data?.session&&!webValid(data.session.user.id))webStart(data.session.user.id);
+ }catch(err){webLoginPending=false;window.LifeDashCaptchaV137?.reset?.('signin');authMsg(err.message,'error')}
+};
 $('#registerForm').onsubmit=async e=>{e.preventDefault();authMsg('Creating account…');const email=$('#registerEmail').value.trim(),password=$('#registerPassword').value,firstName=$('#registerFirstName').value.trim(),lastName=$('#registerLastName').value.trim(),country=$('#registerCountry').value,language=$('#registerLanguage').value;if(!firstName||firstName.length>80||lastName.length>80)return authMsg('First name is required (up to 80 characters).','error');const name=[firstName,lastName].filter(Boolean).join(' ');const emailRedirectTo=`${location.origin}${cfg.basePath||'/lifedashpro/'}`;const {data,error}=await state.client.auth.signUp({email,password,options:{emailRedirectTo,data:{name,full_name:name,first_name:firstName,last_name:lastName,country,language}}});if(error)return authMsg(error.message,'error');if(data.session){authMsg('Account created and signed in.','good')}else authMsg('Account created. Check your email to confirm, then sign in.','good')};
 $('#forgotBtn').onclick=async()=>{const email=$('#signinEmail').value.trim();if(!email)return authMsg('Enter your email first.','error');const redirectTo=`${location.origin}${cfg.basePath||'/lifedashpro/'}`;const {error}=await state.client.auth.resetPasswordForEmail(email,{redirectTo});authMsg(error?error.message:'Password reset email sent.',error?'error':'good')};
 $('#updatePasswordBtn').onclick=async()=>{const p=$('#newPassword').value;if(p.length<8)return $('#passwordMessage').textContent='Use at least 8 characters.';const {error}=await state.client.auth.updateUser({password:p});if(error){$('#passwordMessage').textContent=error.message;$('#passwordMessage').classList.remove('hidden');return}$('#passwordDialog').close();msg('Password updated.','good')};
