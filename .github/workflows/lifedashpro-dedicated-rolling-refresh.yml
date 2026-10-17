@@ -8,6 +8,13 @@ on:
       - 'lifedashpro/transit/test_dedicated_gtfs_refresh.py'
       - 'lifedashpro/transit/dedicated_gtfs_import.py'
       - '.github/workflows/lifedashpro-dedicated-rolling-refresh.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/dedicated_gtfs_refresh.py'
+      - 'lifedashpro/transit/test_dedicated_gtfs_refresh.py'
+      - 'lifedashpro/transit/dedicated_gtfs_import.py'
+      - '.github/workflows/lifedashpro-dedicated-rolling-refresh.yml'
   schedule:
     - cron: '45 2 * * *'
   workflow_dispatch:
