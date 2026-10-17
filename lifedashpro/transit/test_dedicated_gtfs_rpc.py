@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only parity/security tests against disposable LOCAL dedicated GTFS DB."""
+"""Security/parity test of the disposable LOCAL dedicated GTFS database."""
 import os
 from datetime import datetime,timedelta,timezone
 import psycopg
@@ -33,6 +33,15 @@ with psycopg.connect(uri,autocommit=True) as db:
         assert trip["approximate"] is True
         assert len(trip["stops"])==2 and len(trip["points"])==2
         assert trip["stops"][0]["departureTime"]=="25:01:00"
+        assert trip["direction"]=="City centre",trip
+        # Simulate a German GTFS feed with missing trip_headsign (in LOCAL fixture only).
+        cur.execute("update transit_data.trips set trip_headsign=null,trip_short_name=null where trip_id='t1'")
+        cur.execute("select direction from public.transit_gtfs_departures(%s,%s,%s,%s,%s,%s)",
+                    ("de-national","s0",today,82800,180,50))
+        assert cur.fetchone()[0]=="City centre"
+        cur.execute("select public.transit_gtfs_trip_route('de-national','t1')")
+        assert cur.fetchone()[0]["direction"]=="City centre"
+
         cur.execute("""select proname,
                     has_function_privilege('anon',p.oid,'execute'),
                     has_function_privilege('authenticated',p.oid,'execute'),
