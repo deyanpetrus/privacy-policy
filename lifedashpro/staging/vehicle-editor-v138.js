@@ -12,6 +12,7 @@ let modal=null,saving=false,owner='';
 function input(parent,name,label,value='',type='text',max=120){
  const box=el('label','mob138-field'),caption=el('span','',tr(label)),ctrl=el(type==='textarea'?'textarea':'input','');
  ctrl.name=name;if(type!=='textarea')ctrl.type=type;
+ if(type==='number')ctrl.step='any';
  if(max&&type!=='date'&&type!=='number')ctrl.maxLength=max;
  ctrl.value=value===undefined||value===null?'':String(value);
  box.append(caption,ctrl);parent.append(box);return ctrl;
