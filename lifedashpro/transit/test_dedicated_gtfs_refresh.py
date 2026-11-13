@@ -8,12 +8,55 @@ from pathlib import Path
 import psycopg
 
 from dedicated_gtfs_import import FILES
-from dedicated_gtfs_refresh import refresh,status,should_refresh,SafePreflightError
+from dedicated_gtfs_refresh import (refresh,status,should_refresh,SafePreflightError,
+    verify_rpc_contracts,CORE_RPC_SIGNATURES,DEDICATED_RPC_SIGNATURES)
 
 url=os.environ.get("DEDICATED_LOCAL_SMOKE_DB_URL","")
 if not url.startswith("postgresql://ldp_gtfs_scratch:") or "@127.0.0.1:5432/ldp_gtfs_scratch" not in url:
     raise SystemExit("REFRESH TEST REFUSES REMOTE DATABASE")
 today=datetime.now(timezone.utc).date()
+
+# Exact approved signatures: four core in Docker, six in the live dedicated DB.
+assert len(CORE_RPC_SIGNATURES)==4 and len(DEDICATED_RPC_SIGNATURES)==6
+verify_rpc_contracts(CORE_RPC_SIGNATURES,4,local_fixture=True)
+verify_rpc_contracts(DEDICATED_RPC_SIGNATURES,6)
+for contracts,secure,fixture in (
+    (CORE_RPC_SIGNATURES,4,False),        # remote missing two approved RPCs
+    (DEDICATED_RPC_SIGNATURES,6,True),   # unexpected RPCs in local fixture
+    (CORE_RPC_SIGNATURES,3,True),        # one core RPC lacks service grant
+    (CORE_RPC_SIGNATURES+(CORE_RPC_SIGNATURES[0],),5,True), # overloaded RPC
+):
+    try:
+        verify_rpc_contracts(contracts,secure,local_fixture=fixture)
+    except SafePreflightError as exc:
+        assert exc.code=="REFRESH_RPC_CONTRACT_OR_PERMISSIONS_FAILED"
+    else:
+        raise AssertionError("GTFS security guard accepted invalid RPC contract")
+
+# Exercise the real pg_proc scan in LOCAL Docker PostgreSQL. ROLLBACK restores
+# the fixture after each negative test; never connect to a cloud database.
+with psycopg.connect(url,autocommit=False) as db:
+    with db.cursor() as cur:
+        cur.execute("create function public.transit_gtfs_unexpected() returns integer language sql as 'select 1'")
+        try:
+            status(cur,local_fixture=True)
+        except SafePreflightError as exc:
+            assert exc.code=="REFRESH_RPC_CONTRACT_OR_PERMISSIONS_FAILED"
+        else:
+            raise AssertionError("Unexpected public GTFS RPC was not rejected")
+    db.rollback()
+with psycopg.connect(url,autocommit=False) as db:
+    with db.cursor() as cur:
+        cur.execute("revoke execute on function public.transit_gtfs_nearby(double precision,double precision,integer,integer) from service_role")
+        try:
+            status(cur,local_fixture=True)
+        except SafePreflightError as exc:
+            assert exc.code=="REFRESH_RPC_CONTRACT_OR_PERMISSIONS_FAILED"
+        else:
+            raise AssertionError("Missing server-only RPC permission was not rejected")
+    db.rollback()
+print("DEDICATED_ROLLING_REFRESH_RPC_CONTRACT_GUARDS_PASS")
+
 def record(key, **kwargs):
     row={k:None for k in FILES[key]}
     row["feed_source"]="de-national"

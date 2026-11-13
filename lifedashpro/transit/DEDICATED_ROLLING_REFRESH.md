@@ -23,10 +23,29 @@
   2,500,000 and no abrupt >35% decrease or >50% increase in stop_times.
 - New advertised \`selected_until\` MUST extend prior coverage.
 - Active feed count must be 1, 8 private tables must all remain RLS-enabled,
-  zero anon/auth schema usage, four service_role-only public RPCs, no
+  zero anon/auth schema usage, four core RPCs in local Docker and six exact
+  server-only RPCs in the dedicated project, no
   foreign keys from tables OUTSIDE private Transit to the 8 GTFS tables.
 - Project URL tenant/ref must be **exactly** the new \`gnqt...\` project;
   the old production secret variable \`LDP_TRANSIT_DB_URL\` must be absent.
+
+## Stage 10E1S: approved server-only GTFS RPCs (2026-11-13)
+- The disposable Docker test database installs the four original `transit_gtfs_*` RPCs.
+- The live dedicated Transit project has precisely six approved public-schema functions:
+  `transit_gtfs_cache_status`, `transit_gtfs_departures`, `transit_gtfs_nearby`,
+  `transit_gtfs_trip_route`, `transit_gtfs_stop_lines_c2b` and
+  `transit_gtfs_nearby_modes_d2`.
+- The refresh validates exact function signatures and execution permissions,
+  not merely the function count; extra/overloaded or publicly executable RPCs
+  fail the preflight.
+- All six must be executable only by `service_role`, never `anon` or
+  `authenticated`. These are separate server-side APIs: clients receive no keys.
+- The two allowlists are intentionally different for the Docker fixture and
+  the actual dedicated project. Keep project, quota, RLS, calendar, transactional
+  rollback and snapshot checks unchanged.
+- Pushing this fix triggers CI tests only; read-only remote preflight is run
+  during scheduled jobs or manual `mode=plan`. Do not run `mode=refresh`
+  without a new due-date and source validation.
 
 ## Database refresh and rollback
 - A single PostgreSQL transaction obtains an advisory lock, then

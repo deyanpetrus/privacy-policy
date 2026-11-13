@@ -27,7 +27,25 @@ REFRESH_WHEN_REMAINING_DAYS = 8
 MIN_REFRESH_INTERVAL_DAYS = 4
 QUOTA_MIB = 500
 MAX_PEAK_MIB = 450
-EXPECTED_RPC_COUNT = 4
+# Four core RPCs exist in the disposable CI PostgreSQL fixture.
+# The dedicated live database also has two approved server-only read-only RPCs.
+# Check exact signatures, not just a count; reject unknown or overloaded RPCs.
+CORE_RPC_SIGNATURES = (
+    "transit_gtfs_cache_status()",
+    "transit_gtfs_departures(p_feed_source text, p_stop_id text, p_service_date date, p_now_seconds integer, p_window_minutes integer, p_limit integer)",
+    "transit_gtfs_nearby(p_lat double precision, p_lon double precision, p_radius_m integer, p_limit integer)",
+    "transit_gtfs_trip_route(p_feed_source text, p_trip_id text)",
+)
+DEDICATED_RPC_SIGNATURES = CORE_RPC_SIGNATURES + (
+    "transit_gtfs_nearby_modes_d2(p_lat double precision, p_lon double precision, p_radius_m integer, p_limit integer, p_service_date date, p_mode text)",
+    "transit_gtfs_stop_lines_c2b(p_feed_source text, p_stop_id text, p_service_date date, p_limit integer)",
+)
+
+def verify_rpc_contracts(contracts, secured_count, *, local_fixture=False):
+    expected = CORE_RPC_SIGNATURES if local_fixture else DEDICATED_RPC_SIGNATURES
+    if (tuple(sorted(contracts or ())) != tuple(sorted(expected))
+            or secured_count != len(expected)):
+        raise SafePreflightError("REFRESH_RPC_CONTRACT_OR_PERMISSIONS_FAILED")
 
 def status(cur,*,local_fixture=False):
     cur.execute("""select current_database(),current_user,
@@ -35,6 +53,12 @@ def status(cur,*,local_fixture=False):
       has_schema_privilege('authenticated','transit_data','USAGE'),
       (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
        where n.nspname='transit_data' and c.relkind='r' and c.relrowsecurity),
+      (select coalesce(array_agg(
+                p.proname || '(' || pg_catalog.pg_get_function_identity_arguments(p.oid) || ')'
+                order by p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid)),
+              array[]::text[])
+       from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+       where n.nspname='public' and p.proname like 'transit_gtfs_%'),
       (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
        where n.nspname='public' and p.proname like 'transit_gtfs_%'
        and not has_function_privilege('anon',p.oid,'execute')
@@ -46,7 +70,7 @@ def status(cur,*,local_fixture=False):
         join pg_class child on child.oid=fk.conrelid
         join pg_namespace cn on cn.oid=child.relnamespace
         where fk.contype='f' and pn.nspname='transit_data' and cn.nspname!='transit_data')""")
-    dbname,user,anon_access,user_access,rls,rpcs,external_refs=cur.fetchone()
+    dbname,user,anon_access,user_access,rls,rpc_contracts,secured_rpcs,external_refs=cur.fetchone()
     if local_fixture:
         # Never relax the safety gate for a remote database.
         # The disposable GitHub service has this unique local-only username/DB;
@@ -54,8 +78,9 @@ def status(cur,*,local_fixture=False):
         if (dbname,user)!=("ldp_gtfs_scratch","ldp_gtfs_scratch"):
             raise SafePreflightError("REFRESH_LOCAL_FIXTURE_IS_NOT_LOCAL")
     if ((not local_fixture and (dbname,user)!=("postgres","postgres")) or
-        anon_access or user_access or rls!=8 or rpcs!=EXPECTED_RPC_COUNT or external_refs):
+        anon_access or user_access or rls!=8 or external_refs):
         raise SafePreflightError("REFRESH_DESTINATION_OR_SECURITY_FAILED")
+    verify_rpc_contracts(rpc_contracts, secured_rpcs, local_fixture=local_fixture)
     cur.execute("""select feed_source,active,selected_from,selected_until,imported_at
                    from transit_data.feeds""")
     feeds=cur.fetchall()
