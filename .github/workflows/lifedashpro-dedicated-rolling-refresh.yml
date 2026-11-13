@@ -77,13 +77,14 @@ jobs:
           s=Path("lifedashpro/transit/dedicated_gtfs_refresh.py").read_text()
           for token in ("verify_target(url)","OLD_PRODUCTION_SECRET_MUST_NOT_BE_PRESENT",
                         "pg_try_advisory_xact_lock","truncate table ","restart identity",
-                        "db.rollback()","MAX_PEAK_MIB = 450","pg_database_size"):
+                        "db.rollback()","MAX_PEAK_MIB = 450","pg_database_size",
+                        "DEDICATED_RPC_SIGNATURES","verify_rpc_contracts"):
               assert token in s,token
           print("NEW_TRANSIT_ROLLING_REFRESH_STATIC_SAFETY_PASS")
           PY
       - name: Initial compact importer and data test in Docker
         run: python lifedashpro/transit/test_dedicated_gtfs_import.py
-      - name: Four RPCs and permissions test in Docker
+      - name: Four core RPCs and permissions test in disposable Docker
         shell: bash
         run: |
           set -euo pipefail
