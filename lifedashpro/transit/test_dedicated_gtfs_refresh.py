@@ -37,7 +37,7 @@ for contracts,secure,fixture in (
 # the fixture after each negative test; never connect to a cloud database.
 with psycopg.connect(url,autocommit=False) as db:
     with db.cursor() as cur:
-        cur.execute("create function public.transit_gtfs_unexpected() returns integer language sql as $select 1$")
+        cur.execute("create function public.transit_gtfs_unexpected() returns integer language sql as 'select 1'")
         try:
             status(cur,local_fixture=True)
         except SafePreflightError as exc:
