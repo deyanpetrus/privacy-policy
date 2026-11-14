@@ -27,6 +27,30 @@ order by regions,display_name;
 - This new RPC uses **security invoker**, is accessible only by service_role, and the underlying `transit_next.discovery_sources` table retains RLS. An HTTP-OK result is still not a validated service schedule.
 - Source-health checker accounts for providers that reject HEAD/return HTTP 404 for HEAD but succeed with a one-byte GET Range request; this caught the JSP Skopje static and ServiceAlerts endpoints without touching existing Skopje fallback.
 
+## Mobility Database API — connected and running (2026-11-14)
+
+GitHub Secret `MOBILITY_DATABASE_REFRESH_TOKEN` was verified by an actual successful [GitHub Actions auth test](https://github.com/deyanpetrus/privacy-policy/actions/runs/43623271108). The raw refresh/access tokens are never printed or written to Supabase.
+
+- [Daily 16-country metadata index workflow](https://github.com/deyanpetrus/privacy-policy/actions/workflows/lifedashpro-mobility-api-discovery.yml): 03:35 UTC daily, also manual and source-change triggers.
+- [First successful catalog sync](https://github.com/deyanpetrus/privacy-policy/actions/runs/43623651253): **1,671 country/feed records**, including **1,176 GTFS static**, **410 GTFS-RT**, **85 GBFS** across DE, AT, CH, HR, RS, MK, BG, BA, AL, ME, SI, CZ, HU, IT, FR, PL.
+- France was **truncated** at a protective cap of 500 GTFS and 300 GTFS-RT records. Country check rows explicitly report that fact. Other scanned country/kind combinations completed as of the first run.
+- Supabase dedicated private tables: `transit_next.mobility_api_feeds` and `transit_next.mobility_api_country_checks`. **No feed ZIP/RT payloads have been imported from Mobility Database into the live transit cache.**
+- Service-only, security-invoker paginated RPC: `public.transit_mobility_api_overview('DE','gtfs',100,0)`; summary `public.transit_mobility_api_country_summary()`.
+- Main project Edge `transit-source-overview-next` version 2 includes POST `{"action":"mobility","country":"DE","kind":"gtfs","pageSize":100,"offset":0}` and POST `{"action":"summary"}`. The existing default 24-source view is unchanged. All require real signed-in JWT and rate-limit validation. **Android screen hookup and signed-in phone end-to-end test remain pending.**
+
+To inspect source metadata in Supabase SQL Editor:
+
+~~~sql
+select country_code,feed_kind,latest_count,scan_state,last_checked_at
+from public.transit_mobility_api_country_summary()
+order by country_code,feed_kind;
+
+select feed_id,country_code,provider,catalog_status,service_end,license_id
+from public.transit_mobility_api_overview('DE','gtfs',100,0);
+~~~
+
+**Strong separation:** a Mobility Database `active` status or timetable calendar end date is not proof of an accurate arrival prediction, commercial redistribution rights, or LIVE GPS positions. These records must not alter existing providers, GTFS caches, navigation, POIs, Android releases or automatic source fallback. Outdated and deprecated records remain visible for diagnosis, not for passenger-facing timetable selection.
+
 ## Automatic operation
 
 - GitHub workflow `.github/workflows/lifedashpro-transit-discovery-watch.yml` runs at **04:11 UTC daily**, on manifest/script changes, or manually.
