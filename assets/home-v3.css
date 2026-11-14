@@ -37,3 +37,10 @@ body:after{content:"";position:fixed;inset:auto -14vw -22vw auto;width:56vw;heig
 @media(max-width:1050px){.product-v2-drivewave{grid-column:auto}}
 @media(max-width:820px){.ecosystem-strip-grid{grid-template-columns:1fr 1fr}.product-v2-drivewave{grid-template-columns:1fr}.product-v2-drivewave .product-v2-visual{min-height:380px}.ecosystem-strip-grid>div:nth-child(2){border-right:0}.ecosystem-strip-grid>div:nth-child(4){border-right:0}.ecosystem-strip-grid>div:nth-child(3){border-right:1px solid rgba(255,255,255,.055)}}
 @media(max-width:560px){.ecosystem-strip-grid{grid-template-columns:1fr}.ecosystem-strip-grid>div:nth-child(3){border-right:0}.drivewave-preview{min-height:340px}.drivewave-preview img{max-height:165px}}
+
+/* DriveWave Player: real screenshots load after the matching assets are published */
+.drivewave-screen-pair{display:grid;grid-template-columns:1fr;gap:12px;align-content:center;padding:12px;width:100%}
+.drivewave-screen-pair[hidden],.drivewave-preview[hidden]{display:none!important}
+.drivewave-screen-pair a{display:block;overflow:hidden;border-radius:15px;border:1px solid rgba(55,209,236,.3);background:#06131e;box-shadow:0 10px 24px rgba(0,0,0,.24)}
+.drivewave-screen-pair img{width:100%;height:auto;aspect-ratio:1822/800;object-fit:contain;display:block}
+@media(max-width:560px){.drivewave-screen-pair{padding:8px;gap:10px}}
