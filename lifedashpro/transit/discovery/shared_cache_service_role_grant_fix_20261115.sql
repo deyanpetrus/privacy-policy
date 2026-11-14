@@ -1,0 +1,12 @@
+-- LifeDashPro NEXT shared cache: authorization fix, 2026-11-15.
+-- Live symptom: Transit shared cache Edge received HTTP 200 from the NEXT client,
+-- but both /rest/v1/rpc/transit_shared_cache_read_v1 and ...store_v1 returned
+-- HTTP 403, leaving the private cache empty.
+-- Cause: service_role had EXECUTE on SECURITY INVOKER RPCs and table grants,
+-- but lacked USAGE on private transit_next schema. No anonymous/authenticated access.
+grant usage on schema transit_next to service_role;
+-- Verify:
+-- select has_schema_privilege('service_role','transit_next','USAGE');
+-- select has_schema_privilege('anon','transit_next','USAGE');
+-- select has_schema_privilege('authenticated','transit_next','USAGE');
+-- All should be (true, false, false).
