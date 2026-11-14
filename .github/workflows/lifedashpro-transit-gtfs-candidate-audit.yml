@@ -1,0 +1,78 @@
+name: LifeDashPro Transit - European GTFS candidate ZIP audit (NO IMPORT)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/discovery/audit_candidate_gtfs.py'
+      - '.github/workflows/lifedashpro-transit-gtfs-candidate-audit.yml'
+  schedule:
+    - cron: '25 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      feed:
+        description: "One curated GTFS source to download into temporary runner and validate; never import"
+        required: true
+        type: choice
+        default: mdb-3043
+        options: [mdb-768, mdb-3043, mdb-3517, mdb-3604, tld-1071, mdb-3427, mdb-2377]
+permissions:
+  contents: read
+concurrency:
+  group: lifedashpro-transit-candidate-audit
+  cancel-in-progress: false
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Strict source audit precheck (no secrets, no Supabase)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile lifedashpro/transit/discovery/audit_candidate_gtfs.py
+          python - <<'PY'
+          from pathlib import Path
+          src=Path("lifedashpro/transit/discovery/audit_candidate_gtfs.py").read_text()
+          for required in ("ZIP_LIMIT=25*1048576","EXPANDED_LIMIT=220*1048576",
+                           "MANDATORY=", "TemporaryDirectory", "calendar_dates.txt",
+                           "GTFS_TEMP_AUDIT", "CANDIDATES"):
+              assert required in src, required
+          for forbidden in ("psycopg", "SUPABASE", "DELETE FROM", "INSERT INTO", "TRUNCATE"):
+              assert forbidden not in src, forbidden
+          print("TEMPORARY_GTFS_AUDIT_ONLY_PASS")
+          PY
+      - name: Download and inspect selected GTFS in temporary runner only
+        shell: bash
+        env:
+          GH_EVENT: ${{ github.event_name }}
+          FEED: ${{ inputs.feed }}
+        run: |
+          set -euo pipefail
+          if [[ "$GH_EVENT" == "workflow_dispatch" ]]; then
+            python lifedashpro/transit/discovery/audit_candidate_gtfs.py --feed "$FEED"
+          else
+            python lifedashpro/transit/discovery/audit_candidate_gtfs.py \
+              --feed mdb-768 --feed mdb-3043
+          fi
+      - name: Publish summary counts ONLY (never feed ZIP)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: european-gtfs-audit-counts
+          path: |
+            ${{ runner.temp }}/lifedashpro-audits/audit.md
+            ${{ runner.temp }}/lifedashpro-audits/audit.json
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Clear operation note
+        if: always()
+        shell: bash
+        run: |
+          echo "## Guardrail" >> "$GITHUB_STEP_SUMMARY"
+          echo "ZIP downloaded only to ephemeral runner (25 MiB compressed, 220 MiB expanded max)." >> "$GITHUB_STEP_SUMMARY"
+          echo "No raw archive artifact, no DB writes, no app/Edge/GTFS schedule cutover." >> "$GITHUB_STEP_SUMMARY"
+          echo "A valid ZIP does NOT mean publication permission or live timetables." >> "$GITHUB_STEP_SUMMARY"
