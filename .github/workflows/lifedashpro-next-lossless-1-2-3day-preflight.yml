@@ -150,13 +150,13 @@ jobs:
               'note':'Only GTFS payload estimate; A/B and PostgreSQL sizes are not measured. No writes or secrets. No 450 truncation performed.'}
             print(json.dumps(data,ensure_ascii=False,indent=2))
             with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as f:
-              f.write('## '+feed+' GTFS - LOSSLESS 1/2/3-day forecast - READ ONLY\\n\\n')
-              f.write('- Region scoped stops: '+str(len(stops))+'; served: '+str(len(served))+'\\n')
-              f.write('- Original per-stop/day cap: 450 (NOT applied to JSON here)\\n')
+              f.write('## '+feed+' GTFS - LOSSLESS 1/2/3-day forecast - READ ONLY\n\n')
+              f.write('- Region scoped stops: '+str(len(stops))+'; served: '+str(len(served))+'\n')
+              f.write('- Original per-stop/day cap: 450 (NOT applied to JSON here)\n')
               for name,v in scenarios.items():
                 f.write('- **'+name+'**: '+str(v['events_full'])+' departures; '+str(v['lossless_json_mib'])+
                   ' MiB JSON; '+str(v['would_drop_at_old_450_cap'])+' would be lost at 450; '+
                   'old size cap OK='+str(v['under_old_json_cap'])+
-                  '; rough double-slot total='+str(v['estimated_db_two_slots_mib_from_201_22_baseline'])+' MiB\\n')
-              f.write('\\n**No Supabase access, no writes. Database sizes are estimates, not measurements.**\\n')
+                  '; rough double-slot total='+str(v['estimated_db_two_slots_mib_from_201_22_baseline'])+' MiB\n')
+              f.write('\n**No Supabase access, no writes. Database sizes are estimates, not measurements.**\n')
           PY
