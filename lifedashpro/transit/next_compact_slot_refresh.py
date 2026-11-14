@@ -165,10 +165,14 @@ def build(feed,archive_path):
             r=trip["route"];s=stops[sid]
             s["lines"].add(r["line"]);s["modes"].add(r["mode"])
             for d in trip["days"]:
+                # Free-tier rolling horizon. Include today's late services and tomorrow's
+                # early services (including GTFS 24:xx times) without two full days.
+                occurrence=datetime(d.year,d.month,d.day,tzinfo=now.tzinfo)+timedelta(seconds=secs)
+                if not now-timedelta(minutes=5)<=occurrence<=now+timedelta(hours=24):continue
                 events[(sid,d)].append({
                     "tripId":tid[:130],"line":r["line"],"direction":(st.get("stop_headsign") or trip["headsign"])[:110],
                     "mode":r["mode"],"time":f"{secs//3600:02d}:{secs//60%60:02d}",
-                    "departureSecs":secs, "platform":s["platform"]
+                    "departureSecs":secs
                 })
                 total+=1
                 if total>MAX_TOTAL_EVENTS:raise RuntimeError("TOTAL_DEPARTURES_OVER_APPROVED_CAP")
