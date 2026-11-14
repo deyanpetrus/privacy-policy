@@ -1,0 +1,50 @@
+name: LifeDashPro NEXT - Shared Transit API cache cleanup (hourly, isolated)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/discovery/shared_cache_prune.py'
+      - '.github/workflows/lifedashpro-next-shared-transit-cache-cleanup.yml'
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: lifedashpro-next-shared-transit-cache-cleanup
+  cancel-in-progress: false
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      LDP_DEDICATED_TRANSIT_DB_URL: ${{ secrets.LDP_DEDICATED_TRANSIT_DB_URL }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install pinned PostgreSQL client
+        run: python -m pip install --disable-pip-version-check 'psycopg[binary]==3.2.10'
+      - name: Validate isolated cache maintenance safety
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile lifedashpro/transit/discovery/shared_cache_prune.py
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('lifedashpro/transit/discovery/shared_cache_prune.py').read_text()
+          for t in ('verify_target(dsn)','transit_shared_cache_prune_v1(1000)',
+                    'transit_next.shared_lookup_cache_v1','pg_try_advisory_xact_lock'):
+              assert t in s,t
+          for forbidden in ('truncate','delete from transit_data','transit_next.sofia_departures','transit_next.rail_departures'):
+              assert forbidden not in s,forbidden
+          print('SHARED_CACHE_CLEANUP_SAFETY_PASS')
+          PY
+      - name: Delete only expired search results from dedicated Transit cache
+        run: python lifedashpro/transit/discovery/shared_cache_prune.py
+      - name: Scope protection
+        if: always()
+        run: |
+          echo "NEXT only; all legacy/live navigation and GTFS caches unchanged." >> "$GITHUB_STEP_SUMMARY"
+          echo "Never prunes GTFS data or Supabase user accounts." >> "$GITHUB_STEP_SUMMARY"
