@@ -19,6 +19,14 @@ order by regions,display_name;
 
 **Important:** `http_reachable_not_validated` only means that an HTTPS endpoint responded. It does **not** certify data validity, GTFS calendar, correct operator, license, completeness, or LIVE freshness. Inaccessible feeds are never automatically deleted from existing caches or Android.
 
+## Read-only ZIP audit and future Android source overview
+
+- [GTFS candidate audit workflow](https://github.com/deyanpetrus/privacy-policy/actions/workflows/lifedashpro-transit-gtfs-candidate-audit.yml) automatically audits `mdb-768` (DE long-distance rail) and `mdb-3043` (HŽPP Croatia) once weekly. A manual `workflow_dispatch` choice audits one additional allowlisted feed. All actual ZIP downloads stay ephemeral and are size capped (25 MiB compressed, 220 MiB expanded); only counts/calendars are uploaded as reports.
+- Verified 2026-11-14: DE long-distance `mdb-768` parsed 91 routes, 1,139 stops, 3,910 trips; HR HŽPP `mdb-3043` parsed 143 routes, 460 stops, 44,491 trips. Both had currently active calendar services. These numbers are audited source content, **not imported to the app**.
+- A separate Main LifeDashPro **`transit-source-overview-next`** Edge Function (JWT required, v1) can read the compact source registry from the dedicated project's service-only `public.transit_discovery_overview()` RPC. It returns 24 statuses without exposing database keys. It is **not yet wired into the Android Sources tab**, and no signed-in mobile end-to-end request has been tested.
+- This new RPC uses **security invoker**, is accessible only by service_role, and the underlying `transit_next.discovery_sources` table retains RLS. An HTTP-OK result is still not a validated service schedule.
+- Source-health checker accounts for providers that reject HEAD/return HTTP 404 for HEAD but succeed with a one-byte GET Range request; this caught the JSP Skopje static and ServiceAlerts endpoints without touching existing Skopje fallback.
+
 ## Automatic operation
 
 - GitHub workflow `.github/workflows/lifedashpro-transit-discovery-watch.yml` runs at **04:11 UTC daily**, on manifest/script changes, or manually.
