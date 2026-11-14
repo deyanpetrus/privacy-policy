@@ -1,0 +1,31 @@
+name: LifeDashPro Transit - Mobility Database API Auth Check
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/discovery/mobility_database_probe.py'
+      - '.github/workflows/lifedashpro-mobility-api-auth-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      MOBILITY_DATABASE_REFRESH_TOKEN: ${{ secrets.MOBILITY_DATABASE_REFRESH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Syntax validate
+        run: python -m py_compile lifedashpro/transit/discovery/mobility_database_probe.py
+      - name: Confirm account token and three European country feeds
+        run: python lifedashpro/transit/discovery/mobility_database_probe.py
+      - name: Scope
+        if: always()
+        run: |
+          echo "## Mobility Database API" >> "$GITHUB_STEP_SUMMARY"
+          echo "This was an authentication and API metadata check only." >> "$GITHUB_STEP_SUMMARY"
+          echo "No feed ZIPs or GTFS-RT binaries downloaded; no Supabase writes; no Android changes." >> "$GITHUB_STEP_SUMMARY"
