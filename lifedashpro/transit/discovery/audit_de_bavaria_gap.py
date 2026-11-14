@@ -57,7 +57,7 @@ def main():
         meta=request_json("/datasets/gtfs/"+str(latest["id"]),token=access)
         url=meta.get("hosted_url","") if isinstance(meta,dict) else ""
     parsed=urlsplit(url)
-    if parsed.scheme!="https" or parsed.hostname not in ("storage.googleapis.com","storage.cloud.google.com"):
+    if parsed.scheme!="https" or parsed.hostname not in ("storage.googleapis.com","storage.cloud.google.com","files.mobilitydatabase.org"):
         # Print only hostname; do not expose redirects, query strings or tokens.
         raise RuntimeError("UNAPPROVED_DATASET_HOST_"+str(parsed.hostname or "missing")[:60])
     if not parsed.path.lower().endswith(".zip"):
