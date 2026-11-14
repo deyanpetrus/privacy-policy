@@ -1,0 +1,68 @@
+name: LifeDashPro Transit - Mobility Database Europe discovery sync (metadata only)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/discovery/mobility_database_sync.py'
+      - '.github/workflows/lifedashpro-mobility-api-discovery.yml'
+  schedule:
+    - cron: '35 3 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: lifedashpro-mobility-api-europe-discovery
+  cancel-in-progress: false
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      MOBILITY_DATABASE_REFRESH_TOKEN: ${{ secrets.MOBILITY_DATABASE_REFRESH_TOKEN }}
+      LDP_DEDICATED_TRANSIT_DB_URL: ${{ secrets.LDP_DEDICATED_TRANSIT_DB_URL }}
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install pinned PostgreSQL client
+        run: python -m pip install --disable-pip-version-check 'psycopg[binary]==3.2.10'
+      - name: Syntax, target and metadata-only safety gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile lifedashpro/transit/discovery/mobility_database_sync.py
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('lifedashpro/transit/discovery/mobility_database_sync.py').read_text()
+          for token in ('MOBILITY_DATABASE_REFRESH_TOKEN','verify_target(dsn)',
+                        'transit_next.mobility_api_feeds','transit_next.mobility_api_country_checks',
+                        'DB_GUARD_BYTES=340*1048576','MAX_RECORDS=6500','MOBILITY_DISCOVERY_SUPABASE_SUCCESS'):
+              assert token in s,token
+          for forbidden in ('truncate table','delete from transit_data','insert into transit_data',
+                            'transit_next.sofia_departures','transit_next.rail_departures',
+                            'transit_next.feed_registry'):
+              assert forbidden not in s,forbidden
+          print("MOBILITY_METADATA_ONLY_GUARDS_OK")
+          PY
+      - name: Authenticate and index European metadata in dedicated Supabase
+        shell: bash
+        run: python lifedashpro/transit/discovery/mobility_database_sync.py
+      - name: Export discovery counts (no tokens, no ZIPs)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobility-database-europe-index-status
+          path: |
+            ${{ runner.temp }}/lifedashpro-mobility-api/summary.json
+            ${{ runner.temp }}/lifedashpro-mobility-api/summary.md
+          retention-days: 7
+          if-no-files-found: warn
+      - name: Scope and protections
+        if: always()
+        run: |
+          echo "### Safety" >> "$GITHUB_STEP_SUMMARY"
+          echo "Only Mobility Database catalog metadata is read and recorded." >> "$GITHUB_STEP_SUMMARY"
+          echo "No timetable ZIP or GTFS-RT payload is downloaded, no direct client secrets, no Android or existing transit_data changes." >> "$GITHUB_STEP_SUMMARY"
+          echo "Missing or incomplete country data does not clear or replace previously discovered entries." >> "$GITHUB_STEP_SUMMARY"
