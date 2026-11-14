@@ -64,6 +64,108 @@
     }
   };
 
+
+  // Featured-app copy for DriveWave Player and five-product catalog.
+  const featuredTranslations={
+    "en": {
+      "meta.desc": "Explore LifeDashPro, DriveWave Player, BalkanVibes Lite, MK Ponudi, Moja Pcelka and Notes Pro.",
+      "apps.title": "Five featured apps. One home.",
+      "apps.lead": "Explore our apps, with honest development status and official previews.",
+      "strip.drive": "Radio, TV and local media on Android",
+      "drive.badge": "Android · Preparing for release",
+      "drive.tag": "Your media. One player.",
+      "drive.desc": "Internet radio, TV streams, road cameras, YouTube playback and music or video from your device or USB storage. Designed for Android phones and compatible in-car screens.",
+      "drive.open": "Discover DriveWave Player",
+      "drive.status": "Release preparation · not yet available on Google Play",
+      "drive.preview": "Official app artwork"
+    },
+    "mk": {
+      "meta.desc": "LifeDashPro, DriveWave Player, BalkanVibes Lite, MK Ponudi, Moja Pcelka и Белешки Pro.",
+      "apps.title": "Пет истакнати апликации. Еден дом.",
+      "apps.lead": "Откриј ги нашите апликации, со јасен статус на развој и оригинални визуелни материјали.",
+      "strip.drive": "Радио, ТВ и локални медиуми на Android",
+      "drive.badge": "Android · Подготовка за објавување",
+      "drive.tag": "Твоите медиуми. Еден плеер.",
+      "drive.desc": "Интернет радио, ТВ стримови, патни камери, YouTube и музика или видео од телефонот или USB. Наменет за Android телефони и компатибилни екрани во автомобил.",
+      "drive.open": "Погледни DriveWave Player",
+      "drive.status": "Во подготовка · сè уште не е достапна на Google Play",
+      "drive.preview": "Оригинален дизајн на апликацијата"
+    },
+    "de": {
+      "meta.desc": "Entdecke LifeDashPro, DriveWave Player, BalkanVibes Lite, MK Ponudi, Moja Pcelka und Notes Pro.",
+      "apps.title": "Fünf vorgestellte Apps. Ein Zuhause.",
+      "apps.lead": "Entdecke unsere Apps mit transparentem Entwicklungsstand und offiziellen Produktbildern.",
+      "strip.drive": "Radio, TV und lokale Medien auf Android",
+      "drive.badge": "Android · In Vorbereitung",
+      "drive.tag": "Deine Medien. Ein Player.",
+      "drive.desc": "Internetradio, TV-Streams, Verkehrskameras, YouTube und Musik oder Videos vom Gerät oder USB. Für Android-Smartphones und kompatible Displays im Auto.",
+      "drive.open": "DriveWave Player entdecken",
+      "drive.status": "Veröffentlichung in Vorbereitung · noch nicht bei Google Play",
+      "drive.preview": "Offizielles App-Motiv"
+    },
+    "sr": {
+      "meta.desc": "LifeDashPro, DriveWave Player, BalkanVibes Lite, MK Ponudi, Moja Pcelka i Beleške Pro.",
+      "apps.title": "Pet istaknutih aplikacija. Jedno mesto.",
+      "apps.lead": "Pogledajte aplikacije, status razvoja i originalne vizuale.",
+      "strip.drive": "Radio, TV i lokalni mediji na Androidu",
+      "drive.badge": "Android · Priprema za objavu",
+      "drive.tag": "Tvoji mediji. Jedan plejer.",
+      "drive.desc": "Internet radio, TV strimovi, kamere na putevima, YouTube i muzika ili video sa uređaja ili USB-a. Za Android telefone i kompatibilne ekrane u vozilu.",
+      "drive.open": "Pogledaj DriveWave Player",
+      "drive.status": "U pripremi · još nije dostupan na Google Play-u",
+      "drive.preview": "Zvanični vizuelni materijal aplikacije"
+    },
+    "hr": {
+      "meta.desc": "LifeDashPro, DriveWave Player, BalkanVibes Lite, MK Ponudi, Moja Pcelka i Bilješke Pro.",
+      "apps.title": "Pet istaknutih aplikacija. Jedno mjesto.",
+      "apps.lead": "Istražite aplikacije, njihov razvojni status i izvorne vizuale.",
+      "strip.drive": "Radio, TV i lokalni mediji na Androidu",
+      "drive.badge": "Android · Priprema za objavu",
+      "drive.tag": "Tvoji mediji. Jedan player.",
+      "drive.desc": "Internetski radio, TV streamovi, prometne kamere, YouTube te glazba ili video s uređaja ili USB-a. Za Android telefone i kompatibilne zaslone u autu.",
+      "drive.open": "Otkrij DriveWave Player",
+      "drive.status": "U pripremi · još nije dostupan na Google Playu",
+      "drive.preview": "Službeni vizual aplikacije"
+    },
+    "bs": {
+      "meta.desc": "LifeDashPro, DriveWave Player, BalkanVibes Lite, MK Ponudi, Moja Pcelka i Bilješke Pro.",
+      "apps.title": "Pet istaknutih aplikacija. Jedno mjesto.",
+      "apps.lead": "Pogledajte aplikacije, stanje razvoja i originalne vizuale.",
+      "strip.drive": "Radio, TV i lokalni mediji na Androidu",
+      "drive.badge": "Android · Priprema za objavu",
+      "drive.tag": "Tvoji mediji. Jedan plejer.",
+      "drive.desc": "Internet radio, TV streamovi, kamere na putevima, YouTube i muzika ili video s uređaja ili USB-a. Za Android telefone i kompatibilne ekrane u vozilu.",
+      "drive.open": "Pogledaj DriveWave Player",
+      "drive.status": "U pripremi · još nije dostupan na Google Playu",
+      "drive.preview": "Zvanični vizual aplikacije"
+    },
+    "bg": {
+      "meta.desc": "LifeDashPro, DriveWave Player, BalkanVibes Lite, MK Ponudi, Moja Pcelka и Notes Pro.",
+      "apps.title": "Пет избрани приложения. Един дом.",
+      "apps.lead": "Разгледайте приложенията, етапите на разработка и оригиналните изображения.",
+      "strip.drive": "Радио, ТВ и локални медии на Android",
+      "drive.badge": "Android · Подготовка за публикуване",
+      "drive.tag": "Твоите медии. Един плеър.",
+      "drive.desc": "Интернет радио, ТВ потоци, пътни камери, YouTube, музика и видео от телефона или USB. За Android телефони и съвместими автомобилни екрани.",
+      "drive.open": "Разгледай DriveWave Player",
+      "drive.status": "В подготовка · все още не е в Google Play",
+      "drive.preview": "Официална визия на приложението"
+    },
+    "sq": {
+      "meta.desc": "LifeDashPro, DriveWave Player, BalkanVibes Lite, MK Ponudi, Moja Pcelka dhe Notes Pro.",
+      "apps.title": "Pesë aplikacione të veçuara. Një vend.",
+      "apps.lead": "Shikoni aplikacionet, statusin e zhvillimit dhe pamjet origjinale.",
+      "strip.drive": "Radio, TV dhe media lokale në Android",
+      "drive.badge": "Android · Në përgatitje për publikim",
+      "drive.tag": "Mediat e tua. Një player.",
+      "drive.desc": "Radio në internet, transmetime TV, kamera rrugore, YouTube dhe muzikë ose video nga pajisja ose USB. Për telefona Android dhe ekrane të përshtatshme në makinë.",
+      "drive.open": "Zbulo DriveWave Player",
+      "drive.status": "Në përgatitje · ende jo në Google Play",
+      "drive.preview": "Pamja zyrtare e aplikacionit"
+    }
+  };
+  for(const language of Object.keys(featuredTranslations)) Object.assign(messages[language],featuredTranslations[language]);
+
   const fallback=messages.en;
   const supported=Object.keys(messages);
   const select=document.querySelector('#languageSelect');
