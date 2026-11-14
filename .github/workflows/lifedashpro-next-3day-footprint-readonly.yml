@@ -1,0 +1,142 @@
+name: LifeDashPro NEXT 3-day GTFS Import Forecast (NO WRITES)
+on:
+  workflow_dispatch:
+    inputs:
+      feed:
+        description: Official GTFS to forecast, without changing database
+        type: choice
+        required: true
+        default: rail
+        options: [rail, bus, sofia]
+permissions:
+  contents: read
+jobs:
+  forecast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      FORECAST_FEED: ${{ inputs.feed }}
+    steps:
+      - name: Download GTFS to temporary GitHub runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$FORECAST_FEED" in
+            rail) url='https://download.gtfs.de/germany/rv_free/latest.zip'; maximum=45000000 ;;
+            bus) url='https://download.gtfs.de/germany/nv_free/latest.zip'; maximum=450000000 ;;
+            sofia) url='https://gtfs.sofiatraffic.bg/api/v1/static'; maximum=80000000 ;;
+            *) exit 2 ;;
+          esac
+          curl --fail --silent --show-error --location --retry 3 --connect-timeout 25 --max-time 1200 "$url" --output "$RUNNER_TEMP/feed.zip"
+          bytes="$(stat -c %s "$RUNNER_TEMP/feed.zip")"
+          echo "Source bytes: $bytes"
+          test "$bytes" -gt 1000000
+          test "$bytes" -lt "$maximum"
+      - name: Read-only three-day payload and footprint forecast
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os,csv,io,re,math,json,zipfile,datetime,collections
+          from zoneinfo import ZoneInfo
+          from pathlib import Path
+          feed=os.environ['FORECAST_FEED']
+          tz=ZoneInfo('Europe/Sofia' if feed=='sofia' else 'Europe/Berlin')
+          start=datetime.datetime.now(tz).date()
+          dates=[start+datetime.timedelta(days=i) for i in range(3)]
+          anchors=[(48.8089,11.7639),(49.0539,11.7844),(48.9973,11.8195),
+            (48.962,11.683),(48.918,11.874),(48.895,11.656),(48.989,12.195),(53.0758,8.8072)]
+          mode_map={'rail':{'2':'train','100':'train','101':'train','102':'train','103':'train','106':'train','107':'train','109':'train'},
+                    'bus':{'3':'bus'},'sofia':{'0':'tram','1':'subway','3':'bus'}}[feed]
+          def scope(lat,lon):
+            if feed=='rail':return 47<=lat<=55.3 and 5<=lon<=16
+            centers=[(42.6977,23.3219)] if feed=='sofia' else anchors
+            radius=25000 if feed=='sofia' else 14500
+            p=math.pi/180
+            for a,b in centers:
+              v=math.sin((lat-a)*p/2)**2+math.cos(lat*p)*math.cos(a*p)*math.sin((lon-b)*p/2)**2
+              if 12742000*math.asin(math.sqrt(min(1,v)))<=radius:return True
+            return False
+          def dt8(s):return datetime.datetime.strptime(s,'%Y%m%d').date()
+          def seconds(s):
+            m=re.fullmatch(r'(\d{1,2}):(\d{2}):(\d{2})',s or '')
+            if not m:return None
+            h,mn,ss=map(int,m.groups())
+            return h*3600+mn*60+ss if h<=47 and mn<=59 and ss<=59 else None
+          with zipfile.ZipFile(Path(os.environ['RUNNER_TEMP'])/'feed.zip') as z:
+            def records(filename):
+              if filename not in z.namelist():return iter(())
+              return csv.DictReader(io.TextIOWrapper(z.open(filename),encoding='utf-8-sig',newline=''))
+            if {'stops.txt','routes.txt','trips.txt','stop_times.txt'}-set(z.namelist()):
+              raise SystemExit('Missing a required GTFS file')
+            active={d:set() for d in dates}
+            for r in records('calendar.txt'):
+              try:
+                startdate,enddate=dt8(r['start_date']),dt8(r['end_date'])
+                for d in dates:
+                  if startdate<=d<=enddate and r.get(d.strftime('%A').lower())=='1':active[d].add(r['service_id'])
+              except (KeyError,ValueError):pass
+            for r in records('calendar_dates.txt'):
+              try:
+                d=dt8(r['date'])
+                if d not in active:continue
+                if r.get('exception_type')=='1':active[d].add(r['service_id'])
+                elif r.get('exception_type')=='2':active[d].discard(r['service_id'])
+              except (KeyError,ValueError):pass
+            if not any(active.values()):raise SystemExit('No active GTFS service for the next 3 dates')
+            stops={}
+            for r in records('stops.txt'):
+              try:
+                lat,lon=float(r['stop_lat']),float(r['stop_lon'])
+                if scope(lat,lon):stops[r['stop_id']]=(r['stop_name'],lat,lon,(r.get('platform_code') or '')[:30])
+              except (ValueError,KeyError):pass
+            routes={}
+            for r in records('routes.txt'):
+              mode=mode_map.get(r.get('route_type'))
+              if mode is None:continue
+              label=(r.get('route_short_name') or r.get('route_long_name') or 'Transit')[:40]
+              if feed=='rail' and re.match(r'^S\s*\d',label,re.I):mode='suburban'
+              routes[r['route_id']]=(label,mode)
+            trips={}
+            for r in records('trips.txt'):
+              route=r.get('route_id')
+              if route not in routes:continue
+              days=[d for d in dates if r.get('service_id') in active[d]]
+              if days:trips[r['trip_id']]=(route,(r.get('trip_headsign') or '')[:70],days)
+            payload=collections.defaultdict(list)
+            served=set();event_count=0;mode_counts=collections.Counter()
+            limit=2000000 if feed=='rail' else 1200000
+            for r in records('stop_times.txt'):
+              trip=trips.get(r.get('trip_id'));sid=r.get('stop_id')
+              if trip is None or sid not in stops or r.get('pickup_type')=='1':continue
+              sec=seconds(r.get('departure_time') or r.get('arrival_time'))
+              if sec is None:continue
+              route,heading,days=trip;line,mode=routes[route]
+              for day in days:
+                at=datetime.datetime.combine(day,datetime.time(),tz)+datetime.timedelta(seconds=sec)
+                if at.date() not in dates:continue
+                event_count+=1;served.add(sid);mode_counts[mode]+=1
+                if event_count>limit:raise SystemExit(f'MAX_DAY_EVENTS exceeded: {limit}')
+                payload[(sid,at.date())].append([at.isoformat(),line,heading,r['trip_id'],mode,stops[sid][3]])
+            size=0;kept=0;clipped=0
+            for items in payload.values():
+              items.sort(key=lambda x:x[0])
+              clipped+=max(0,len(items)-450)
+              selected=items[:450]
+              kept+=len(selected)
+              size+=len(json.dumps(selected,ensure_ascii=False,separators=(',',':')).encode())
+            size_mib=size/1048576
+            max_mib=65 if feed=='rail' else 55
+            data={'feed':feed,'mode':'READ_ONLY','3_dates':[str(d) for d in dates],
+              'scoped_stop_count':len(stops),'served_stop_count':len(served),
+              'all_selected_mode_routes':len(routes),'active_trip_count':len(trips),
+              'three_day_events':event_count,'kept_events':kept,'truncated_events':clipped,
+              'json_payload_blocks':len(payload),'json_payload_mib':round(size_mib,2),
+              'existing_importer_cap_mib':max_mib,
+              'hypothetical_db_total_mib_if_alone':round(201.22+2.6*size_mib,2),
+              'estimate_not_measured_postgres_bytes':True,'events_by_mode':dict(mode_counts)}
+            print(json.dumps(data,ensure_ascii=False,indent=2))
+            with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as f:
+              f.write('## NEXT 3-day GTFS payload forecast (READ ONLY)\n\n')
+              for k,v in data.items():f.write(f'- **{k}:** {v}\n')
+            if size_mib>max_mib:raise SystemExit('Importer size cap exceeded: NO WRITES')
+          PY
