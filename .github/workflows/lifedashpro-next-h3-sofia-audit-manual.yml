@@ -1,0 +1,84 @@
+name: LifeDashPro NEXT H3 and Sofia - READ ONLY source audit
+on:
+  workflow_dispatch:
+    inputs:
+      feed:
+        description: Source to inspect (NO Supabase writes)
+        required: true
+        type: choice
+        options: [de_rural, sofia]
+        default: sofia
+permissions:
+  contents: read
+concurrency:
+  group: lifedashpro-next-h3-sofia-readonly
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      SELECTED_FEED: ${{ inputs.feed }}
+    steps:
+      - name: Download official GTFS (not to Supabase)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$SELECTED_FEED" = de_rural ]; then
+            url='https://download.gtfs.de/germany/nv_free/latest.zip'
+            max=450000000
+          elif [ "$SELECTED_FEED" = sofia ]; then
+            url='https://gtfs.sofiatraffic.bg/api/v1/static'
+            max=80000000
+          else
+            exit 2
+          fi
+          curl --fail --silent --show-error --location --retry 3 --connect-timeout 25 --max-time 1000 \
+            "$url" --output "$RUNNER_TEMP/source.zip"
+          test "$(stat -c %s "$RUNNER_TEMP/source.zip")" -lt "$max"
+          test "$(stat -c %s "$RUNNER_TEMP/source.zip")" -gt 1000000
+      - name: Inspect GTFS and matched stops (NO DB access)
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os, csv, io, zipfile, math, json, datetime
+          from pathlib import Path
+          p=Path(os.environ["RUNNER_TEMP"])/"source.zip"
+          feed=os.environ["SELECTED_FEED"]
+          anchors=[(48.8089,11.7639),(49.0539,11.7844),(48.9973,11.8195),
+                   (48.962,11.683),(48.918,11.874),(48.895,11.656),
+                   (48.989,12.195),(53.0758,8.8072)]
+          def within(lat,lon):
+              if feed=="sofia":return 42.35<=lat<=43.05 and 22.7<=lon<=24.2
+              for a,b in anchors:
+                  x=math.sin(math.radians(lat-a)/2)**2+math.cos(math.radians(lat))*math.cos(math.radians(a))*math.sin(math.radians(lon-b)/2)**2
+                  if 12742000*math.asin(math.sqrt(min(1,x)))<=14500:return True
+              return False
+          def rows(z,name):
+              return csv.DictReader(io.TextIOWrapper(z.open(name),encoding="utf-8-sig",newline=""))
+          with zipfile.ZipFile(p) as z:
+              mandatory={"stops.txt","routes.txt","trips.txt","stop_times.txt"}
+              if mandatory-set(z.namelist()):raise SystemExit("GTFS required files missing")
+              matched=set()
+              for r in rows(z,"stops.txt"):
+                  try:
+                      if within(float(r["stop_lat"]),float(r["stop_lon"])):matched.add(r["stop_id"])
+                  except (KeyError,ValueError,TypeError):pass
+              types={"3"} if feed=="de_rural" else {"0","1","3"}
+              routes={r["route_id"] for r in rows(z,"routes.txt") if r.get("route_type") in types}
+              trips={r["trip_id"] for r in rows(z,"trips.txt") if r.get("route_id") in routes}
+              matched_events=0;served_stops=set()
+              for r in rows(z,"stop_times.txt"):
+                  if r.get("trip_id") in trips and r.get("stop_id") in matched:
+                      matched_events+=1;served_stops.add(r["stop_id"])
+              if not served_stops or not matched_events:raise SystemExit("No relevant service found")
+              out={"mode":"READ_ONLY","feed":feed,"zip_mib":round(p.stat().st_size/1048576,2),
+                   "selected_geographic_stops":len(matched),"served_selected_stops":len(served_stops),
+                   "selected_route_type_routes":len(routes),"selected_route_type_trips":len(trips),
+                   "all_timetable_stop_events_in_geographic_scope":matched_events,
+                   "snapshot_utc":str(datetime.datetime.now(datetime.timezone.utc))}
+              print(json.dumps(out,ensure_ascii=False,sort_keys=True))
+              with open(os.environ["GITHUB_STEP_SUMMARY"],"a",encoding="utf-8") as f:
+                  f.write("## NEXT source audit - no Supabase writes\n\n")
+                  for k,v in out.items():f.write(f"- **{k}:** {v}\n")
+          PY
