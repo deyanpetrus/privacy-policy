@@ -8,7 +8,7 @@ const CORS={
  "access-control-allow-methods":"POST,OPTIONS"
 };
 const DEDICATED_RPC="https://gnqtngtuzbxohgwgvmpb.supabase.co/rest/v1/rpc/";
-const CACHE_VERSION="ldp-transit-shared-v1";
+const CACHE_VERSION="ldp-transit-shared-v2-de-expanded";
 const response=(data:unknown,status=200)=>Response.json(data,{status,headers:{...CORS,"cache-control":"private, no-store"}});
 class Fault extends Error{code:number;constructor(code:number,msg:string){super(msg);this.code=code}}
 function publicKey():string {
@@ -159,14 +159,28 @@ function ttlSeconds(action:string,data:AnyObject){
  return {ttl:0,stale:0};
 }
 async function invokeExisting(a:{origin:string,key:string,jwt:string},body:AnyObject){
- const res=await fetch(a.origin+"/functions/v1/transit-schedule",{
-   method:"POST",
-   headers:{apikey:a.key,authorization:"Bearer "+a.jwt,"content-type":"application/json"},
-   body:JSON.stringify(body),signal:AbortSignal.timeout(20000)});
- const raw=await res.text();
- if(raw.length>1_400_000)throw new Fault(502,"Transit response exceeds safe limit");
- const parsed=JSON.parse(raw);
- return {ok:res.ok,status:res.status,body:obj(parsed)};
+ // NEXT-only German nearby query: the national subset can be sparse and MUST
+ // NOT prevent Transitland / DB fallback. Preserve legacy as fail-safe.
+ const nextNear=body.action==="nearby"&&body.country==="DE";
+ const providers=nextNear
+   ?["transit-schedule-next-expanded","transit-schedule"]
+   :["transit-schedule"];
+ for(let i=0;i<providers.length;i++){
+   try{
+     const res=await fetch(a.origin+"/functions/v1/"+providers[i],{
+       method:"POST",
+       headers:{apikey:a.key,authorization:"Bearer "+a.jwt,"content-type":"application/json"},
+       body:JSON.stringify(body),signal:AbortSignal.timeout(20000)});
+     const raw=await res.text();
+     if(raw.length>1_400_000)throw new Fault(502,"Transit response exceeds safe limit");
+     const parsed=JSON.parse(raw);
+     const result={ok:res.ok,status:res.status,body:obj(parsed)};
+     if(res.status<500||i===providers.length-1)return result;
+   }catch(e){
+     if(i===providers.length-1)throw e;
+   }
+ }
+ throw new Fault(502,"No transit provider available");
 }
 Deno.serve(async (req:Request)=>{
  if(req.method==="OPTIONS")return new Response("ok",{headers:CORS});
