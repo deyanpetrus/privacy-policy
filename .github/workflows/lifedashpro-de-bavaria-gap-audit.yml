@@ -1,0 +1,49 @@
+name: LifeDashPro Transit - Bavaria VGN gap audit (read only)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/discovery/audit_de_bavaria_gap.py'
+      - '.github/workflows/lifedashpro-de-bavaria-gap-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      MOBILITY_DATABASE_REFRESH_TOKEN: ${{ secrets.MOBILITY_DATABASE_REFRESH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Guardrails and syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile lifedashpro/transit/discovery/audit_de_bavaria_gap.py
+          python - <<'PY'
+          from pathlib import Path
+          s=Path("lifedashpro/transit/discovery/audit_de_bavaria_gap.py").read_text()
+          for needle in ("MAX_COMPRESSED=25*1048576","MAX_EXPANDED=360*1048576",
+                         'FEED_ID="mdb-858"',"UNAPPROVED_DATASET_HOST",
+                         "Neustadt an der Donau","TemporaryDirectory"):
+              assert needle in s,needle
+          for forbidden in ("psycopg","SUPABASE","INSERT INTO","DELETE FROM"):
+              assert forbidden not in s,forbidden
+          print("VGN_GAP_READ_ONLY_GUARD_PASS")
+          PY
+      - name: Audit official VGN latest GTFS without importing
+        run: python lifedashpro/transit/discovery/audit_de_bavaria_gap.py
+      - name: Save small report ONLY (no GTFS ZIP)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bavaria-vgn-geographic-gap-audit
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/lifedashpro-vgn-gap/vgn-gap-audit.md
+            ${{ runner.temp }}/lifedashpro-vgn-gap/vgn-gap-audit.json
