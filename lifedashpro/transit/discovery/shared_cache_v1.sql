@@ -39,6 +39,7 @@ as $$
 declare
   n integer;
   max_ttl integer;
+  max_stale integer;
 begin
   if p_bucket not in ('nearby','departures','trip') or
      p_key !~ '^[0-9a-f]{64}$' or
@@ -47,9 +48,10 @@ begin
     return false;
   end if;
   max_ttl:=case p_bucket when 'nearby' then 86400 when 'trip' then 21600 when 'departures' then 60 else 0 end;
-  if p_ttl_seconds < 5 or p_ttl_seconds > max_ttl
-     or p_stale_grace_seconds < 0 or
-     p_stale_grace_seconds > case when p_bucket='nearby' then 21600 else 0 end then
+  max_stale:=case when p_bucket='nearby' then 21600 else 0 end;
+  if p_ttl_seconds is null or p_stale_grace_seconds is null
+     or p_ttl_seconds < 5 or p_ttl_seconds > max_ttl
+     or p_stale_grace_seconds < 0 or p_stale_grace_seconds > max_stale then
     return false;
   end if;
   if (p_bucket='nearby' and (jsonb_typeof(p_payload->'stops')<>'array' or jsonb_array_length(p_payload->'stops')=0))
