@@ -1,0 +1,63 @@
+name: LifeDashPro NEXT H2B - Germany rail READ ONLY audit
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: lifedashpro-next-h2b-readonly
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Download official regional rail feed (NO database access)
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --retry 3 --connect-timeout 25 --max-time 360 \
+            'https://download.gtfs.de/germany/rv_free/latest.zip' --output "$RUNNER_TEMP/rv_free.zip"
+          bytes="$(stat -c %s "$RUNNER_TEMP/rv_free.zip")"
+          echo "Source ZIP bytes: $bytes"
+          test "$bytes" -gt 1000000
+          test "$bytes" -lt 45000000
+      - name: Validate GTFS content and print counts (NO writes)
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os, csv, io, zipfile, json, datetime, collections
+          from pathlib import Path
+          p=Path(os.environ["RUNNER_TEMP"])/"rv_free.zip"
+          def rows(z,name):
+              return csv.DictReader(io.TextIOWrapper(z.open(name),encoding="utf-8-sig",newline=""))
+          with zipfile.ZipFile(p) as z:
+              required={"stops.txt","routes.txt","trips.txt","stop_times.txt"}
+              missing=required-set(z.namelist())
+              if missing: raise SystemExit("Missing GTFS files: "+str(missing))
+              stops=set()
+              for r in rows(z,"stops.txt"):
+                  try:
+                      lat=float(r["stop_lat"]);lon=float(r["stop_lon"])
+                      if 47<=lat<=55.3 and 5<=lon<=16: stops.add(r["stop_id"])
+                  except (ValueError,KeyError): pass
+              rail_types={"2","100","101","102","103","106","107","109"}
+              routes={r["route_id"] for r in rows(z,"routes.txt") if r.get("route_type") in rail_types}
+              trips={}
+              for r in rows(z,"trips.txt"):
+                  if r.get("route_id") in routes: trips[r["trip_id"]]=r.get("service_id","")
+              events=0; stop_ids=set(); invalid=0
+              for r in rows(z,"stop_times.txt"):
+                  if r.get("trip_id") not in trips: continue
+                  if r.get("stop_id") not in stops: invalid+=1;continue
+                  events+=1;stop_ids.add(r["stop_id"])
+              if len(routes)<100 or len(trips)<5000 or events<50000:
+                  raise SystemExit("Rail feed failed coverage sanity check")
+              output={"feed":"rv_free","audit":"READ_ONLY","source_zip_mib":round(p.stat().st_size/1048576,2),
+                      "all_routes":len(routes),"all_trips":len(trips),"rail_stop_ids":len(stop_ids),
+                      "all_rail_stop_times":events,"invalid_out_of_de_stop_events":invalid,
+                      "date_utc":str(datetime.datetime.now(datetime.timezone.utc))}
+              print(json.dumps(output,ensure_ascii=False,sort_keys=True))
+              with open(os.environ["GITHUB_STEP_SUMMARY"],"a",encoding="utf-8") as f:
+                  f.write("## Germany regional rail GTFS read-only audit\n\n")
+                  for k,v in output.items():f.write(f"- **{k}:** {v}\n")
+          PY
