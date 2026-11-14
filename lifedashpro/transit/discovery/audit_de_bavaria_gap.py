@@ -53,9 +53,13 @@ def main():
     latest=details.get("latest_dataset") or {}
     if not isinstance(latest,dict):raise RuntimeError("NO_LATEST_DATASET")
     url=latest.get("hosted_url","")
+    if not url and latest.get("id"):
+        meta=request_json("/datasets/gtfs/"+str(latest["id"]),token=access)
+        url=meta.get("hosted_url","") if isinstance(meta,dict) else ""
     parsed=urlsplit(url)
     if parsed.scheme!="https" or parsed.hostname not in ("storage.googleapis.com","storage.cloud.google.com"):
-        raise RuntimeError("UNAPPROVED_DATASET_HOST")
+        # Print only hostname; do not expose redirects, query strings or tokens.
+        raise RuntimeError("UNAPPROVED_DATASET_HOST_"+str(parsed.hostname or "missing")[:60])
     if not parsed.path.lower().endswith(".zip"):
         raise RuntimeError("UNEXPECTED_DATASET_EXTENSION")
     today=datetime.datetime.now(datetime.timezone.utc).date()
