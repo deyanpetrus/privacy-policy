@@ -26,6 +26,24 @@
 - [KEXI Neustadt](https://kexi.de/): ride-on-demand; it has service windows but **does not mean fixed GTFS departures are available**.
 - [BayernInfo public transport data](https://www.bayerninfo.de/en/about-bayerninfo-1/data-offer/public-transport-data): DEFAS Bavaria static information is included in nationwide DELFI/GTFS, usually weekly, registration for the national download.
 
+## Country-level candidate triage from current Mobility Database index
+
+This is a **metadata filter only**, not validated import permissions or truly fresh trip predictions.
+
+| Country | Catalog GTFS | Active catalog and nonexpired date | Small (0.1–25 MB) no-auth feeds | Small feeds with recognized license_id |
+|---|---:|---:|---:|---:|
+| Germany (DE) | 102 | 52 | 26 | 9 |
+| Croatia (HR) | 22 | 13 | 6 | 1 |
+| Serbia (RS) | 17 | 12 | 10 | 1 |
+| N. Macedonia (MK) | 3 | 3 | 3 | 0 |
+| Bulgaria (BG) | 22 | 15 | 12 | 1 |
+| Austria (AT) | 41 | 25 | 9 | 1 |
+| Switzerland (CH) | 39 | 23 | 12 | 6 |
+| Bosnia (BA) | 4 | 3 | 3 | 0 |
+| Montenegro (ME) | 4 | 3 | 3 | 0 |
+
+A critical discovery: many identical, small, apparently licensed records are **one single international BlaBlaCar GTFS (`tdg-52605`) repeated in multiple country results**. The `CC-BY-ND-2.0` record is not safely redistributable as a transformed product. So blindly loading all green metadata candidates is unsafe and would waste storage. Official VGN license is verified from its operator site despite missing `license_id` in the API catalog. **License_id present** and **HTTP 200** are neither sufficient legal approval nor valid local schedules.
+
 ## Safe next candidate work, by order
 
 1. **Read-only provider trace on NEXT device** for Neustadt an der Donau to identify source of previously visible results; use named provider and no stale empty-cache negative caching. Existing Android provider fallback must remain untouched.
