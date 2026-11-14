@@ -8,12 +8,30 @@
 <link rel="icon" href="../assets/drivewave-icon.webp" type="image/webp">
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#06101d;color:#f0f8ff}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 10%,#12355d 0%,transparent 35%),#06101d;color:#e9f6fe}a{color:#91e9ff}header,footer{padding:20px max(24px,calc((100vw - 1120px)/2));background:rgba(5,13,26,.55)}header{border-bottom:1px solid #1b354b}header a{font-weight:800;text-decoration:none}.wrap{max-width:1120px;margin:auto;padding:75px 24px 55px}.hero{display:grid;grid-template-columns:1.2fr .8fr;align-items:center;gap:65px}.eyebrow{color:#6edbfa;font-size:13px;text-transform:uppercase;letter-spacing:.12em;font-weight:750}h1{font-size:clamp(44px,7vw,80px);line-height:1.04;margin:12px 0 22px;letter-spacing:-.05em}h2{font-size:32px;letter-spacing:-.03em}p{font-size:17px;line-height:1.7;color:#b5c9d8}.hero-art{text-align:center;padding:28px;border-radius:36px;background:linear-gradient(135deg,#0c2540,#061525);border:1px solid #285170;box-shadow:0 25px 90px #042e4840}.hero-art img{display:block;width:min(100%,300px);height:auto;margin:12px auto 24px;border-radius:28px;box-shadow:0 13px 50px #00d8ff30}.hero-art small{color:#8edbf0}.pill{display:inline-flex;margin:10px 8px 4px 0;padding:9px 14px;background:#10263b;border:1px solid #234b65;border-radius:30px;color:#b9edfa;font-size:13px}.state{display:inline-block;padding:11px 15px;border:1px solid #365875;border-radius:12px;color:#d1edfb;background:#10283e;margin-top:18px}.features{margin:70px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.feature{border:1px solid #1a3750;border-radius:22px;padding:22px;background:#091b2b}.feature h3{font-size:19px;margin:0}.feature p{font-size:14px;margin:9px 0 0}.note{border-left:3px solid #31cbea;padding:5px 22px;background:#0b2031;border-radius:0 16px 16px 0}footer{font-size:13px;line-height:1.9;color:#91a9bb}footer a{margin-right:18px}@media(max-width:750px){.wrap{padding-top:40px}.hero{grid-template-columns:1fr;gap:26px}.hero-art{max-width:420px}.features{grid-template-columns:1fr}}
+.screenshots{margin:70px 0 35px}.screenshots[hidden],.screenshot[hidden]{display:none!important}.screenshot-heading{margin-bottom:26px}.screenshot-heading h2{margin:10px 0}.screenshot-heading p{margin:0}.screenshots-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.screenshot{min-width:0;margin:0;padding:12px;border:1px solid #214a64;background:#091b2b;border-radius:20px;overflow:hidden}.screenshot a{display:block;border-radius:12px;overflow:hidden}.screenshot img{display:block;width:100%;height:auto;aspect-ratio:1822/800;object-fit:cover}.screenshot figcaption{color:#a6d4e5;font-size:13px;padding:12px 5px 4px}@media(max-width:750px){.screenshots-grid{grid-template-columns:1fr}.screenshots{margin-top:45px}}
 </style>
 </head>
 <body>
 <header><a href="../">← MONSI AI / All apps</a></header>
 <main class="wrap">
 <section class="hero"><div><span class="eyebrow">Android media player</span><h1>DriveWave<br>Player</h1><p>One place for internet radio, TV streams, traffic and road cameras, supported YouTube playback and local audio or video. Designed for Android phones and compatible Android car head-unit screens.</p><div><span class="pill">Internet radio</span><span class="pill">TV &amp; IPTV</span><span class="pill">Cameras</span><span class="pill">YouTube</span><span class="pill">USB &amp; local files</span><span class="pill">Car Mode</span></div><div class="state">In release preparation — not yet available on Google Play</div></div><div class="hero-art"><img src="../assets/drivewave-icon.webp" alt="Official DriveWave Player icon with mountain road and play symbol" width="300" height="300"><small>Official DriveWave Player artwork</small></div></section>
+<section class="screenshots" aria-labelledby="drivewaveScreensTitle" hidden>
+  <div class="screenshot-heading">
+    <span class="eyebrow">Actual app screens</span>
+    <h2 id="drivewaveScreensTitle">DriveWave Player in action</h2>
+    <p>Explore the radio player and the local files experience on an Android car screen.</p>
+  </div>
+  <div class="screenshots-grid">
+    <figure class="screenshot">
+      <a href="../assets/drivewave-shot-radio-germany.webp" target="_blank" rel="noopener"><img src="../assets/drivewave-shot-radio-germany.webp" width="1822" height="800" alt="DriveWave Player real radio browsing and playback screen" onload="this.closest('.screenshots').hidden=false" onerror="this.closest('.screenshot').hidden=true"></a>
+      <figcaption>Internet radio and live playback</figcaption>
+    </figure>
+    <figure class="screenshot">
+      <a href="../assets/drivewave-shot-files-local.webp" target="_blank" rel="noopener"><img src="../assets/drivewave-shot-files-local.webp" width="1822" height="800" alt="DriveWave Player real local media music playback screen" onload="this.closest('.screenshots').hidden=false" onerror="this.closest('.screenshot').hidden=true"></a>
+      <figcaption>Local music from device, USB or SD</figcaption>
+    </figure>
+  </div>
+</section>
 <section class="features" aria-label="Features">
 <div class="feature"><h3>Radio &amp; favorites</h3><p>Browse online radio stations, save favorites, and control playback from the media interface.</p></div>
 <div class="feature"><h3>TV &amp; live cameras</h3><p>Open available streams, supported playlists and selected live-camera sources. Availability depends on third-party providers.</p></div>
