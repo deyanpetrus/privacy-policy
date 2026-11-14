@@ -147,6 +147,7 @@ def report(rows,checks):
 
 def save_to_dedicated_db(rows,checked):
     import psycopg
+    sys.path.insert(0,str(CATALOG.parent.parent))
     from dedicated_gtfs_import import verify_target
     url=os.environ.get("LDP_DEDICATED_TRANSIT_DB_URL","")
     if not url:raise RuntimeError("DEDICATED_DB_SECRET_MISSING")
