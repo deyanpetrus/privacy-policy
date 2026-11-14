@@ -6,7 +6,7 @@ on:
       - 'lifedashpro/transit/next_compact_slot_refresh.py'
       - '.github/workflows/lifedashpro-next-compact-slots.yml'
   schedule:
-    - cron: '15 5 * * *'
+    - cron: '15 5,17 * * *'
   workflow_dispatch:
     inputs:
       mode:
