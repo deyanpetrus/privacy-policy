@@ -78,6 +78,12 @@ Deno.serve(async(req:Request)=>{
   try {
     await authorized(req);
     const request=await req.json().catch(()=>({}));
+    if(request?.action==="shared-cache"){
+      const rows=await mobilityRpc("transit_shared_cache_stats_v1",{});
+      return response({ok:true,mode:"shared_lookup_cache",categories:rows,
+        maxTableBytes:20*1048576,maxDedicatedDatabaseBytes:340*1048576,
+        warning:"Nearby stops may remain cached up to 24h; live departures are limited to seconds."});
+    }
     if(request?.action==="mobility")return response(await mobilityRows(request));
     if(request?.action==="summary"){
       const countries=await mobilityRpc("transit_mobility_api_country_summary",{});
