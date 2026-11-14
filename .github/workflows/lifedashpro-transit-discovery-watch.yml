@@ -1,0 +1,96 @@
+name: LifeDashPro Transit - Europe source catalog health (no feed imports)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/discovery/catalog.json'
+      - 'lifedashpro/transit/discovery/check_registry.py'
+      - '.github/workflows/lifedashpro-transit-discovery-watch.yml'
+  schedule:
+    - cron: '11 4 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "validate is offline; check probes public URLs and records statuses in isolated Supabase metadata"
+        type: choice
+        options: [validate, check]
+        default: check
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: lifedashpro-transit-discovery-health
+  cancel-in-progress: false
+jobs:
+  sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      LDP_DEDICATED_TRANSIT_DB_URL: ${{ secrets.LDP_DEDICATED_TRANSIT_DB_URL }}
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install pinned PostgreSQL client
+        run: python -m pip install --disable-pip-version-check 'psycopg[binary]==3.2.10'
+      - name: Validate 24 explicit feeds and read-only discovery invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile lifedashpro/transit/discovery/check_registry.py
+          python lifedashpro/transit/discovery/check_registry.py --mode validate
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          p=Path("lifedashpro/transit/discovery/catalog.json")
+          data=json.loads(p.read_text())
+          assert len(data["sources"])==24
+          assert all(e["kind"] in ("gtfs","gtfs_rt","gbfs") for e in data["sources"])
+          assert data["rules"]["default_import"] is False
+          assert data["rules"]["allow_production_changes"] is False
+          text=Path("lifedashpro/transit/discovery/check_registry.py").read_text()
+          for needed in ("NoRedirect", "metadata only", "verify_target(url)",
+                         "transit_next.discovery_sources", "transit_next.discovery_checks",
+                         "DB_TOO_CLOSE_TO_FREE_QUOTA"):
+              assert needed in text, needed
+          for forbidden in ("truncate table", "transit_data.stop_times", "transit_data.trips"):
+              assert forbidden not in text, forbidden
+          print("EUROPE_REGISTRY_GUARDS_PASS")
+          PY
+      - name: Select run mode
+        shell: bash
+        id: flags
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_MODE: ${{ inputs.mode }}
+        run: |
+          if [[ "$EVENT_NAME" == "workflow_dispatch" && "$INPUT_MODE" == "validate" ]]; then
+            echo "mode=validate" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=check" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Probe public endpoints and update isolated source-status metadata
+        if: steps.flags.outputs.mode == 'check'
+        run: python lifedashpro/transit/discovery/check_registry.py --mode check
+      - name: Upload status dashboard snapshot (7 days)
+        if: always() && steps.flags.outputs.mode == 'check'
+        uses: actions/upload-artifact@v4
+        with:
+          name: europe-transit-sources-health
+          path: |
+            ${{ runner.temp }}/lifedashpro-discovery/status.md
+            ${{ runner.temp }}/lifedashpro-discovery/status.json
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Explain scope
+        if: always()
+        shell: bash
+        run: |
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Scope protection" >> "$GITHUB_STEP_SUMMARY"
+          echo "- HTTPS HEAD/one-byte range probes only: no GTFS/RT ZIP or Protobuf archives downloaded." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Status saved only in private transit_next.discovery_sources/discovery_checks." >> "$GITHUB_STEP_SUMMARY"
+          echo "- No current Android, production database, or operating GTFS data altered." >> "$GITHUB_STEP_SUMMARY"
+          echo "- A HTTP 200 DOES NOT validate timetable, service dates, license or LIVE freshness." >> "$GITHUB_STEP_SUMMARY"
