@@ -94,8 +94,11 @@ def check_one(row):
             if code in (405,501) and method=="HEAD":
                 continue
             if code in (404,410):
+                # Some providers do not implement HEAD for their file route.
+                # A bounded GET Range can distinguish a HEAD-only 404.
+                if method=="HEAD":continue
                 result["state"]="not_found"
-                result["note"]="Producer returned not found (do not delete existing data)"
+                result["note"]="HEAD and bounded GET did not find producer URL (do not delete old data)"
                 return result
             last_error="HTTP_"+str(code)
             if method=="HEAD":continue
