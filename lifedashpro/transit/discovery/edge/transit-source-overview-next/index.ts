@@ -41,11 +41,48 @@ async function sourceRows(){
   if(!Array.isArray(data)||data.length>200)throw new Failure(503,"Transit source overview unavailable");
   return data;
 }
+
+async function mobilityRpc(fn:string,payload:object):Promise<any[]>{
+  const service=Deno.env.get("LDP_DEDICATED_TRANSIT_SERVICE_ROLE_KEY")||"";
+  if(!service)throw new Failure(503,"Source index not configured");
+  const headers:Record<string,string>={apikey:service,accept:"application/json","content-type":"application/json"};
+  if(service.startsWith("eyJ"))headers.authorization="Bearer "+service;
+  const res=await fetch("https://gnqtngtuzbxohgwgvmpb.supabase.co/rest/v1/rpc/"+fn,{
+    method:"POST",headers,body:JSON.stringify(payload),signal:AbortSignal.timeout(8000)
+  });
+  const rows=res.ok?await res.json().catch(()=>null):null;
+  if(!Array.isArray(rows))throw new Failure(503,"Mobility source index unavailable");
+  return rows;
+}
+function capped(value:unknown,def:number,max:number){
+  const n=Number(value);return Number.isFinite(n)?Math.max(0,Math.min(max,Math.trunc(n))):def;
+}
+async function mobilityRows(d:any){
+  const country=(d?.country===undefined||d?.country===null||d?.country==="")?null:String(d.country).toUpperCase();
+  if(country!==null&&!/^[A-Z]{2}$/.test(country))throw new Failure(400,"Invalid country");
+  const kind=(d?.kind===undefined||d?.kind===null||d?.kind==="")?null:String(d.kind);
+  if(kind!==null&&!["gtfs","gtfs_rt","gbfs"].includes(kind))throw new Failure(400,"Invalid kind");
+  const limit=Math.max(1,capped(d?.pageSize,100,100)),offset=capped(d?.offset,0,50000);
+  const sources=await mobilityRpc("transit_mobility_api_overview",{
+    p_country:country,p_kind:kind,p_limit:limit,p_offset:offset
+  });
+  return {ok:true,mode:"discovery_only",kind:"mobility_database_api",country,
+    sources,pageSize:limit,offset,nextOffset:sources.length===limit?offset+limit:null,
+    generated_at:new Date().toISOString(),
+    warning:"Source metadata only. No ZIPs or realtime data stored; no active travel schedules certified."};
+}
+
 Deno.serve(async(req:Request)=>{
   if(req.method==="OPTIONS")return new Response("ok",{headers:CORS});
   if(req.method!=="POST")return response({ok:false,error:"Method not allowed"},405);
   try {
     await authorized(req);
+    const request=await req.json().catch(()=>({}));
+    if(request?.action==="mobility")return response(await mobilityRows(request));
+    if(request?.action==="summary"){
+      const countries=await mobilityRpc("transit_mobility_api_country_summary",{});
+      return response({ok:true,mode:"discovery_only",countries,generated_at:new Date().toISOString()});
+    }
     const items=await sourceRows();
     return response({ok:true,mode:"discovery_only",source_count:items.length,sources:items,
       warning:"Reachable URL is not proof of schedule/license/LIVE validity; never auto-promote.",
