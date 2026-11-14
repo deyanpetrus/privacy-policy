@@ -1,0 +1,337 @@
+{
+  "schema_version": 1,
+  "as_of": "2026-11-14",
+  "purpose": "Source discovery and health-only; NOT an instruction to bulk import feeds or alter production Transit.",
+  "rules": {
+    "default_import": false,
+    "allow_production_changes": false,
+    "validate_license": true,
+    "validate_gtfs_calendar": true,
+    "validate_archive_size": true,
+    "prefer_existing_feeds": true,
+    "gbfs_is_not_schedule": true,
+    "gtfs_rt_requires_static_trip_match": true
+  },
+  "sources": [
+    {
+      "id": "gbfs-mikar",
+      "name": "Mikar car sharing",
+      "regions": "DE,AT",
+      "kind": "gbfs",
+      "policy": "review_mobility_ui",
+      "license": "DL-DE-BY-2.0",
+      "refresh_hours": 24,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gbfs/gbfs-mikar",
+      "probe_url": "https://api.mobidata-bw.de/sharing/gbfs/v3/mikar/gbfs",
+      "notes": "Shared cars; not bus lines or departures; attribution required."
+    },
+    {
+      "id": "mdb-3101",
+      "name": "GTFS.de DELFI realtime",
+      "regions": "DE and cross-border",
+      "kind": "gtfs_rt",
+      "policy": "existing_provider",
+      "license": "CC-BY-SA-4.0",
+      "refresh_hours": 24,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gtfs_rt/mdb-3101",
+      "probe_url": "https://realtime.gtfs.de/realtime-free.pb",
+      "notes": "TripUpdates and ServiceAlerts only; NOT GPS VehiclePositions. Check trip IDs against matching static GTFS; runtime upstream already exists."
+    },
+    {
+      "id": "mdb-2393",
+      "name": "NVBW Baden-Württemberg aggregate",
+      "regions": "DE BW plus neighbors",
+      "kind": "gtfs",
+      "policy": "hold_capacity",
+      "license": "review_source_terms",
+      "refresh_hours": 168,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gtfs/mdb-2393",
+      "probe_url": "https://www.nvbw.de/fileadmin/user_upload/service/open_data/fahrplandaten_mit_liniennetz/bwgesamt.zip",
+      "notes": "Historical catalog snapshot ZIP about 664 MB; too large for free database and current download budget; consider strict regional extraction only."
+    },
+    {
+      "id": "mdb-2138",
+      "name": "ÖBB old GTFS dataset",
+      "regions": "AT cross-border",
+      "kind": "gtfs",
+      "policy": "blocked_stale",
+      "license": "CC-BY-4.0 catalog",
+      "refresh_hours": 168,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gtfs/mdb-2138",
+      "probe_url": "https://static.oebb.at/open-data/soll-fahrplan-gtfs/GTFS_OP_2024_obb.zip",
+      "notes": "Catalog schedule only 2023-12-10 through 2024-12-14. Find a NEW official URL before considering import."
+    },
+    {
+      "id": "gbfs-deer",
+      "name": "Deer e-carsharing",
+      "regions": "DE BW",
+      "kind": "gbfs",
+      "policy": "review_mobility_ui",
+      "license": "needs_review",
+      "refresh_hours": 24,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gbfs/gbfs-deer",
+      "probe_url": "https://api.mobidata-bw.de/sharing/gbfs/v3/deer/gbfs",
+      "notes": "Shared cars; does not provide public transit departure times; GBFS v3 URL referenced by registry."
+    },
+    {
+      "id": "gbfs-nextbike_la",
+      "name": "Nextbike Niederösterreich",
+      "regions": "AT",
+      "kind": "gbfs",
+      "policy": "review_mobility_ui",
+      "license": "CC0-1.0",
+      "refresh_hours": 24,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gbfs/gbfs-nextbike_la",
+      "probe_url": "https://gbfs.nextbike.net/maps/gbfs/v2/nextbike_la/gbfs.json",
+      "notes": "Bike-share availability; separate Mobility section."
+    },
+    {
+      "id": "mdb-1089",
+      "name": "Germany regional trains rv_free",
+      "regions": "DE cross-border",
+      "kind": "gtfs",
+      "policy": "existing_provider",
+      "license": "CC-BY-4.0 attribution",
+      "refresh_hours": 24,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gtfs/mdb-1089",
+      "probe_url": "https://download.gtfs.de/germany/rv_free/latest.zip",
+      "notes": "Already imported compact regional rail subset in dedicated Transit; never duplicate or overwrite."
+    },
+    {
+      "id": "mdb-1139",
+      "name": "Historical DB/Czech rail GTFS",
+      "regions": "DE,CZ and neighbors",
+      "kind": "gtfs",
+      "policy": "blocked_stale",
+      "license": "needs_review",
+      "refresh_hours": 168,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gtfs/mdb-1139",
+      "probe_url": "https://openmobilitydata-data.s3.us-west-1.amazonaws.com/public/feeds/deutsche-bahn/837/20190920/gtfs.zip",
+      "notes": "Catalog calendar expired 2019. Never display as current timetable."
+    },
+    {
+      "id": "mdb-768",
+      "name": "Germany long-distance train fv_free",
+      "regions": "DE cross-border",
+      "kind": "gtfs",
+      "policy": "review",
+      "license": "CC-BY-4.0 verify",
+      "refresh_hours": 24,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gtfs/mdb-768",
+      "probe_url": "https://download.gtfs.de/germany/fv_free/latest.zip",
+      "notes": "Potential low-footprint long-distance rail supplement. Verify overlap with existing rv_free/Transitland."
+    },
+    {
+      "id": "tdg-52605",
+      "name": "BlaBlaCar Bus international",
+      "regions": "FR,DE,ES,PT and Europe",
+      "kind": "gtfs",
+      "policy": "hold_license",
+      "license": "ODbL-1.0",
+      "refresh_hours": 24,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gtfs/tdg-52605",
+      "probe_url": "https://www.data.gouv.fr/api/1/datasets/r/fd54f81f-4389-4e73-be75-491133d011c3",
+      "notes": "European intercity bus; confirm ODbL attribution/share-alike obligations prior to redistribution."
+    },
+    {
+      "id": "mdb-3604",
+      "name": "Stara Zagora public buses/trolleybuses",
+      "regions": "BG",
+      "kind": "gtfs",
+      "policy": "review",
+      "license": "needs_review",
+      "refresh_hours": 24,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gtfs/mdb-3604",
+      "probe_url": "https://sipbg.gov.bg/bgnap/portal/api/catalog/files/21fa52d7-7813-490d-9069-cf719de0534f/download",
+      "notes": "Found in official MobilityData catalog JSON; need validate GTFS calendar and agency licensing."
+    },
+    {
+      "id": "mdb-3427",
+      "name": "Livnobus intercity bus",
+      "regions": "BA",
+      "kind": "gtfs",
+      "policy": "review",
+      "license": "needs_review",
+      "refresh_hours": 24,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gtfs/mdb-3427",
+      "probe_url": "https://livnobus.com/gtfs/google-transit",
+      "notes": "Official-feed flag in MobilityData catalog, but historic bounding box points to Italy; audit actual stops/agency scope and dates."
+    },
+    {
+      "id": "mdb-3261",
+      "name": "FlixBus regional Sweden feed",
+      "regions": "SE,DE,PL,DK and subset",
+      "kind": "gtfs",
+      "policy": "auth_required",
+      "license": "Trafiklab terms",
+      "refresh_hours": 168,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gtfs/mdb-3261",
+      "probe_url": "https://opendata.samtrafiken.se/gtfs/flixbus/flixbus.zip",
+      "notes": "Regional FlixBus subset, not a complete European feed; requires API key; do not scrape provider without credentials."
+    },
+    {
+      "id": "mdb-3043",
+      "name": "Croatian HŽPP rail and replacement buses",
+      "regions": "HR",
+      "kind": "gtfs",
+      "policy": "review",
+      "license": "needs_review",
+      "refresh_hours": 24,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gtfs/mdb-3043",
+      "probe_url": "https://www.hzpp.hr/GTFS_files.zip",
+      "notes": "Catalog timetable ends 2026-12-12; check new timetable rollover before promotion."
+    },
+    {
+      "id": "mdb-2910",
+      "name": "Gradski Parking Croatia buses",
+      "regions": "HR",
+      "kind": "gtfs",
+      "policy": "blocked_stale",
+      "license": "needs_review",
+      "refresh_hours": 168,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gtfs/mdb-2910",
+      "probe_url": "https://www.gradski-parking.hr/upload/stranice/2022/08/2022-08-30/89/gtfs.zip",
+      "notes": "Last catalog timetable ends 2026-10-01; stale for 2026-11-14."
+    },
+    {
+      "id": "tld-4323-tu",
+      "name": "Transitland TripUpdates (publisher unresolved)",
+      "regions": "unverified",
+      "kind": "gtfs_rt",
+      "policy": "hold_identity",
+      "license": "unknown",
+      "refresh_hours": 168,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gtfs_rt/tld-4323-tu",
+      "probe_url": "https://mobilitydatabase.org/feeds/gtfs_rt/tld-4323-tu",
+      "notes": "Catalog landing did not resolve for manual verification. Do not infer producer or match to ZET/another static feed."
+    },
+    {
+      "id": "tld-1071",
+      "name": "Zagreb ZET trams and buses",
+      "regions": "HR,Zagreb",
+      "kind": "gtfs",
+      "policy": "review",
+      "license": "needs_review",
+      "refresh_hours": 24,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gtfs/tld-1071",
+      "probe_url": "https://zet.hr/gtfs-scheduled/latest",
+      "notes": "Official ZET static; September snapshot had timetable through 2026-12-31. Large archive ~14 MB zip and ~96 MB expanded; compact city-only staged cache."
+    },
+    {
+      "id": "mdb-3461",
+      "name": "North Macedonia community railway",
+      "regions": "MK",
+      "kind": "gtfs",
+      "policy": "existing_provider",
+      "license": "community CC0; OSM shape rights require review",
+      "refresh_hours": 168,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gtfs/mdb-3461",
+      "probe_url": "https://github.com/deryclem/gtfs-north-macedonia/raw/main/gtfs-north-macedonia.zip",
+      "notes": "Already loaded in dedicated MK rail with verified timetable guard through 2026-12-12; no duplicate import."
+    },
+    {
+      "id": "mdb-3068",
+      "name": "JSP Skopje service alerts",
+      "regions": "MK",
+      "kind": "gtfs_rt",
+      "policy": "review_rt_match",
+      "license": "needs_review",
+      "refresh_hours": 24,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gtfs_rt/mdb-3068",
+      "probe_url": "https://www.modeshift.app/api/v1/9814b106-2afe-47c8-919b-bdec6a5e521e/transport/gtfsrt/alerts.pb",
+      "notes": "ServiceAlerts only, NOT realtime GPS and NOT TripUpdates. Do not mark departures live from this feed."
+    },
+    {
+      "id": "mdb-3045",
+      "name": "JSP Skopje static buses",
+      "regions": "MK,Skopje",
+      "kind": "gtfs",
+      "policy": "existing_provider",
+      "license": "needs_review",
+      "refresh_hours": 24,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gtfs/mdb-3045",
+      "probe_url": "https://www.modeshift.app/api/v1/9814b106-2afe-47c8-919b-bdec6a5e521e/transport/gtfs/gtfs.zip",
+      "notes": "Existing Skopje Android/main Edge provider; not currently dedicated imported. Do not switch client source."
+    },
+    {
+      "id": "mdb-3517",
+      "name": "Podgorica Putevi urban buses",
+      "regions": "ME,Podgorica",
+      "kind": "gtfs",
+      "policy": "review",
+      "license": "needs_review",
+      "refresh_hours": 24,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gtfs/mdb-3517",
+      "probe_url": "https://podgorica.me/wp-content/uploads/2026/04/GTFS-v1.zip",
+      "notes": "Official catalog; download URL appears dated; verify service calendar, provider license and updates."
+    },
+    {
+      "id": "mdb-3483",
+      "name": "ShowMeBus Balkan/Europe intercity",
+      "regions": "AL plus Europe",
+      "kind": "gtfs",
+      "policy": "hold_license",
+      "license": "no commercial reuse verified",
+      "refresh_hours": 168,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gtfs/mdb-3483",
+      "probe_url": "https://showmebus.com/google-transit/gtfs.zip",
+      "notes": "Existing LifeDashPro NEXT test blocked for production until written redistribution/commercial permission."
+    },
+    {
+      "id": "mdb-2927",
+      "name": "Serbijavoz rail",
+      "regions": "RS,ME,HU,BA",
+      "kind": "gtfs",
+      "policy": "review",
+      "license": "community derivative; verify",
+      "refresh_hours": 168,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gtfs/mdb-2927",
+      "probe_url": "https://gitlab.com/api/v4/projects/vekejsn%2Fgtfs-generators/packages/generic/srbijavoz-merged-gtfs/latest/srbijavoz_merged.zip",
+      "notes": "Community railway feed; 2026-12-12 calendar guard, cross-border stop validation, attribution and permission review."
+    },
+    {
+      "id": "mdb-2377",
+      "name": "Montenegro ŽPCG community railway",
+      "regions": "ME",
+      "kind": "gtfs",
+      "policy": "review",
+      "license": "needs_review",
+      "refresh_hours": 168,
+      "catalog_url": "https://mobilitydatabase.org/feeds/gtfs/mdb-2377",
+      "probe_url": "https://jbb.ghsq.de/gtfs/me-zpcg.gtfs.zip",
+      "notes": "Community GTFS from MobilityData catalog; must check validity and license."
+    }
+  ],
+  "reference_links": [
+    {
+      "id": "govdata-license",
+      "url": "https://www.govdata.de/dl-de/by-2-0",
+      "applies_to": "gbfs-mikar",
+      "role": "license"
+    },
+    {
+      "id": "de-rt-direct",
+      "url": "https://realtime.gtfs.de/realtime-free.pb",
+      "applies_to": "mdb-3101",
+      "role": "producer_link_duplicate"
+    },
+    {
+      "id": "de-rt-doc",
+      "url": "https://gtfs.de/en/realtime/",
+      "applies_to": "mdb-3101",
+      "role": "documentation"
+    },
+    {
+      "id": "de-rail-direct",
+      "url": "https://download.gtfs.de/germany/rv_free/latest.zip",
+      "applies_to": "mdb-1089",
+      "role": "producer_link_duplicate"
+    },
+    {
+      "id": "deer-gbfs-direct",
+      "url": "https://api.mobidata-bw.de/sharing/gbfs/v3/deer/gbfs",
+      "applies_to": "gbfs-deer",
+      "role": "producer_link_duplicate"
+    }
+  ]
+}
