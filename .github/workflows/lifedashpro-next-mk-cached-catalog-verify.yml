@@ -5,6 +5,7 @@ on:
     paths:
       - 'lifedashpro/transit/discovery/mk_local_static_route_catalog_20261115.sql'
       - 'lifedashpro/transit/discovery/mk_rail_catalog_service_rpc_20261115.sql'
+      - 'lifedashpro/transit/discovery/mk_published_timetables_reference_20261115.sql'
       - 'lifedashpro/transit/discovery/edge/transit-mk-cached-next/index.ts'
       - '.github/workflows/lifedashpro-next-mk-cached-catalog-verify.yml'
   workflow_dispatch:
@@ -31,6 +32,7 @@ jobs:
           const edge=fs.readFileSync('lifedashpro/transit/discovery/edge/transit-mk-cached-next/index.ts','utf8');
           const sql=fs.readFileSync('lifedashpro/transit/discovery/mk_local_static_route_catalog_20261115.sql','utf8');
           const railsql=fs.readFileSync('lifedashpro/transit/discovery/mk_rail_catalog_service_rpc_20261115.sql','utf8');
+          const timetableSql=fs.readFileSync('lifedashpro/transit/discovery/mk_published_timetables_reference_20261115.sql','utf8');
           for(const key of ['Signed-in account required','consume_user_rate_limit','transit_mk_static_route_catalog',
           'transit_mk_rail_route_catalog','LDP_DEDICATED_TRANSIT_SERVICE_ROLE_KEY','NOT LIVE',
           'timetableStatus:"not_imported"']){if(!edge.includes(key))throw Error('Missing required safety invariant '+key);}
@@ -40,6 +42,15 @@ jobs:
           }
           for(const key of ['SECURITY INVOKER','REVOKE ALL','service_verified_until','TIMETABLE_NEEDS_REVERIFICATION']){
             if(!railsql.includes(key))throw Error('Missing rail source validity guard '+key);
+          }
+          for(const key of ['mk_no_unverified_journeys','mk_school_guard','published_conditional','published_undated',
+          'school_calendar_verified boolean not null default false','eligible_for_journey boolean not null default false',
+          'transit_mk_published_departure_reference_search','ENABLE ROW LEVEL SECURITY','REVOKE ALL']){
+            if(!timetableSql.includes(key))throw Error('Missing published timetable safety guard '+key);
+          }
+          for(const key of ['"search"','"rail-departures"','"intercity_bus"','"school_weekdays"',
+            'publishedUnverifiedIntercity','currentVerifiedBusDepartures:[]','canUseForJourney:false']){
+             if(!edge.includes(key))throw Error('Missing MK search/reference guard '+key);
           }
           if(edge.includes('quality:"live"')||sql.includes('has_verified_current_departures=true')||
              edge.includes('SUPABASE_SERVICE_ROLE_KEY="'))
@@ -70,5 +81,7 @@ jobs:
           echo "### Macedonian static transit source inventory — NEXT only" >> "$GITHUB_STEP_SUMMARY"
           echo "- 14 verified public Štip route names, 2 historic Strumica examples (not confirmed current)." >> "$GITHUB_STEP_SUMMARY"
           echo "- 5 existing Macedonian rail routes preserved without replacing timetables." >> "$GITHUB_STEP_SUMMARY"
+          echo "- 7 conditional Štip departure references, 28 undated Strumica Express intercity references; never guaranteed as today's departures." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Client-side NEXT E-only patch prepared separately; backend does not auto-install Android code." >> "$GITHUB_STEP_SUMMARY"
           echo "- No GPS coordinates invented, no public service role secrets, no assumed realtime." >> "$GITHUB_STEP_SUMMARY"
           echo "- Android APK integration and true scheduled departures from validated sources are NOT yet complete." >> "$GITHUB_STEP_SUMMARY"
