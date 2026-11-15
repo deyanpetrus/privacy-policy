@@ -8,7 +8,7 @@ const CORS={
  "access-control-allow-methods":"POST,OPTIONS"
 };
 const DEDICATED_RPC="https://gnqtngtuzbxohgwgvmpb.supabase.co/rest/v1/rpc/";
-const CACHE_VERSION="ldp-transit-shared-v3-de-country-api-h3";
+const CACHE_VERSION="ldp-transit-unified-v4-quality-geo-20261115";
 const response=(data:unknown,status=200)=>Response.json(data,{status,headers:{...CORS,"cache-control":"private, no-store"}});
 class Fault extends Error{code:number;constructor(code:number,msg:string){super(msg);this.code=code}}
 function publicKey():string {
@@ -39,7 +39,9 @@ function normalized(raw:unknown){
  if(action==="nearby"){
    const {lat,lon}=latLon(b,"lat","lon");
    const radiusM=Math.round(bounded(b.radiusM,5000,300,15000)/100)*100;
-   return {action,country,lat,lon,radiusM,limit:bounded(b.limit,30,1,40)};
+   const mode=str(b.mode,16).toLowerCase()||"all";
+   if(!["all","bus","tram","train","rail","sbahn","subway","metro","ferry"].includes(mode))throw new Fault(400,"Invalid mode");
+   return {action,country,lat,lon,radiusM,mode,limit:bounded(b.limit,30,1,40)};
  }
  if(action==="departures"){
    const {lat,lon}=Number.isFinite(Number(b.lat))&&Number.isFinite(Number(b.lon))
@@ -236,12 +238,145 @@ function includeVerifiedGermanRuralStops(base:AnyObject,rural:AnyObject[],limit:
    coverageHint:"local-scheduled-buses-combined-with-countrywide-api-fallback"};
 }
 
+
+/* NEXT Unified Transit Engine v4: reuse existing auth, rate limiting, v3 GTFS/API paths.
+ * No new public tables, exact addresses, user IDs, or service-role keys enter shared rows.
+ */
+const QUALITY_OK=55;
+const GEO_GRID=1000; // ~110m latitude cells; country+radius+mode+limit remain in SHA256 key
+function distanceMeters(a:number,b:number,c:number,d:number):number{
+ const p=Math.PI/180,dl=(c-a)*p,da=(d-b)*p;
+ const t=Math.sin(dl/2)**2+Math.cos(a*p)*Math.cos(c*p)*Math.sin(da/2)**2;
+ return 12742000*Math.asin(Math.sqrt(Math.min(1,Math.max(0,t))));
+}
+function selectedMode(x:AnyObject,mode:string):boolean{
+ if(mode==="all")return true;
+ const m=str(x.mode,40).toLowerCase();
+ if(!m||m==="all"||m==="unknown")return false;
+ if(mode==="bus")return m==="bus"||m==="coach";
+ if(mode==="train"||mode==="rail")return ["rail","train","regional","long_distance","suburban","sbahn"].includes(m);
+ if(mode==="sbahn")return ["sbahn","suburban"].includes(m);
+ if(mode==="subway"||mode==="metro")return m==="subway"||m==="metro"||m==="u-bahn";
+ return m===mode;
+}
+function reformStops(base:AnyObject,req:AnyObject):AnyObject{
+ if(req.action!=="nearby")return base;
+ const radius=Number(req.radiusM),limit=bounded(req.limit,30,1,40),mode=String(req.mode||"all");
+ const lat=Number(req.lat),lon=Number(req.lon);
+ if(!Array.isArray(base.stops)||!Number.isFinite(lat)||!Number.isFinite(lon))return base;
+ const out:AnyObject[]=[];
+ for(const raw of base.stops){
+   const x=obj(raw),slat=Number(x.lat),slon=Number(x.lon);
+   if(!Number.isFinite(slat)||!Number.isFinite(slon)||!selectedMode(x,mode))continue;
+   const d=Math.round(distanceMeters(lat,lon,slat,slon));
+   if(d>radius)continue;
+   out.push({...x,distanceM:d});
+ }
+ out.sort((a,b)=>Number(a.distanceM)-Number(b.distanceM));
+ return {...base,stops:out.slice(0,limit)};
+}
+function coverageScore(base:AnyObject,req:AnyObject):number{
+ if(req.action==="departures"){
+   const x=Array.isArray(base.departures)?base.departures:[];
+   return x.length?Math.min(96,65+x.length*2):0;
+ }
+ if(req.action==="trip")return obj(base.route).id||obj(base.route).tripId?80:0;
+ if(req.action!=="nearby")return 0;
+ const x=Array.isArray(base.stops)?base.stops:[];
+ const close=x.filter(z=>Number(obj(z).distanceM)<=3000);
+ const near=x.filter(z=>Number(obj(z).distanceM)<=1500);
+ if(!close.length)return 0;
+ const withLines=near.filter(z=>Array.isArray(obj(z).lines)&&obj(z).lines.length>0).length;
+ const sources=new Set(near.map(z=>str(obj(z).providerId,80)).filter(Boolean));
+ const rail=String(req.mode||"all").match(/^(rail|train|sbahn|subway|metro)$/);
+ const enough=rail?2:6;
+ const result=10+Math.min(56,near.length*(rail?13:7))+Math.min(18,withLines*3)+Math.min(16,sources.size*7);
+ return Math.min(100,Math.round(near.length<enough?Math.min(result,54):result));
+}
+function chooseCanonical(req:AnyObject):AnyObject{
+ if(req.action!=="nearby"||req.country!=="DE")return req;
+ // Query slightly beyond cell edge, so a nearby stop is not lost when moving ~100m.
+ return {...req,lat:Math.round(Number(req.lat)*GEO_GRID)/GEO_GRID,
+   lon:Math.round(Number(req.lon)*GEO_GRID)/GEO_GRID,
+   radiusM:Math.min(15000,Number(req.radiusM)+200),limit:40};
+}
+function cacheKeyRequest(req:AnyObject):AnyObject{
+ if(req.action!=="nearby"||req.country!=="DE")return {...req};
+ // The actual user GPS is never stored in shared cache keys.
+ return {...req,lat:Math.round(Number(req.lat)*GEO_GRID)/GEO_GRID,
+   lon:Math.round(Number(req.lon)*GEO_GRID)/GEO_GRID};
+}
+function cachePolicy(kind:string,result:AnyObject,score:number){
+ if(kind==="nearby"){
+   if(score<QUALITY_OK)return {ttl:120,stale:0};
+   const ids=(Array.isArray(result.stops)?result.stops:[]).map(s=>str(obj(s).providerId,50)).filter(Boolean);
+   const exclusiveOwn=ids.length>0&&ids.every(id=>id==="de-national"||id==="de-bus-h3"||id.startsWith("de-gtfs"));
+   return {ttl:exclusiveOwn?86400:3600,stale:exclusiveOwn?7200:0};
+ }
+ if(kind==="departures"){
+   const live=Array.isArray(result.departures)&&result.departures.some(x=>obj(x).realtime===true||obj(x).quality==="live");
+   return {ttl:live?15:45,stale:0};
+ }
+ return {ttl:1200,stale:0};
+}
+function berlinNowParts(){
+ const parts=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Berlin",
+   year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",
+   hourCycle:"h23"}).formatToParts(new Date());
+ const x:Record<string,string>={};for(const p of parts)x[p.type]=p.value;
+ return Date.UTC(Number(x.year),Number(x.month)-1,Number(x.day),Number(x.hour),Number(x.minute));
+}
+function h3ScheduledDepartures(boards:unknown,durationMinutes:number,stopId:string):AnyObject[]{
+ const nowLocal=berlinNowParts();
+ const list:AnyObject[]=[];
+ for(const board of Array.isArray(boards)?boards:[]){
+   const x=obj(board),day=str(x.service_date,10);
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||!Array.isArray(x.payload))continue;
+   const base=Date.parse(day+"T00:00:00Z");
+   if(!Number.isFinite(base))continue;
+   for(const raw of x.payload){
+     const item=obj(raw),secs=Number(item.departureSecs),tripId=str(item.tripId,130);
+     if(!Number.isFinite(secs)||secs<0||secs>172799||!tripId)continue;
+     const dtime=base+secs*1000,mins=(dtime-nowLocal)/60000;
+     if(mins< -1||mins>durationMinutes)continue;
+     const date=new Date(dtime).toISOString().slice(0,19);
+     const time=date.slice(11,16),line=str(item.line,80)||"—";
+     list.push({id:"de-bus-h3:"+tripId+":"+day+":"+secs,stopId,tripId,
+       line,direction:str(item.direction,130)||"—",mode:"bus",
+       scheduledTime:date,localTime:time,plannedLocalTime:time,realtime:false,
+       cancelled:false,status:"scheduled",providerId:"de-bus-h3",
+       feedSource:"de-bus-h3",provider:"GTFS.de rural buses",sourceKind:"official-gtfs",
+       quality:"scheduled"});
+   }
+ }
+ return list.sort((a,b)=>String(a.scheduledTime).localeCompare(String(b.scheduledTime))).slice(0,40);
+}
+async function existingH3Departures(a:{origin:string,key:string,jwt:string},body:AnyObject){
+ const rawId=str(body.stopId,180).replace(/^de-bus-h3:/,"");
+ if(!rawId||rawId.length>160)throw new Fault(400,"Invalid GTFS stop ID");
+ const res=await fetch(a.origin+"/functions/v1/transit-de-bus-h3",{
+   method:"POST",headers:{apikey:a.key,authorization:"Bearer "+a.jwt,"content-type":"application/json"},
+   body:JSON.stringify({action:"departures",country:"DE",stopId:rawId}),signal:AbortSignal.timeout(10000)});
+ if(!res.ok)return {ok:false,status:res.status,body:{ok:false,error:"GTFS rural timetable temporarily unavailable"}};
+ const bodyResult=await res.json();
+ if(bodyResult?.ok!==true||!Array.isArray(bodyResult.boards))
+   return {ok:false,status:502,body:{ok:false,error:"Invalid GTFS timetable response"}};
+ const departures=h3ScheduledDepartures(bodyResult.boards,bounded(body.duration,90,30,180),rawId);
+ return {ok:true,status:200,body:{ok:true,country:"DE",providerId:"de-bus-h3",
+   provider:"GTFS.de rural bus subset",quality:"scheduled",
+   sourceUrl:"https://gtfs.de/en/feeds/de_nv/",departures,
+   generatedAt:new Date().toISOString()}};
+}
+
 async function invokeExisting(a:{origin:string,key:string,jwt:string},body:AnyObject){
  // NEXT-only German nearby query: the national subset can be sparse and MUST
  // NOT prevent Transitland / DB fallback. Preserve legacy as fail-safe.
+ if(body.action==="departures"&&body.country==="DE"&&body.feedSource==="de-bus-h3"){
+   return existingH3Departures(a,body);
+ }
  const nextNear=body.action==="nearby"&&body.country==="DE";
  // Start local bus lookup in parallel; only within its verified Bavarian footprint.
- const ruralPromise=nextNear&&isGermanRuralArea(body)
+ const ruralPromise=nextNear&&body.mode!=="train"&&body.mode!=="rail"&&body.mode!=="sbahn"&&body.mode!=="metro"&&body.mode!=="subway"&&isGermanRuralArea(body)
     ?germanRuralBusStops(a,body):Promise.resolve([] as AnyObject[]);
  const providers=nextNear
    ?["transit-schedule-next-expanded","transit-schedule"]
@@ -279,53 +414,74 @@ Deno.serve(async (req:Request)=>{
  try{
    const auth=await authenticate(req);
    const normalizedRequest=normalized(await req.json().catch(()=>{throw new Fault(400,"Bad JSON")}));
-   const action=String(normalizedRequest.action);
-   const usesCache=["nearby","departures","trip"].includes(action);
+   const action=String(normalizedRequest.action),usesCache=["nearby","departures","trip"].includes(action);
    const bucket=action;
-   let key="";
-   let stale:AnyObject|null=null;
+   let key="",cached:AnyObject|null=null,cacheFresh=false,cachedStoredAt=0,stale:AnyObject|null=null;
    if(usesCache){
-     const keyRequest:AnyObject={...normalizedRequest};
-     // Departure boards depend on the current moment; avoid reusing old timetables later in the hour.
+     const keyRequest=cacheKeyRequest(normalizedRequest);
      if(action==="departures")keyRequest.timeWindow=Math.floor(Date.now()/60000);
      key=await hashedKey(bucket,keyRequest);
      try{
-       const results=await cacheRpc("transit_shared_cache_read_v1",{p_bucket:bucket,p_key:key});
-       const row=Array.isArray(results)?results[0]:null;
-       if(row?.payload&&row.is_fresh===true){
-         return response({...obj(row.payload),sharedCache:{hit:true,stale:false,
-            expiresAt:row.expires_at,source:"supabase-transit-shared"}});
+       const rows=await cacheRpc("transit_shared_cache_read_v1",{p_bucket:bucket,p_key:key});
+       const row=Array.isArray(rows)?rows[0]:null;
+       if(row?.payload){
+         cached=obj(row.payload);cacheFresh=row.is_fresh===true;
+         cachedStoredAt=Date.parse(String(row.stored_at||""))||0;
+         const shown=reformStops(cached,normalizedRequest);
+         const score=coverageScore(shown,normalizedRequest);
+         // Tiny partial results do not block countrywide API retries; short 30s coalescing.
+         if(cacheFresh&&(action!=="nearby"||score>=QUALITY_OK||
+             (score>0&&Date.now()-cachedStoredAt<30000))){
+           if(action!=="nearby"||Array.isArray(shown.stops)&&shown.stops.length>0)
+             return response({...shown,coverageScore:score,partial:score<QUALITY_OK,
+               sharedCache:{hit:true,stale:false,expiresAt:row.expires_at,
+                 source:"supabase-transit-shared"}});
+         }
+         if(action==="nearby"&&!cacheFresh&&score>0)stale=shown;
        }
-       if(action==="nearby"&&row?.payload&&row.is_fresh===false)stale=obj(row.payload);
-     }catch(_ignored){/* Supabase cache outage MUST NOT block API fallback. */}
+     }catch(_ignored){/* DB cache failure cannot block the original API. */}
    }
-   // Existing server is authoritative for provider selection, fallback, and journey planning.
-   const upstream=await invokeExisting(auth,normalizedRequest);
+   // Nationwide API fallback is authoritative for non-rural coverage.
+   // H3 runs only within its verified Bavarian footprint and is merged by existing v3 logic.
+   const canonical=chooseCanonical(normalizedRequest);
+   const upstream=await invokeExisting(auth,canonical);
    if(upstream.ok&&upstream.body.ok===true){
+     const shown=reformStops(upstream.body,normalizedRequest);
+     const score=coverageScore(shown,normalizedRequest);
      if(usesCache){
        const safe=cacheablePayload(action,upstream.body);
-       const policy=ttlSeconds(action,upstream.body);
-       if(safe&&policy.ttl>0){
+       const policy=cachePolicy(action,shown,score);
+       if(safe&&policy.ttl>0&&score>0){
          try{
-           await cacheRpc("transit_shared_cache_store_v1",{
-             p_bucket:bucket,p_key:key,p_payload:safe,p_ttl_seconds:policy.ttl,
+           await cacheRpc("transit_shared_cache_store_quality_v2",{
+             p_bucket:bucket,p_key:key,p_payload:{...safe,coverageScore:score},
+             p_ttl_seconds:policy.ttl,
              p_provider:str(upstream.body.providerId,80)||"unknown",
-             p_stale_grace_seconds:policy.stale});
-         }catch(_ignored){/* Preserve provider result when cache quota/DB unavailable. */}
+             p_quality_score:score,p_stale_grace_seconds:policy.stale});
+         }catch(_ignored){/* Quota/RPC failure does not mask valid provider results. */}
        }
-       // Do not turn an empty response into long-lived negative cache.
-       if(action==="nearby"&&stale&&(!Array.isArray(upstream.body.stops)||upstream.body.stops.length===0)){
-         return response({...stale,sharedCache:{hit:true,stale:true,
-           warning:"Showing cached stop information only; live source returned no stops."}});
+       if(action==="nearby"&&cached){
+         const previous=reformStops(cached,normalizedRequest);
+         const oldScore=coverageScore(previous,normalizedRequest);
+         if(oldScore>score&&Array.isArray(previous.stops)&&previous.stops.length){
+           return response({...previous,coverageScore:oldScore,partial:oldScore<QUALITY_OK,
+             sharedCache:{hit:true,stale:!cacheFresh,refreshAttempted:true,
+               warning:"Previous transit coverage was better; using last verified nearby stops."}});
+         }
        }
      }
-     return response({...upstream.body,sharedCache:{hit:false,stale:false,source:"provider-api"}});
+     return response({...shown,coverageScore:score,partial:action==="nearby"&&score<QUALITY_OK,
+       sharedCache:{hit:false,stale:false,source:"provider-api"}});
    }
-   if(stale&&upstream.status>=500)return response({...stale,sharedCache:{hit:true,stale:true,
-      warning:"Live provider unavailable; showing potentially outdated stops."}});
+   if((stale||cached)&&action==="nearby"){
+     const old=reformStops(stale||cached||{},normalizedRequest),score=coverageScore(old,normalizedRequest);
+     if(score>0&&Array.isArray(old.stops)&&old.stops.length)
+       return response({...old,coverageScore:score,partial:true,
+         sharedCache:{hit:true,stale:!cacheFresh,warning:"Provider unavailable; showing available previous stops only."}});
+   }
    return response(upstream.body,upstream.status);
  }catch(e){
-   return response({ok:false,error:e instanceof Fault?e.message:"Transit shared cache temporarily unavailable"},
+   return response({ok:false,error:e instanceof Fault?e.message:"Unified Transit temporarily unavailable"},
      e instanceof Fault?e.code:503);
  }
 });
