@@ -33,7 +33,7 @@ jobs:
           const railsql=fs.readFileSync('lifedashpro/transit/discovery/mk_rail_catalog_service_rpc_20261115.sql','utf8');
           for(const key of ['Signed-in account required','consume_user_rate_limit','transit_mk_static_route_catalog',
           'transit_mk_rail_route_catalog','LDP_DEDICATED_TRANSIT_SERVICE_ROLE_KEY','NOT LIVE',
-          'has_verified_current_departures']){if(!edge.includes(key))throw Error('Missing required safety invariant '+key);}
+          'timetableStatus:"not_imported"']){if(!edge.includes(key))throw Error('Missing required safety invariant '+key);}
           for(const key of ['ENABLE ROW LEVEL SECURITY','REVOKE ALL','GRANT SELECT','SECURITY INVOKER',
             'historic_unverified','has_verified_current_departures=false','ON CONFLICT (route_key) DO NOTHING']){
               if(!sql.includes(key))throw Error('Missing private schema guard '+key);
@@ -41,7 +41,7 @@ jobs:
           for(const key of ['SECURITY INVOKER','REVOKE ALL','service_verified_until','TIMETABLE_NEEDS_REVERIFICATION']){
             if(!railsql.includes(key))throw Error('Missing rail source validity guard '+key);
           }
-          if(edge.includes('quality:"live"')||sql.includes('verified_scheduled\\',')||
+          if(edge.includes('quality:"live"')||sql.includes('has_verified_current_departures=true')||
              edge.includes('SUPABASE_SERVICE_ROLE_KEY="'))
             throw Error('Unsafe live claims or credential literal');
           const transpiled=ts.transpileModule(edge,{fileName:'index.ts',reportDiagnostics:true,
