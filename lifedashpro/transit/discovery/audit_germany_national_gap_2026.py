@@ -50,10 +50,10 @@ def mode_for(raw:str|None):
  try:n=int(raw or "")
  except ValueError:return "other"
  if n==3 or 700<=n<800:return "bus"
+ if n==109:return "suburban"
  if n==2 or 100<=n<200:return "train"
  if n==0 or 900<=n<1000:return "tram"
  if n==1 or 400<=n<500:return "metro"
- if n==109:return "suburban"
  if n==4:return "ferry"
  return "other"
 def active_services(z:zipfile.ZipFile,days):
