@@ -43,7 +43,7 @@ function haversine(a:number,b:number,c:number,d:number){
  return Math.round(12742000*Math.asin(Math.sqrt(Math.min(1,s1+Math.cos(a*k)*Math.cos(c*k)*s2))));
 }
 function cleanName(n:unknown){const s=typeof n==='string'?n.trim():'';return s&&s!=='—'&&s.toLowerCase()!=='null'?s:null}
-function cleanLines(raw:unknown):string[]{const values=Array.isArray(raw)?raw:[];return [...new Set(values.map(x=>String(x||'').trim()).filter(Boolean))].slice(0,30)}
+function cleanLines(raw:unknown):string[]{const values=Array.isArray(raw)?raw:[];return [...new Set(values.map(x=>String(x||'').trim()).filter(Boolean))]}
 function coerceStop(sourceId:string,name:unknown,lat:unknown,lon:unknown,originLat:number,originLon:number,mode:string[],lines:string[],platform:unknown):Stop|null{
  const a=Number(lat),b=Number(lon);
  if(!sourceId||!Number.isFinite(a)||!Number.isFinite(b)||Math.abs(a)>90||Math.abs(b)>180)return null;
