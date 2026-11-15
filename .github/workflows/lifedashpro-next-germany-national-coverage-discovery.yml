@@ -1,0 +1,98 @@
+name: LifeDashPro NEXT - Germany GTFS nationwide coverage discovery (READ ONLY)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/discovery/audit_germany_national_gap_2026.py'
+      - '.github/workflows/lifedashpro-next-germany-national-coverage-discovery.yml'
+  schedule:
+    - cron: '17 5 3 * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: lifedashpro-next-national-coverage-readonly
+  cancel-in-progress: false
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Source safety check and Python compile
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile lifedashpro/transit/discovery/audit_germany_national_gap_2026.py
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('lifedashpro/transit/discovery/audit_germany_national_gap_2026.py').read_text()
+          for required in ('gtfs.de/germany/nv_free/latest.zip','Pfaffenhofen an der Ilm','Pfaffenhofen an der Zaber',
+                           'Bremen','Hamburg','Stuttgart','Berlin','ACTIVE_GTFS_SERVICE_IDS',
+                           'ZIP_LIMIT','EXPANDED_LIMIT','SAFE_AUDIT_FAILURE'):
+              assert required in s,required
+          for forbidden in ('psycopg','create table','insert into','truncate table','SUPABASE_SERVICE_ROLE_KEY',
+                            'LDP_DEDICATED_TRANSIT_DB_URL'):
+              assert forbidden not in s,forbidden
+          print('NEXT_GTFS_GAP_AUDIT_READONLY_STATIC_PASS')
+          PY
+      - name: Local fixture proof of stops, routes, trip, active calendar
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import datetime,io,csv,zipfile
+          from zoneinfo import ZoneInfo
+          from pathlib import Path
+          p=Path('/tmp/test_gtfs.zip')
+          day=datetime.datetime.now(ZoneInfo('Europe/Berlin')).strftime('%Y%m%d')
+          files={
+           'stops.txt':'stop_id,stop_name,stop_lat,stop_lon\nFIX_STOP,Regensburg demo test,49.0134,12.1016\n',
+           'routes.txt':'route_id,route_short_name,route_type\nFIX_BUS,B,3\nFIX_TRAIN,T,2\n',
+           'trips.txt':'route_id,service_id,trip_id\nFIX_BUS,FIX_DATE,FIX_TRIP\n',
+           'stop_times.txt':'trip_id,departure_time,arrival_time,stop_id,stop_sequence\nFIX_TRIP,12:00:00,12:00:00,FIX_STOP,1\n',
+           'calendar_dates.txt':f'service_id,date,exception_type\nFIX_DATE,{day},1\n'
+          }
+          with zipfile.ZipFile(p,'w') as z:
+              for n,s in files.items():z.writestr(n,s)
+          PY
+          python lifedashpro/transit/discovery/audit_germany_national_gap_2026.py --zip /tmp/test_gtfs.zip --service-days 1 --output-dir /tmp/test_gtfs_out
+          python - <<'PY'
+          import json
+          r=json.load(open('/tmp/test_gtfs_out/de_nationwide_gap_audit.json'))
+          reg=next(x for x in r['places'] if x['place']=='Regensburg')
+          assert reg['modes']['bus']['served_stops_6km']==1,reg
+          assert reg['modes']['bus']['routes_6km']==1,reg
+          assert reg['modes']['train']['served_stops_6km']==0,reg
+          print('NEXT_GTFS_FIXTURE_PASS')
+          PY
+      - name: Inspect official nationwide feed for ACTUAL regional coverage gaps
+        shell: bash
+        run: |
+          set -euo pipefail
+          python lifedashpro/transit/discovery/audit_germany_national_gap_2026.py \
+            --service-days 7 --output-dir coverage-out
+      - name: Publish read-only coverage results
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ldp-next-de-national-coverage-audit
+          path: |
+            coverage-out/de_nationwide_gap_audit.json
+            coverage-out/de_nationwide_gap_audit.md
+          if-no-files-found: error
+          retention-days: 30
+      - name: Summarize scope and report
+        if: always()
+        shell: bash
+        run: |
+          echo "## NEXT national GTFS coverage discovery" >> "$GITHUB_STEP_SUMMARY"
+          echo "Read-only audit of the official GTFS.de NV feed for 16 German locations." >> "$GITHUB_STEP_SUMMARY"
+          echo "Includes separate Pfaffenhofen an der Ilm and Pfaffenhofen an der Zaber." >> "$GITHUB_STEP_SUMMARY"
+          echo "This does not import or deploy GTFS data, does not read application secrets, and does not modify Supabase." >> "$GITHUB_STEP_SUMMARY"
+          if [ -f coverage-out/de_nationwide_gap_audit.md ]; then
+            cat coverage-out/de_nationwide_gap_audit.md >> "$GITHUB_STEP_SUMMARY"
+          fi
