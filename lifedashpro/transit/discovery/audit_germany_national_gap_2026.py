@@ -23,7 +23,7 @@ CENTERS={
  "Obertraubling":(48.9655,12.1671),
  "Neustadt an der Donau":(48.806,11.766),
  "Pfaffenhofen an der Ilm":(48.5317,11.5050),
- "Pfaffenhofen an der Zaber":(49.0640,9.0510),
+ "Pfaffenhofen an der Zaber":(49.0670,8.9670),
  "Bremen":(53.0793,8.8017),
  "Hamburg":(53.5511,9.9937),
  "Berlin":(52.5200,13.4050),
