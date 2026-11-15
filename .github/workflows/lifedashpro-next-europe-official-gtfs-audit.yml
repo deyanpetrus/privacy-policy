@@ -1,0 +1,69 @@
+name: LifeDashPro NEXT - Europe GTFS official feed audit (CH SI ME)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/discovery/audit_europe_ch_si_me_sources.py'
+      - '.github/workflows/lifedashpro-next-europe-official-gtfs-audit.yml'
+  schedule:
+    - cron: '31 7 * * 4'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ldp-next-eu-official-feed-audit
+  cancel-in-progress: false
+jobs:
+  check_source:
+    strategy:
+      fail-fast: false
+      matrix:
+        country: [CH, SI, ME]
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Assert read-only source and pure Python parsing
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile lifedashpro/transit/discovery/audit_europe_ch_si_me_sources.py
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('lifedashpro/transit/discovery/audit_europe_ch_si_me_sources.py').read_text()
+          for t in ('CH', 'SI', 'ME','GTFS required files missing',
+                    'active_trips_next_7d','schedule_usable_today',
+                    'writes_to_supabase', 'stale_timetable'):
+            assert t in s,t
+          for banned in ('SUPABASE_SERVICE_ROLE_KEY', 'DATABASE_URL', 'psycopg',
+                         'insert into transit_next', 'create table',
+                         'truncate table', 'github.token'):
+            assert banned not in s,banned
+          print('READONLY_EU_GTFS_AUDIT_STATIC_PASS')
+          PY
+      - name: Check only official GTFS source for selected country
+        shell: bash
+        run: |
+          python lifedashpro/transit/discovery/audit_europe_ch_si_me_sources.py \
+            --country ${{ matrix.country }} --output-dir coverage-out
+      - name: Upload source feasibility report, not raw GTFS
+        uses: actions/upload-artifact@v4
+        with:
+          name: ldp-next-eu-source-${{ matrix.country }}
+          path: coverage-out/${{ matrix.country }}_official_gtfs_source_audit.json
+          retention-days: 30
+          if-no-files-found: error
+      - name: Explain stage and license gate
+        if: always()
+        shell: bash
+        run: |
+          echo "### Official GTFS ${{ matrix.country }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Discovery only. No live LifeDashPro transit database modifications." >> "$GITHUB_STEP_SUMMARY"
+          echo "- A successful job does not imply the official feed is current: inspect audit_status and schedule_usable_today." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Licence and platform/stop GTFS calendar validation are mandatory before any user-facing import." >> "$GITHUB_STEP_SUMMARY"
+          if [ -f coverage-out/${{ matrix.country }}_official_gtfs_source_audit.json ]; then
+            cat coverage-out/${{ matrix.country }}_official_gtfs_source_audit.json >> "$GITHUB_STEP_SUMMARY"
+          fi
