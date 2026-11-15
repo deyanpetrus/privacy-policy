@@ -14,7 +14,7 @@ from urllib.error import HTTPError,URLError
 from urllib.parse import urlencode
 
 BASE="https://api.mobilitydatabase.org/v1"
-COUNTRIES=("DE","AT","CH","HR","RS","MK","BG","BA","AL","ME","SI","CZ","HU","IT","FR","PL")
+COUNTRIES=("DE","AT","CH","HR","RS","MK","BG","BA","AL","ME","SI","CZ","HU","IT","FR","PL","SE","NO","NL")
 GBFS_COUNTRIES=("DE","AT","CH","HR","SI")
 ENDPOINTS=(("gtfs","gtfs_feeds",100,5),
            ("gtfs_rt","gtfs_rt_feeds",100,3),
@@ -186,7 +186,7 @@ def main():
     rows,summaries=collect(access)
     OUT.mkdir(parents=True,exist_ok=True)
     stats=Counter((x[2] for x in rows.values()))
-    content={"checked_at":datetime.now(timezone.utc).isoformat(),"coverage":"curated 16 countries (subset of Europe)",
+    content={"checked_at":datetime.now(timezone.utc).isoformat(),"coverage":"curated 19 countries (subset of Europe)",
         "run_mode":"discovery_metadata_only","indexed":len(rows),"by_kind":dict(stats),
         "countries":[{"country":c,"kind":k,"count":n,"state":state} for c,k,n,state in summaries]}
     (OUT/"summary.json").write_text(json.dumps(content,indent=2)+"\n")
