@@ -8,7 +8,7 @@ const CORS={
  "access-control-allow-methods":"POST,OPTIONS"
 };
 const DEDICATED_RPC="https://gnqtngtuzbxohgwgvmpb.supabase.co/rest/v1/rpc/";
-const CACHE_VERSION="ldp-transit-unified-v4-quality-geo-20261115";
+const CACHE_VERSION="ldp-transit-unified-v5-regional-20261115";
 const response=(data:unknown,status=200)=>Response.json(data,{status,headers:{...CORS,"cache-control":"private, no-store"}});
 class Fault extends Error{code:number;constructor(code:number,msg:string){super(msg);this.code=code}}
 function publicKey():string {
@@ -202,6 +202,53 @@ async function germanRuralBusStops(a:{origin:string,key:string,jwt:string},r:Any
    return normalized;
  }catch(_ignored){return [];}
 }
+
+/* V5: additional scheduled official GTFS region packs outside Kelheim. */
+function isGermanRegionalPilotArea(r:AnyObject):boolean{
+ if(r.country!=="DE")return false;
+ const lat=Number(r.lat),lon=Number(r.lon);
+ if(!Number.isFinite(lat)||!Number.isFinite(lon))return false;
+ return [[53.0793,8.8017],[48.5317,11.505],[49.067,8.967]]
+   .some(([a,b])=>distanceMeters(lat,lon,a,b)<18000);
+}
+async function germanRegionalPilotBusStops(a:{origin:string,key:string,jwt:string},r:AnyObject):Promise<AnyObject[]>{
+ if(!isGermanRegionalPilotArea(r))return [];
+ try{
+   const radius=bounded(r.radiusM,6000,500,12000);
+   const res=await fetch(a.origin+"/functions/v1/transit-de-regional-bus",{
+     method:"POST",headers:{apikey:a.key,authorization:"Bearer "+a.jwt,"content-type":"application/json"},
+     body:JSON.stringify({action:"nearby",country:"DE",mode:"bus",lat:r.lat,lon:r.lon,radiusM:radius}),
+     signal:AbortSignal.timeout(9000)
+   });
+   if(!res.ok)return [];
+   const data=await res.json().catch(()=>null);
+   if(data?.ok!==true||!Array.isArray(data.stops))return [];
+   const out:AnyObject[]=[];
+   for(const raw of data.stops){
+     const x=obj(raw),id=str(x.stop_id||x.id,180),name=str(x.name,220),
+       lat=Number(x.lat),lon=Number(x.lon),distanceM=Number(x.distance_m??x.distanceM);
+     if(!id||!name||!Number.isFinite(lat)||!Number.isFinite(lon)||
+       !Number.isFinite(distanceM)||distanceM<0||distanceM>radius)continue;
+     out.push({id,name,lat,lon,distanceM,mode:"bus",
+       lines:Array.isArray(x.lines)?x.lines.filter((v:unknown)=>typeof v==="string"):[],
+       platform:str(x.platform,60)||undefined,
+       providerId:"de-regional-bus",feedSource:"de-regional-bus",
+       provider:"GTFS.de national regional bus pilot",sourceKind:"official-gtfs",quality:"scheduled"});
+   }
+   return out;
+ }catch(_ignored){return [];}
+}
+function includeVerifiedGermanRegionalStops(base:AnyObject,extra:AnyObject[],limit:number):AnyObject{
+ if(!extra.length)return base;
+ const prev=Array.isArray(base.stops)?base.stops:[];
+ const all=mergedGermanStops(base,extra,limit);
+ return {...base,ok:true,country:"DE",stops:all,
+   providerId:prev.length?"de-mixed":"de-regional-bus",
+   provider:prev.length?str(base.provider,100)+" + GTFS.de regional buses":"GTFS.de national regional bus pilot",
+   quality:"scheduled",sourceUrl:"https://gtfs.de/en/feeds/de_nv/",
+   coverageHint:"actual-scheduled-bus-stops-merged-with-nationwide-api"};
+}
+
 function mergedGermanStops(base:AnyObject,rural:AnyObject[],limit:number):AnyObject[]{
  const prev=Array.isArray(base.stops)?base.stops:[];
  const out:AnyObject[]=[];
@@ -210,6 +257,9 @@ function mergedGermanStops(base:AnyObject,rural:AnyObject[],limit:number):AnyObj
    if(!name||!Number.isFinite(lat)||!Number.isFinite(lon))continue;
    const near=out.findIndex(item=>{
      const dlat=Math.abs(Number(item.lat)-lat),dlon=Math.abs(Number(item.lon)-lon);
+     const sameProvider=str(item.providerId,80)===str(x.providerId,80);
+     const distinctPlatformIds=str(item.id,180)&&str(x.id,180)&&str(item.id,180)!==str(x.id,180);
+     if(sameProvider&&distinctPlatformIds)return false;
      return str(item.name,220).toLocaleLowerCase()===name.toLocaleLowerCase() &&
        dlat<0.00065&&dlon<0.0008;
    });
@@ -218,7 +268,7 @@ function mergedGermanStops(base:AnyObject,rural:AnyObject[],limit:number):AnyObj
      current.lines=Array.from(new Set([...(Array.isArray(current.lines)?current.lines:[]),
        ...(Array.isArray(x.lines)?x.lines:[])]));
      // Preserve our dedicated GTFS stop id when known so its timetable endpoint remains routable.
-     if(x.providerId==="de-bus-h3")out[near]={...current,...x,
+     if(x.providerId==="de-bus-h3"||x.providerId==="de-regional-bus")out[near]={...current,...x,
        lines:current.lines};
    }else out.push({...x});
  }
@@ -310,7 +360,7 @@ function cachePolicy(kind:string,result:AnyObject,score:number){
  if(kind==="nearby"){
    if(score<QUALITY_OK)return {ttl:120,stale:0};
    const ids=(Array.isArray(result.stops)?result.stops:[]).map(s=>str(obj(s).providerId,50)).filter(Boolean);
-   const exclusiveOwn=ids.length>0&&ids.every(id=>id==="de-national"||id==="de-bus-h3"||id.startsWith("de-gtfs"));
+   const exclusiveOwn=ids.length>0&&ids.every(id=>id==="de-national"||id==="de-bus-h3"||id==="de-regional-bus"||id.startsWith("de-gtfs"));
    return {ttl:exclusiveOwn?86400:3600,stale:exclusiveOwn?7200:0};
  }
  if(kind==="departures"){
@@ -352,18 +402,24 @@ function h3ScheduledDepartures(boards:unknown,durationMinutes:number,stopId:stri
  return list.sort((a,b)=>String(a.scheduledTime).localeCompare(String(b.scheduledTime))).slice(0,40);
 }
 async function existingH3Departures(a:{origin:string,key:string,jwt:string},body:AnyObject){
- const rawId=str(body.stopId,180).replace(/^de-bus-h3:/,"");
+ const regional=body.feedSource==="de-regional-bus";
+ const rawId=str(body.stopId,180).replace(/^(de-bus-h3|de-regional-bus):/,"");
  if(!rawId||rawId.length>160)throw new Fault(400,"Invalid GTFS stop ID");
- const res=await fetch(a.origin+"/functions/v1/transit-de-bus-h3",{
+ const res=await fetch(a.origin+"/functions/v1/"+(regional?"transit-de-regional-bus":"transit-de-bus-h3"),{
    method:"POST",headers:{apikey:a.key,authorization:"Bearer "+a.jwt,"content-type":"application/json"},
    body:JSON.stringify({action:"departures",country:"DE",stopId:rawId}),signal:AbortSignal.timeout(10000)});
  if(!res.ok)return {ok:false,status:res.status,body:{ok:false,error:"GTFS rural timetable temporarily unavailable"}};
  const bodyResult=await res.json();
  if(bodyResult?.ok!==true||!Array.isArray(bodyResult.boards))
    return {ok:false,status:502,body:{ok:false,error:"Invalid GTFS timetable response"}};
- const departures=h3ScheduledDepartures(bodyResult.boards,bounded(body.duration,90,30,180),rawId);
- return {ok:true,status:200,body:{ok:true,country:"DE",providerId:"de-bus-h3",
-   provider:"GTFS.de rural bus subset",quality:"scheduled",
+ const departures=h3ScheduledDepartures(bodyResult.boards,bounded(body.duration,90,30,180),rawId)
+   .map(x=>regional?{...x,id:String(x.id).replace(/^de-bus-h3:/,"de-regional-bus:"),
+       providerId:"de-regional-bus",feedSource:"de-regional-bus",
+       provider:"GTFS.de national regional bus pilot"}:x);
+ return {ok:true,status:200,body:{ok:true,country:"DE",
+   providerId:regional?"de-regional-bus":"de-bus-h3",
+   provider:regional?"GTFS.de national regional bus pilot":"GTFS.de rural bus subset",
+   quality:"scheduled",
    sourceUrl:"https://gtfs.de/en/feeds/de_nv/",departures,
    generatedAt:new Date().toISOString()}};
 }
@@ -371,13 +427,16 @@ async function existingH3Departures(a:{origin:string,key:string,jwt:string},body
 async function invokeExisting(a:{origin:string,key:string,jwt:string},body:AnyObject){
  // NEXT-only German nearby query: the national subset can be sparse and MUST
  // NOT prevent Transitland / DB fallback. Preserve legacy as fail-safe.
- if(body.action==="departures"&&body.country==="DE"&&body.feedSource==="de-bus-h3"){
+ if(body.action==="departures"&&body.country==="DE"&&(body.feedSource==="de-bus-h3"||body.feedSource==="de-regional-bus")){
    return existingH3Departures(a,body);
  }
  const nextNear=body.action==="nearby"&&body.country==="DE";
  // Start local bus lookup in parallel; only within its verified Bavarian footprint.
  const ruralPromise=nextNear&&body.mode!=="train"&&body.mode!=="rail"&&body.mode!=="sbahn"&&body.mode!=="metro"&&body.mode!=="subway"&&isGermanRuralArea(body)
     ?germanRuralBusStops(a,body):Promise.resolve([] as AnyObject[]);
+ const pilotPromise=nextNear&&body.mode!=="train"&&body.mode!=="rail"&&body.mode!=="sbahn"&&
+    body.mode!=="metro"&&body.mode!=="subway"&&isGermanRegionalPilotArea(body)
+    ?germanRegionalPilotBusStops(a,body):Promise.resolve([] as AnyObject[]);
  const providers=nextNear
    ?["transit-schedule-next-expanded","transit-schedule"]
    :["transit-schedule"];
@@ -393,11 +452,13 @@ async function invokeExisting(a:{origin:string,key:string,jwt:string},body:AnyOb
      const result={ok:res.ok,status:res.status,body:obj(parsed)};
      if(res.status<500||i===providers.length-1){
        if(nextNear){
-         const rural=await ruralPromise;
-         if(rural.length){
-           return {ok:true,status:200,body:includeVerifiedGermanRuralStops(
-             result.ok&&result.body.ok===true?result.body:{ok:true,country:"DE",stops:[]},
-             rural,bounded(body.limit,30,1,40))};
+         const [rural,pilot]=await Promise.all([ruralPromise,pilotPromise]);
+         if(rural.length||pilot.length){
+           const base=result.ok&&result.body.ok===true?result.body:{ok:true,country:"DE",stops:[]};
+           const limit=bounded(body.limit,30,1,40);
+           const ruralMerged=includeVerifiedGermanRuralStops(base,rural,limit);
+           return {ok:true,status:200,
+             body:includeVerifiedGermanRegionalStops(ruralMerged,pilot,limit)};
          }
        }
        return result;
