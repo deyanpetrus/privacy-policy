@@ -1,0 +1,74 @@
+name: LifeDashPro NEXT - MK static transit catalog safety checks
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/discovery/mk_local_static_route_catalog_20261115.sql'
+      - 'lifedashpro/transit/discovery/mk_rail_catalog_service_rpc_20261115.sql'
+      - 'lifedashpro/transit/discovery/edge/transit-mk-cached-next/index.ts'
+      - '.github/workflows/lifedashpro-next-mk-cached-catalog-verify.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Isolated pinned TypeScript parser
+        run: npm install --prefix "$RUNNER_TEMP/mk-static-ts" --no-package-lock --ignore-scripts --no-audit --no-fund 'typescript@5.9.3'
+      - name: Check no fabricated live/timetables, security, source format
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('node:fs'),vm=require('node:vm');
+          const ts=require(process.env.RUNNER_TEMP+'/mk-static-ts/node_modules/typescript');
+          const edge=fs.readFileSync('lifedashpro/transit/discovery/edge/transit-mk-cached-next/index.ts','utf8');
+          const sql=fs.readFileSync('lifedashpro/transit/discovery/mk_local_static_route_catalog_20261115.sql','utf8');
+          const railsql=fs.readFileSync('lifedashpro/transit/discovery/mk_rail_catalog_service_rpc_20261115.sql','utf8');
+          for(const key of ['Signed-in account required','consume_user_rate_limit','transit_mk_static_route_catalog',
+          'transit_mk_rail_route_catalog','LDP_DEDICATED_TRANSIT_SERVICE_ROLE_KEY','NOT LIVE',
+          'has_verified_current_departures']){if(!edge.includes(key))throw Error('Missing required safety invariant '+key);}
+          for(const key of ['ENABLE ROW LEVEL SECURITY','REVOKE ALL','GRANT SELECT','SECURITY INVOKER',
+            'historic_unverified','has_verified_current_departures=false','ON CONFLICT (route_key) DO NOTHING']){
+              if(!sql.includes(key))throw Error('Missing private schema guard '+key);
+          }
+          for(const key of ['SECURITY INVOKER','REVOKE ALL','service_verified_until','TIMETABLE_NEEDS_REVERIFICATION']){
+            if(!railsql.includes(key))throw Error('Missing rail source validity guard '+key);
+          }
+          if(edge.includes('quality:"live"')||sql.includes('verified_scheduled\\',')||
+             edge.includes('SUPABASE_SERVICE_ROLE_KEY="'))
+            throw Error('Unsafe live claims or credential literal');
+          const transpiled=ts.transpileModule(edge,{fileName:'index.ts',reportDiagnostics:true,
+            compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.None}});
+          if(transpiled.diagnostics?.length)throw Error(transpiled.diagnostics
+            .map(x=>ts.flattenDiagnosticMessageText(x.messageText,' ')).join('\n'));
+          const env={
+           Deno:{env:{get:()=>''},serve:handler=>env.handler=handler},
+           fetch:()=>{throw Error('NO_NETWORK_ALLOWED')},Response,Request,URL,AbortSignal,console
+          };
+          vm.createContext(env);
+          vm.runInContext(transpiled.outputText,env,{timeout:5000});
+          if(typeof env.handler!=='function')throw Error('Edge handler missing');
+          Promise.all([
+           env.handler(new Request('https://localhost/',{method:'GET'})).then(async res=>{
+             if(res.status!==405)throw Error('GET must not be accepted');
+           }),
+           env.handler(new Request('https://localhost/',{method:'POST',
+             headers:{'content-type':'application/json'},body:JSON.stringify({action:'routes',country:'MK'})}))
+             .then(async res=>{if(res.status!==401)throw Error('No anonymous access');})
+          ]).then(()=>console.log('MK_STATIC_CACHE_SCHEMA_EDGE_SECURITY_PASS')).catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - name: Scope
+        if: always()
+        run: |
+          echo "### Macedonian static transit source inventory — NEXT only" >> "$GITHUB_STEP_SUMMARY"
+          echo "- 14 verified public Štip route names, 2 historic Strumica examples (not confirmed current)." >> "$GITHUB_STEP_SUMMARY"
+          echo "- 5 existing Macedonian rail routes preserved without replacing timetables." >> "$GITHUB_STEP_SUMMARY"
+          echo "- No GPS coordinates invented, no public service role secrets, no assumed realtime." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Android APK integration and true scheduled departures from validated sources are NOT yet complete." >> "$GITHUB_STEP_SUMMARY"
