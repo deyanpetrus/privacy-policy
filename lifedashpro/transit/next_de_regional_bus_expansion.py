@@ -23,7 +23,7 @@ TIMEZONE="Europe/Berlin"
 CENTERS={
     "Bremen":(53.0793,8.8017),
     "Pfaffenhofen an der Ilm":(48.5317,11.505),
-    "Pfaffenhofen an der Zaber":(49.064,9.051),
+    "Pfaffenhofen an der Zaber":(49.067,8.967),
 }
 # Only a local spatial subset; no nationwide stop/trip rows in Supabase.
 RADIUS_KM=8
@@ -209,10 +209,9 @@ def import_data(stops,departures,stats):
                 meta=cur.fetchone()
                 if not meta or meta[0] not in ("a","b"):fail("EXPANSION_META_INVALID")
                 old_slot,loaded,expires=meta
-                if (loaded and expires and loaded>datetime.now(loaded.tzinfo)-timedelta(hours=12)
-                    and expires>datetime.now(expires.tzinfo)+timedelta(hours=12)):
-                    print("DE_REGIONAL_PILOT_FRESH_SKIP",flush=True)
-                    return
+                # Always revalidate the next rolling timetable and current approved centers.
+                # In particular, the first Zaber probe used an erroneous Brackenheim center.
+                # The importer atomically replaces the inactive slot only after verification.
                 inactive="b" if old_slot=="a" else "a"
                 s_table="transit_next.de_regional_bus_stops_"+inactive
                 d_table="transit_next.de_regional_bus_departures_"+inactive
