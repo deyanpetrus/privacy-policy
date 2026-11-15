@@ -1,0 +1,88 @@
+name: LifeDashPro NEXT - Germany regional GTFS bus pilot (Bremen and Pfaffenhofen)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/next_de_regional_bus_expansion.py'
+      - '.github/workflows/lifedashpro-next-de-regional-bus-expansion.yml'
+  schedule:
+    - cron: '23 4 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Read-only plan or authorized atomic A/B refresh
+        type: choice
+        options: [plan, refresh]
+        default: plan
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: lifedashpro-dedicated-transit-import
+  cancel-in-progress: false
+jobs:
+  german_expansion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    env:
+      LDP_DEDICATED_TRANSIT_DB_URL: ${{ secrets.LDP_DEDICATED_TRANSIT_DB_URL }}
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install pinned PostgreSQL driver
+        run: python -m pip install --disable-pip-version-check 'psycopg[binary]==3.2.10'
+      - name: Strict NEXT-only source and quotas
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile lifedashpro/transit/next_de_regional_bus_expansion.py
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('lifedashpro/transit/next_de_regional_bus_expansion.py').read_text()
+          for required in ('verify_target(dsn)','gnqtngtuzbxohgwgvmpb','Bremen',
+                           'Pfaffenhofen an der Ilm','Pfaffenhofen an der Zaber',
+                           'de_regional_bus_stops_','de_regional_bus_departures_',
+                           'DE_REGIONAL_PILOT_COMMITTED','DE_REGIONAL_PILOT_SOURCE_VERIFIED',
+                           'PRE_DB_CAP=310*1048576','POST_DB_CAP=340*1048576',
+                           'pg_try_advisory_xact_lock(820617,20261017)'):
+            assert required in s,required
+          for forbidden in ('transit_data.', 'djbxhyhqefylyqqlifan',
+                            'transit_next.bus_meta', 'truncate table public.',
+                            'insert into public.','lifedashpro.app'):
+            assert forbidden not in s,forbidden
+          print('NEXT_GTFS_REGIONAL_PILOT_STATIC_GUARDS_PASS')
+          PY
+      - name: Select run mode
+        id: choose
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          MODE: ${{ inputs.mode }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "workflow_dispatch" && "$MODE" == "plan" ]]; then
+            echo "mode=plan" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=refresh" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Stream official GTFS and validate 3 priority areas before atomic private import
+        shell: bash
+        run: |
+          set -euo pipefail
+          python lifedashpro/transit/next_de_regional_bus_expansion.py \
+            --mode '${{ steps.choose.outputs.mode }}' \
+            --confirm-project-ref gnqtngtuzbxohgwgvmpb
+      - name: Document isolation and licensing
+        if: always()
+        shell: bash
+        run: |
+          echo "## Germany regional bus pilot — NEXT only" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Official GTFS.de NV, CC BY 4.0 (DELFI e.V. + OSM attribution)." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Bremen, Pfaffenhofen an der Ilm, Pfaffenhofen an der Zaber." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Never overwrites existing Kelheim H3, German core or rail." >> "$GITHUB_STEP_SUMMARY"
+          echo "- 2-day current schedule, strictly validated service, capped source archive and DB budgets." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Updates only the dedicated private de_regional_bus A/B slot, atomically, or fails closed." >> "$GITHUB_STEP_SUMMARY"
+          echo "- The original Android app, production Supabase and Play rollout are untouched." >> "$GITHUB_STEP_SUMMARY"
