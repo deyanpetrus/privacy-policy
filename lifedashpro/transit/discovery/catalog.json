@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "as_of": "2026-11-14",
+  "as_of": "2026-11-15",
   "purpose": "Source discovery and health-only; NOT an instruction to bulk import feeds or alter production Transit.",
   "rules": {
     "default_import": false,
@@ -300,6 +300,90 @@
       "catalog_url": "https://mobilitydatabase.org/feeds/gtfs/mdb-2377",
       "probe_url": "https://jbb.ghsq.de/gtfs/me-zpcg.gtfs.zip",
       "notes": "Community GTFS from MobilityData catalog; must check validity and license."
+    },
+    {
+      "id": "ch-ski-2026",
+      "name": "Switzerland SKI nationwide trains buses and trams",
+      "regions": "CH",
+      "kind": "gtfs",
+      "policy": "source_only_hold_free_tier",
+      "license": "Review SKI timetable terms and attribution before import",
+      "refresh_hours": 48,
+      "catalog_url": "https://data.opentransportdata.swiss/en/dataset/timetable-2026-gtfs2020",
+      "probe_url": "https://data.opentransportdata.swiss/en/dataset/timetable-2026-gtfs2020",
+      "notes": "Official national static GTFS; this probe checks catalog reachability, NOT actual schedule import."
+    },
+    {
+      "id": "si-dujpp-nap",
+      "name": "Slovenia DUJPP IJPP national public transport",
+      "regions": "SI",
+      "kind": "gtfs",
+      "policy": "source_only_hold_free_tier",
+      "license": "Review DUJPP GTFS redistribution and attribution before import",
+      "refresh_hours": 48,
+      "catalog_url": "https://nap.si/sl/datasets",
+      "probe_url": "https://nap.si/sl/datasets",
+      "notes": "Official Slovenia NAP listing; URL is a catalog page, not a ZIP. Bus/rail contents and feed link need verification."
+    },
+    {
+      "id": "fr-sncf-rail",
+      "name": "France SNCF TGV Intercites TER scheduled rail",
+      "regions": "FR",
+      "kind": "gtfs",
+      "policy": "candidate_small_pilot_after_license_calendar_validation",
+      "license": "Verify SNCF open-data usage terms and attribution",
+      "refresh_hours": 24,
+      "catalog_url": "https://transport.data.gouv.fr/datasets/horaires-sncf",
+      "probe_url": "https://eu.ftp.opendatasoft.com/sncf/plandata/Export_OpenData_SNCF_GTFS_NewTripId.zip",
+      "notes": "Official multi-region GTFS, about 5 MB ZIP in Nov 2026; includes some substitution buses; no imports or LIVE claims."
+    },
+    {
+      "id": "it-trentino-gtfs",
+      "name": "Italy Trentino Trasporti urban buses",
+      "regions": "IT Trento",
+      "kind": "gtfs",
+      "policy": "candidate_small_pilot_after_license_calendar_validation",
+      "license": "CC BY attribution: confirm current 2.5/4.0 terms before import",
+      "refresh_hours": 48,
+      "catalog_url": "https://www.trentinotrasporti.it/it/opendata-it",
+      "probe_url": "https://www.trentinotrasporti.it/opendata/google_transit_urbano_tte.zip",
+      "notes": "Regional bus feed only; not an Italy-wide train or bus timetable."
+    },
+    {
+      "id": "se-trafiklab-national",
+      "name": "Sweden Trafiklab GTFS Sverige 2 nationwide",
+      "regions": "SE",
+      "kind": "gtfs",
+      "policy": "metadata_only_api_key_required",
+      "license": "Trafiklab registration, API key and reuse terms required",
+      "refresh_hours": 72,
+      "catalog_url": "https://www.trafiklab.se/api/gtfs-datasets/gtfs-sverige-2/",
+      "probe_url": "https://api.resrobot.se/samtrafiken/gtfs/feed_info.txt",
+      "notes": "Public feed_info metadata probe only. Actual national GTFS ZIP requires a Trafiklab API key and has quota limits."
+    },
+    {
+      "id": "no-entur-national",
+      "name": "Norway Entur nationwide basic GTFS",
+      "regions": "NO",
+      "kind": "gtfs",
+      "policy": "source_only_hold_free_tier",
+      "license": "NLOD attribution; follow Entur download frequency guidance",
+      "refresh_hours": 48,
+      "catalog_url": "https://developer.entur.no/open-data/timetable",
+      "probe_url": "https://storage.googleapis.com/marduk-production/outbound/gtfs/rb_norway-aggregated-gtfs.zip",
+      "notes": "Official nationwide scheduled feed; NeTEx holds additional detail; no nationwide ZIP import to Free Supabase."
+    },
+    {
+      "id": "nl-ndov-gtfs",
+      "name": "Netherlands NDOV openOV nationwide GTFS",
+      "regions": "NL",
+      "kind": "gtfs",
+      "policy": "source_only_hold_free_tier",
+      "license": "Review upstream NDOV/openOV redistribution and User-Agent requirements",
+      "refresh_hours": 48,
+      "catalog_url": "https://www.opendataindex.nl/en/bron/ndov-ov-data",
+      "probe_url": "https://gtfs.ovapi.nl/nl/gtfs-nl.zip",
+      "notes": "Whole-country GTFS can exceed 200 MB ZIP; do not import full archive on Supabase Free."
     }
   ],
   "reference_links": [
