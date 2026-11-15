@@ -82,13 +82,14 @@ Deno.serve(async(req:Request)=>{
     const destination=normalized(body?.destination);
     if(origin.length>80||destination.length>80)throw new Fault(400,"Search text too long");
     const klass=String(body?.serviceClass||"");
-    if(!["","local_bus","intercity_bus"].includes(klass))throw new Fault(400,"Invalid service class");
+    if(!["","local_bus","intercity_bus","rail"].includes(klass))throw new Fault(400,"Invalid service class");
     const [refs,rail,catalog]=await Promise.all([
-      dedicatedRpc("transit_mk_published_departure_reference_search",
-       {p_origin:origin||null,p_destination:destination||null,p_city:city,p_service_class:klass||null,
-        p_limit:limit,p_offset:offset}),
-      (!klass||body?.includeRail===true)?dedicatedRpc("transit_mk_rail_route_catalog",{}):Promise.resolve([]),
-      dedicatedRpc("transit_mk_static_route_catalog",{p_city:city,p_limit:100,p_offset:0})
+      klass==="rail"?Promise.resolve([]):
+        dedicatedRpc("transit_mk_published_departure_reference_search",
+         {p_origin:origin||null,p_destination:destination||null,p_city:city,p_service_class:klass||null,
+          p_limit:limit,p_offset:offset}),
+      (!klass||klass==="rail"||body?.includeRail===true)?dedicatedRpc("transit_mk_rail_route_catalog",{}):Promise.resolve([]),
+      klass==="rail"?Promise.resolve([]):dedicatedRpc("transit_mk_static_route_catalog",{p_city:city,p_limit:100,p_offset:0})
     ]);
     const total=refs.length?Number(refs[0].total_matches||0):null;
     return respond({ok:true,action,country:"MK",city,
