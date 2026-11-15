@@ -67,7 +67,7 @@ def swiss_url():
    if parsed.scheme=='https' and parsed.netloc=='data.opentransportdata.swiss' and '/download/' in parsed.path:
     urls.append(target)
   demand(bool(urls),'Swiss official HTML page has no usable ZIP download')
-  return sorted(set(urls),reverse=True)[0]
+  return max(set(urls),key=lambda u: re.search(r'gtfs_fp\d{4}_(\d{8})',u,re.IGNORECASE).group(1))
 
 def download(url,dest,max_bytes):
  request=urllib.request.Request(url,headers={'User-Agent':'LifeDashPro-NEXT-CountryCoverageAudit/1.0 (+https://mkdigital.app/)','Accept':'application/zip'})
