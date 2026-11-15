@@ -47,7 +47,7 @@ def validate_url(value):
 def load_catalog():
     data=json.loads(CATALOG.read_text(encoding="utf-8"))
     rows=data["sources"]
-    if data["schema_version"]!=1 or len(rows)!=24 or len(data["reference_links"])!=5:
+    if data["schema_version"]!=1 or len(rows) not in (24,31) or len(data["reference_links"])!=5:
         raise RuntimeError("UNEXPECTED_REGISTRY_SHAPE")
     ids=set()
     for r in rows:
