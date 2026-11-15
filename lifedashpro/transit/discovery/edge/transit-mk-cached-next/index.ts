@@ -70,7 +70,7 @@ Deno.serve(async(req:Request)=>{
       {p_stop_id:stopId,p_date:date,p_limit:100});
     const rows=dep.filter(x=>String(x.verified_until||"")>=date).map(x=>({
       ...x,mode:"train",quality:"SCHEDULED · CACHED · NOT LIVE",live:false,
-      canUseForJourney:true,sourceCaveat:"Community GTFS timetable; verify with latest MŽI and station before travel."}));
+      canUseForJourney:false,sourceCaveat:"Community GTFS reference; latest MŽI timetable (2026-11-09) must be reconciled before automatic Journey use."}));
     return respond({ok:true,action,country:"MK",stopId,serviceDate:date,
       source:"MK Rail community GTFS (service-verified reference window)",
       quality:"SCHEDULED · CACHED · NOT LIVE",
