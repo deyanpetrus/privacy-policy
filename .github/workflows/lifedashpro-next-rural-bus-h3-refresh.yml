@@ -1,0 +1,90 @@
+name: LifeDashPro NEXT - Germany Rural Bus H3 official GTFS refresh
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/next_rural_bus_h3_refresh.py'
+      - '.github/workflows/lifedashpro-next-rural-bus-h3-refresh.yml'
+  schedule:
+    - cron: '41 3 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'plan: inspect GTFS only; refresh: validated isolated A/B cache update'
+        required: true
+        type: choice
+        options: [plan, refresh]
+        default: plan
+permissions:
+  contents: read
+concurrency:
+  group: lifedashpro-dedicated-transit-import
+  cancel-in-progress: false
+jobs:
+  german_local_buses:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    env:
+      LDP_DEDICATED_TRANSIT_DB_URL: ${{ secrets.LDP_DEDICATED_TRANSIT_DB_URL }}
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install pinned PostgreSQL dependency
+        run: python -m pip install --disable-pip-version-check 'psycopg[binary]==3.2.10'
+      - name: Fail closed if importer or protected project guard changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile lifedashpro/transit/next_rural_bus_h3_refresh.py
+          python - <<'PY'
+          from pathlib import Path
+          x=Path('lifedashpro/transit/next_rural_bus_h3_refresh.py').read_text()
+          for token in (
+              'verify_target(dsn)','gnqtngtuzbxohgwgvmpb',
+              'https://download.gtfs.de/germany/nv_free/latest.zip',
+              'MAX_PAYLOAD_BYTES','PRE_DB_CAP','POST_DB_CAP',
+              'pg_try_advisory_xact_lock(820617,20261017)',
+              'BUS_H3_SOURCE_VERIFIED','BUS_H3_COMMITTED',
+              'transit_next.bus_meta','bus_stops_','bus_departures_',
+              'NO_CONFIRMED_NEUSTADT_LOCAL_BUS_SERVICE',
+              'transit_next.feed_registry'):
+              assert token in x,token
+          for forbidden in ('transit_data.', 'djbxhyhqefylyqqlifan',
+                            'truncate table public.', 'lifedashpro.app'):
+              assert forbidden not in x,forbidden
+          print('NEXT_BUS_H3_STATIC_SAFETY_PASS')
+          PY
+      - name: Select authorized plan or refresh
+        id: decision
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_MODE: ${{ inputs.mode }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "workflow_dispatch" && "$INPUT_MODE" == "plan" ]]; then
+            echo "mode=plan" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=refresh" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Extract current Bavarian local buses and atomically refresh dedicated cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          python lifedashpro/transit/next_rural_bus_h3_refresh.py \
+            --mode '${{ steps.decision.outputs.mode }}' \
+            --confirm-project-ref gnqtngtuzbxohgwgvmpb
+      - name: Document precise release and cache scope
+        if: always()
+        shell: bash
+        run: |
+          echo "## Germany local/rural bus H3 — NEXT only" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Source: GTFS.de official national NV free GTFS ZIP (CC BY 4.0 / DELFI)." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Region: Neustadt a.d. Donau, Bad Goegging, Abensberg, Kelheim, Riedenburg, Altmannstein (13km)." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Real scheduled trips only; no simulated lines or KEXI timetables." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Bound by measured validity, coverage, 12MiB JSON budget, 325/370MiB DB caps." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Atomic A/B slot flip; old cache remains if download, validation or SQL fails." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Original Android project, main Supabase, and transit_data remain untouched." >> "$GITHUB_STEP_SUMMARY"
