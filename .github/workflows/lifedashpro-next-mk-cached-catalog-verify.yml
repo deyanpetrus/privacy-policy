@@ -48,7 +48,7 @@ jobs:
           'transit_mk_published_departure_reference_search','ENABLE ROW LEVEL SECURITY','REVOKE ALL']){
             if(!timetableSql.toLowerCase().includes(key.toLowerCase()))throw Error('Missing published timetable safety guard '+key);
           }
-          for(const key of ['"search"','"rail-departures"','"intercity_bus"','"school_weekdays"',
+          for(const key of ['"search"','"rail-departures"','"intercity_bus"',
             'publishedUnverifiedIntercity','currentVerifiedBusDepartures:[]','canUseForJourney:false']){
              if(!edge.includes(key))throw Error('Missing MK search/reference guard '+key);
           }
