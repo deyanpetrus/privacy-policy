@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 SOURCES={
  'CH':{'name':'Switzerland SKI Swiss national timetable','license':'Official SKI usage terms: needs commercial/redistribution review',
     'portal':'https://data.opentransportdata.swiss/en/dataset/timetable-2026-gtfs2020',
-    'dynamic':'ckan','limit_bytes':255*1048576,
+    'dynamic':'ckan','limit_bytes':420*1048576,
     'centers':{'Zürich':(47.3769,8.5417),'Bern':(46.9480,7.4474),'Geneva':(46.2044,6.1432),'Basel':(47.5596,7.5886),'Lausanne':(46.5197,6.6323)}},
  'SI':{'name':'Slovenia DUJPP IJPP national GTFS','license':'CC BY-SA 4.0 per official NAP; review share-alike compliance before serving',
     'portal':'https://www.nap.si/sl/datasets_details?id=8db7cc40-3770-d834-5e15-81a0a7763f58',
@@ -73,7 +73,7 @@ def download(url,dest,max_bytes):
  request=urllib.request.Request(url,headers={'User-Agent':'LifeDashPro-NEXT-CountryCoverageAudit/1.0 (+https://mkdigital.app/)','Accept':'application/zip'})
  with urllib.request.urlopen(request,timeout=90) as r,open(dest,'wb') as f:
   clen=int(r.headers.get('content-length','0') or 0)
-  demand(clen<=max_bytes,'ZIP exceeds per-country compressed cap (header)')
+  demand(clen<=max_bytes,'ZIP exceeds per-country compressed cap (header) size='+str(clen)+' allowed='+str(max_bytes))
   copied=0
   while True:
    part=r.read(1048576)
