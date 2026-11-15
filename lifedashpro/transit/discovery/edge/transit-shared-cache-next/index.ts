@@ -8,7 +8,7 @@ const CORS={
  "access-control-allow-methods":"POST,OPTIONS"
 };
 const DEDICATED_RPC="https://gnqtngtuzbxohgwgvmpb.supabase.co/rest/v1/rpc/";
-const CACHE_VERSION="ldp-transit-shared-v2-de-expanded";
+const CACHE_VERSION="ldp-transit-shared-v3-de-country-api-h3";
 const response=(data:unknown,status=200)=>Response.json(data,{status,headers:{...CORS,"cache-control":"private, no-store"}});
 class Fault extends Error{code:number;constructor(code:number,msg:string){super(msg);this.code=code}}
 function publicKey():string {
@@ -148,6 +148,9 @@ function ttlSeconds(action:string,data:AnyObject){
  if(action==="nearby"){
    // Only our owned de-national GTFS subset gets a full 24 hours; external source rights/freshness vary.
    const own=data.providerId==="de-national"||String(data.providerId||"").startsWith("de-gtfs");
+   // Partial 1-7 stop extracts are NOT complete local coverage: retry APIs frequently.
+   const n=Array.isArray(data.stops)?data.stops.length:0;
+   if(own&&n<8)return {ttl:120,stale:0};
    return {ttl:own?86400:3600,stale:own?7200:0};
  }
  if(action==="trip")return {ttl:data.providerId==="de-national"?21600:1200,stale:0};
@@ -158,10 +161,88 @@ function ttlSeconds(action:string,data:AnyObject){
  }
  return {ttl:0,stale:0};
 }
+
+/** NEXT-only: the compact rural bus cache covers a bounded Bavarian region.
+ *  Outside it, continue countrywide Transitland/DB API fallback without calling H3.
+ *  A sample of 2 national rail stops MUST NOT suppress real local buses.
+ */
+function isGermanRuralArea(r:AnyObject):boolean{
+ const lat=Number(r.lat),lon=Number(r.lon);
+ return r.country==="DE"&&Number.isFinite(lat)&&Number.isFinite(lon)&&
+   lat>=48.62&&lat<=49.15&&lon>=11.42&&lon<=12.08;
+}
+async function germanRuralBusStops(a:{origin:string,key:string,jwt:string},r:AnyObject):Promise<AnyObject[]>{
+ if(!isGermanRuralArea(r))return [];
+ try{
+   const radius=bounded(r.radiusM,6000,500,12000);
+   const res=await fetch(a.origin+"/functions/v1/transit-de-bus-h3",{
+     method:"POST",
+     headers:{apikey:a.key,authorization:"Bearer "+a.jwt,"content-type":"application/json"},
+     body:JSON.stringify({action:"nearby",country:"DE",mode:"bus",
+       lat:r.lat,lon:r.lon,radiusM:radius}),
+     signal:AbortSignal.timeout(9000)
+   });
+   if(!res.ok)return [];
+   const data=await res.json().catch(()=>null);
+   if(data?.ok!==true||!Array.isArray(data.stops))return [];
+   const normalized:AnyObject[]=[];
+   for(const x of data.stops.slice(0,40)){
+     const id=str(x?.stop_id||x?.id,180),name=str(x?.name,220),
+       lat=Number(x?.lat),lon=Number(x?.lon),distanceM=Number(x?.distance_m??x?.distanceM);
+     if(!id||!name||!Number.isFinite(lat)||!Number.isFinite(lon)
+       ||!Number.isFinite(distanceM)||distanceM<0||distanceM>radius)continue;
+     normalized.push({id,name,lat,lon,distanceM,
+       lines:Array.isArray(x.lines)?x.lines.filter((v:unknown)=>typeof v==="string").slice(0,75):[],
+       platform:str(x.platform,60)||undefined,
+       mode:"bus",providerId:"de-bus-h3",feedSource:"de-bus-h3",
+       provider:"GTFS.de rural bus subset",sourceKind:"official-gtfs",quality:"scheduled"});
+   }
+   return normalized;
+ }catch(_ignored){return [];}
+}
+function mergedGermanStops(base:AnyObject,rural:AnyObject[],limit:number):AnyObject[]{
+ const prev=Array.isArray(base.stops)?base.stops:[];
+ const out:AnyObject[]=[];
+ for(const candidate of [...rural,...prev]){
+   const x=obj(candidate),name=str(x.name,220),lat=Number(x.lat),lon=Number(x.lon);
+   if(!name||!Number.isFinite(lat)||!Number.isFinite(lon))continue;
+   const near=out.findIndex(item=>{
+     const dlat=Math.abs(Number(item.lat)-lat),dlon=Math.abs(Number(item.lon)-lon);
+     return str(item.name,220).toLocaleLowerCase()===name.toLocaleLowerCase() &&
+       dlat<0.00065&&dlon<0.0008;
+   });
+   if(near>=0){
+     const current=out[near];
+     current.lines=Array.from(new Set([...(Array.isArray(current.lines)?current.lines:[]),
+       ...(Array.isArray(x.lines)?x.lines:[])]));
+     // Preserve our dedicated GTFS stop id when known so its timetable endpoint remains routable.
+     if(x.providerId==="de-bus-h3")out[near]={...current,...x,
+       lines:current.lines};
+   }else out.push({...x});
+ }
+ const dist=(x:AnyObject)=>Number.isFinite(Number(x.distanceM))?Number(x.distanceM):999999;
+ out.sort((a,b)=>dist(a)-dist(b));
+ return out.slice(0,limit);
+}
+function includeVerifiedGermanRuralStops(base:AnyObject,rural:AnyObject[],limit:number):AnyObject{
+ if(!rural.length)return base;
+ const original=Array.isArray(base.stops)?base.stops:[];
+ const merged=mergedGermanStops(base,rural,limit);
+ const mixed=original.length>0;
+ return {...base,ok:true,country:"DE",stops:merged,providerId:mixed?"de-mixed":"de-bus-h3",
+   provider:mixed?str(base.provider,110)+" + GTFS.de rural buses":"GTFS.de rural bus subset",
+   quality:"scheduled",
+   sourceUrl:"https://gtfs.de/en/feeds/de_nv/",
+   coverageHint:"local-scheduled-buses-combined-with-countrywide-api-fallback"};
+}
+
 async function invokeExisting(a:{origin:string,key:string,jwt:string},body:AnyObject){
  // NEXT-only German nearby query: the national subset can be sparse and MUST
  // NOT prevent Transitland / DB fallback. Preserve legacy as fail-safe.
  const nextNear=body.action==="nearby"&&body.country==="DE";
+ // Start local bus lookup in parallel; only within its verified Bavarian footprint.
+ const ruralPromise=nextNear&&isGermanRuralArea(body)
+    ?germanRuralBusStops(a,body):Promise.resolve([] as AnyObject[]);
  const providers=nextNear
    ?["transit-schedule-next-expanded","transit-schedule"]
    :["transit-schedule"];
@@ -175,7 +256,17 @@ async function invokeExisting(a:{origin:string,key:string,jwt:string},body:AnyOb
      if(raw.length>1_400_000)throw new Fault(502,"Transit response exceeds safe limit");
      const parsed=JSON.parse(raw);
      const result={ok:res.ok,status:res.status,body:obj(parsed)};
-     if(res.status<500||i===providers.length-1)return result;
+     if(res.status<500||i===providers.length-1){
+       if(nextNear){
+         const rural=await ruralPromise;
+         if(rural.length){
+           return {ok:true,status:200,body:includeVerifiedGermanRuralStops(
+             result.ok&&result.body.ok===true?result.body:{ok:true,country:"DE",stops:[]},
+             rural,bounded(body.limit,30,1,40))};
+         }
+       }
+       return result;
+     }
    }catch(e){
      if(i===providers.length-1)throw e;
    }
