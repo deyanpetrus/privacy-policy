@@ -41,15 +41,34 @@ def swiss_url():
  year=datetime.now(ZoneInfo('Europe/Zurich')).year
  if datetime.now(ZoneInfo('Europe/Zurich')).month==12 and datetime.now(ZoneInfo('Europe/Zurich')).day>=14:year+=1
  api='https://data.opentransportdata.swiss/api/3/action/package_show?id=timetable-'+str(year)+'-gtfs2020'
- with urllib.request.urlopen(urllib.request.Request(api,headers={'User-Agent':'LifeDashPro-NEXT-CountryCoverageAudit/1.0','Accept':'application/json'}),timeout=30) as f:
-  j=json.load(f)
- demand(j.get('success') is True,'Swiss CKAN package listing invalid')
- choices=[r for r in j['result'].get('resources',[]) if str(r.get('name','')).lower().endswith('.zip') and str(r.get('format','ZIP')).upper()=='ZIP']
- demand(bool(choices),'Swiss CKAN timetable ZIP missing')
- choices.sort(key=lambda r: str(r.get('name','')),reverse=True)
- url=choices[0].get('url','')
- demand(url.startswith('https://data.opentransportdata.swiss/') and '/download/' in url,'Swiss CKAN resource URL outside official host')
- return url
+ try:
+  with urllib.request.urlopen(urllib.request.Request(api,headers={'User-Agent':'LifeDashPro-NEXT-CountryCoverageAudit/1.0','Accept':'application/json'}),timeout=30) as f:
+   j=json.load(f)
+  demand(j.get('success') is True,'Swiss CKAN API returned an invalid listing')
+  choices=[r for r in j['result'].get('resources',[]) if str(r.get('name','')).lower().endswith('.zip') and str(r.get('format','ZIP')).upper()=='ZIP']
+  choices.sort(key=lambda r:str(r.get('name','')),reverse=True)
+  demand(bool(choices),'Swiss CKAN ZIP resources empty')
+  url=choices[0].get('url','')
+  demand(url.startswith('https://data.opentransportdata.swiss/') and '/download/' in url,'Swiss CKAN download URL invalid')
+  return url
+ except (OSError,ValueError,RuntimeError):
+  # CKAN's JSON endpoint is not always public; parse the OFFICIAL dataset's
+  # download links instead. No third-party mirror and no credential bypass.
+  import re,html
+  page='https://data.opentransportdata.swiss/en/dataset/timetable-'+str(year)+'-gtfs2020'
+  req=urllib.request.Request(page,headers={'User-Agent':'LifeDashPro-NEXT-CountryCoverageAudit/1.0 (+https://mkdigital.app/)','Accept':'text/html'})
+  with urllib.request.urlopen(req,timeout=35) as f:
+   body=f.read(4_000_000).decode('utf-8','replace')
+  links=re.findall(r"""(?:href|data-url)\s*=\s*["']([^"']+gtfs_fp\d{4}_\d{8}\.zip[^"']*)["']""",body,re.IGNORECASE)
+  urls=[]
+  for link in links:
+   target=urllib.parse.urljoin(page,html.unescape(link))
+   parsed=urllib.parse.urlsplit(target)
+   if parsed.scheme=='https' and parsed.netloc=='data.opentransportdata.swiss' and '/download/' in parsed.path:
+    urls.append(target)
+  demand(bool(urls),'Swiss official HTML page has no usable ZIP download')
+  return sorted(set(urls),reverse=True)[0]
+
 def download(url,dest,max_bytes):
  request=urllib.request.Request(url,headers={'User-Agent':'LifeDashPro-NEXT-CountryCoverageAudit/1.0 (+https://mkdigital.app/)','Accept':'application/zip'})
  with urllib.request.urlopen(request,timeout=90) as r,open(dest,'wb') as f:
@@ -135,7 +154,7 @@ def main():
   report['audit_status']='validated' if report['schedule_usable_today'] else 'stale_timetable'
  except Exception as exc:
   report['audit_status']='source_error'
-  report['safe_error']=str(exc)[:250] if isinstance(exc,RuntimeError) else type(exc).__name__
+  report['safe_error']=str(exc)[:250] if isinstance(exc,RuntimeError) else (type(exc).__name__+' '+str(getattr(exc,'code',''))).strip()
  (d/f'{country}_official_gtfs_source_audit.json').write_text(json.dumps(report,indent=2,ensure_ascii=False)+'\n',encoding='utf-8')
  print('EUROPE_COUNTRY_GTFS_AUDIT '+json.dumps(report,ensure_ascii=False),flush=True)
  # Treat a stale/unavailable feed as an audit result; do not quietly promote it to runtime.
