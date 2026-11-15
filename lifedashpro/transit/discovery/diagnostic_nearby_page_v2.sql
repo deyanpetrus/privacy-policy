@@ -39,14 +39,14 @@ all_sources as (
 ),
 bounded as (
  select s.*,c.rad,c.n,c.sk,
- 12742000::float8*pg_catalog.asin(pg_catalog.sqrt(pg_catalog.least(1.0::float8,
+ 12742000::float8*pg_catalog.asin(pg_catalog.sqrt(least(1.0::float8,
  pg_catalog.power(pg_catalog.sin(pg_catalog.radians(s.la-c.alat)/2),2.0::float8)
  +pg_catalog.cos(pg_catalog.radians(c.alat))*pg_catalog.cos(pg_catalog.radians(s.la))
  *pg_catalog.power(pg_catalog.sin(pg_catalog.radians(s.lo-c.alon)/2),2.0::float8)))) dist
  from all_sources s cross join cfg c
  where s.la between c.alat-c.rad/111320.0 and c.alat+c.rad/111320.0
- and s.lo between c.alon-c.rad/pg_catalog.greatest(1000.0,111320.0*pg_catalog.cos(pg_catalog.radians(c.alat)))
-          and c.alon+c.rad/pg_catalog.greatest(1000.0,111320.0*pg_catalog.cos(pg_catalog.radians(c.alat)))
+ and s.lo between c.alon-c.rad/greatest(1000.0,111320.0*pg_catalog.cos(pg_catalog.radians(c.alat)))
+          and c.alon+c.rad/greatest(1000.0,111320.0*pg_catalog.cos(pg_catalog.radians(c.alat)))
 ),
 eligible as (select *,count(*) over() as cnt from bounded where dist<=rad)
 select e.src,e.sid,e.nm,e.la,e.lo,pg_catalog.round(e.dist)::integer,
