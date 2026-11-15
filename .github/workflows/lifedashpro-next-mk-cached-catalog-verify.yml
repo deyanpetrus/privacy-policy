@@ -46,7 +46,7 @@ jobs:
           for(const key of ['mk_no_unverified_journeys','mk_school_guard','published_conditional','published_undated',
           'school_calendar_verified boolean not null default false','eligible_for_journey boolean not null default false',
           'transit_mk_published_departure_reference_search','ENABLE ROW LEVEL SECURITY','REVOKE ALL']){
-            if(!timetableSql.includes(key))throw Error('Missing published timetable safety guard '+key);
+            if(!timetableSql.toLowerCase().includes(key.toLowerCase()))throw Error('Missing published timetable safety guard '+key);
           }
           for(const key of ['"search"','"rail-departures"','"intercity_bus"','"school_weekdays"',
             'publishedUnverifiedIntercity','currentVerifiedBusDepartures:[]','canUseForJourney:false']){
