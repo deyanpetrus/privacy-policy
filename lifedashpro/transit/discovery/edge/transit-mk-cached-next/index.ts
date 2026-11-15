@@ -48,12 +48,58 @@ Deno.serve(async(req:Request)=>{
   await authenticate(req);
   const body=await req.json().catch(()=>null);
   const action=String(body?.action||"");
-  if(body?.country!=="MK"||!["routes","rail","overview"].includes(action))
+  if(body?.country!=="MK"||!["routes","rail","overview","search","rail-departures"].includes(action))
    throw new Fault(400,"Unsupported country/action");
-  const city=body?.city==null||body?.city===""?null:String(body.city);
+  const aliases:Record<string,string>={stip:"Штип",shtip:"Штип",shtipmk:"Штип",
+    strumica:"Струмица",skopje:"Скопје",bitola:"Битола",
+    gevgelija:"Гевгелија",sofia:"Софија",kumanovo:"Куманово",
+    veles:"Велес",ohrid:"Охрид",struga:"Струга",tetovo:"Тетово"};
+  const normalized=(x:unknown)=>{const v=String(x||"").trim();
+    return aliases[v.toLowerCase().replace(/[^a-z0-9]/g,"")]||v};
+  const city=body?.city==null||body?.city===""?null:normalized(body.city);
   if(city!==null&&!["Штип","Струмица"].includes(city))throw new Fault(400,"Unknown city");
   const limit=Math.min(100,Math.max(1,Math.floor(Number(body?.limit)||100)));
   const offset=Math.min(10000,Math.max(0,Math.floor(Number(body?.offset)||0)));
+  if(action==="rail-departures"){
+    const stopId=String(body?.stopId||"").trim();
+    const date=String(body?.serviceDate||"");
+    if(!/^[A-Za-z0-9_:-]{1,60}$/.test(stopId)||!/^(2026)-(11|12)-[0-3][0-9]$/.test(date)||
+      date>"2026-12-12"||date<"2026-11-15")
+      throw new Fault(400,"Only verified 2026-11-15 through 2026-12-12 MK rail reference dates are supported");
+    const dep=await dedicatedRpc("transit_next_mk_rail_stop_departures",
+      {p_stop_id:stopId,p_date:date,p_limit:100});
+    const rows=dep.filter(x=>String(x.verified_until||"")>=date).map(x=>({
+      ...x,mode:"train",quality:"SCHEDULED · CACHED · NOT LIVE",live:false,
+      canUseForJourney:true,sourceCaveat:"Community GTFS timetable; verify with latest MŽI and station before travel."}));
+    return respond({ok:true,action,country:"MK",stopId,serviceDate:date,
+      source:"MK Rail community GTFS (service-verified reference window)",
+      quality:"SCHEDULED · CACHED · NOT LIVE",
+      note:"Not realtime. Cancellations or last-minute changes cannot be confirmed.",
+      rows,returned:rows.length,generatedAt:new Date().toISOString()});
+  }
+  if(action==="search"){
+    const origin=normalized(body?.origin);
+    const destination=normalized(body?.destination);
+    if(origin.length>80||destination.length>80)throw new Fault(400,"Search text too long");
+    const klass=String(body?.serviceClass||"");
+    if(!["","local_bus","intercity_bus"].includes(klass))throw new Fault(400,"Invalid service class");
+    const [refs,rail]=await Promise.all([
+      dedicatedRpc("transit_mk_published_departure_reference_search",
+       {p_origin:origin||null,p_destination:destination||null,p_city:city,p_service_class:klass||null,
+        p_limit:limit,p_offset:offset}),
+      (!klass||body?.includeRail===true)?dedicatedRpc("transit_mk_rail_route_catalog",{}):Promise.resolve([])
+    ]);
+    const total=refs.length?Number(refs[0].total_matches||0):null;
+    return respond({ok:true,action,country:"MK",city,
+      dataQuality:"CACHED SOURCE REFERENCE · NOT LIVE",
+      currentVerifiedBusDepartures:[],
+      publishedConditionalLocal:refs.filter(x=>x.source_status==="published_conditional"),
+      publishedUnverifiedIntercity:refs.filter(x=>x.source_status==="published_undated"),
+      railRoutes:rail,returned:refs.length,totalMatches:total,
+      nextOffset:total!==null&&offset+refs.length<total?offset+refs.length:null,
+      note:"Bus times are published references, not date-verified journeys; never present as guaranteed upcoming service.",
+      generatedAt:new Date().toISOString()});
+  }
   if(action==="routes"){
    const routes=await dedicatedRpc("transit_mk_static_route_catalog",
      {p_city:city,p_limit:limit,p_offset:offset});
