@@ -1,0 +1,101 @@
+name: LifeDashPro NEXT - Unified Transit v4 static & contract tests
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/discovery/edge/transit-shared-cache-next/index.ts'
+      - 'lifedashpro/transit/discovery/shared_cache_quality_v2.sql'
+      - '.github/workflows/lifedashpro-next-unified-transit-v4-verify.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned isolated TypeScript transpiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ldp-transit-ts"
+          npm install --prefix "$RUNNER_TEMP/ldp-transit-ts" --no-package-lock --ignore-scripts --no-audit --no-fund 'typescript@5.9.3'
+      - name: Validate TS parsing and shared-cache behavior without secrets/network
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('node:fs'),vm=require('node:vm');
+          const ts=require(process.env.RUNNER_TEMP+'/ldp-transit-ts/node_modules/typescript');
+          const path='lifedashpro/transit/discovery/edge/transit-shared-cache-next/index.ts';
+          const src=fs.readFileSync(path,'utf8');
+          for(const k of ['ldp-transit-unified-v4-quality-geo-20261115',
+            'transit_shared_cache_store_quality_v2','h3ScheduledDepartures',
+            'transit-schedule-next-expanded','transit-de-bus-h3','QUALITY_OK']){
+            if(!src.includes(k))throw Error('Missing expected v4 contract '+k);
+          }
+          for(const bad of ['SUPABASE_SERVICE_ROLE_KEY"','SECURITY DEFINER','create table transit_area_cache']){
+            if(src.includes(bad))throw Error('Potentially insecure new gateway dependency '+bad);
+          }
+          const transpiled=ts.transpileModule(src,{fileName:'index.ts',reportDiagnostics:true,
+            compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.None}});
+          if(transpiled.diagnostics?.length){
+            for(const d of transpiled.diagnostics)console.error(ts.flattenDiagnosticMessageText(d.messageText,'\n'));
+            process.exit(1);
+          }
+          const env={Deno:{env:{get:()=>''},serve:(handler)=>{env.handler=handler}},
+            fetch:()=>Promise.reject(Error('NO_NETWORK_IN_STATIC_TEST')),TextEncoder,crypto:globalThis.crypto,
+            AbortSignal,URL,Intl,Date,Math,Number,Set,Map,Array,JSON,Response,
+            console};
+          const vmContext=vm.createContext(env);
+          vm.runInContext(transpiled.outputText+
+            '\nglobalThis.__test={cacheKeyRequest,chooseCanonical,reformStops,coverageScore,h3ScheduledDepartures,selectedMode};',
+            vmContext,{timeout:5000});
+          const x=env.__test;
+          function assert(c,m){if(!c)throw Error(m)}
+          let r={action:'nearby',country:'DE',lat:48.80603,lon:11.76603,
+            radiusM:3000,limit:40,mode:'all'};
+          const next={...r,lat:48.80604,lon:11.76604};
+          assert(x.cacheKeyRequest(r).lat===x.cacheKeyRequest(next).lat,'nearby geo bucket');
+          assert(x.cacheKeyRequest(r).radiusM===3000,'radius retained');
+          assert(x.cacheKeyRequest({...r,mode:'bus'}).mode==='bus','mode retained');
+          const canon=x.chooseCanonical(r);
+          assert(canon.radiusM===3200&&canon.limit===40,'API radius buffer');
+          const sparse={ok:true,stops:[
+            {id:'rail1',name:'Rail far',lat:48.82,lon:11.79,mode:'train',distanceM:2400},
+            {id:'rail2',name:'Rail close',lat:48.806,lon:11.767,mode:'train',distanceM:100}]};
+          const dense={ok:true,stops:Array.from({length:12},(_,i)=>({
+            id:'bus'+i,name:'Bus'+i,lat:48.806+i*0.00015,lon:11.766,
+            mode:'bus',lines:['6055'],providerId:'de-bus-h3'}))};
+          const sparseShown=x.reformStops(sparse,r),denseShown=x.reformStops(dense,r);
+          assert(x.coverageScore(sparseShown,r)<55,'weak legacy stop set must trigger fallback');
+          assert(x.coverageScore(denseShown,r)>=55,'verified local bus density');
+          const justBus=x.reformStops({...dense,stops:[...dense.stops,...sparse.stops]},
+            {...r,mode:'bus'});
+          assert(justBus.stops.every(y=>y.mode==='bus'),'bus mode isolation');
+          assert(x.reformStops(sparse,{...r,mode:'bus'}).stops.length===0,'no fake bus from train');
+          assert(x.reformStops(sparse,{...r,lat:49,lon:12}).stops.length===0,'geo rebase filters out-of-range');
+          const now=new Date();
+          const fmt=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Berlin',
+            year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+          const p=Object.fromEntries(fmt.formatToParts(now).map(x=>[x.type,x.value]));
+          const dt=Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute)+30*60000;
+          const d=new Date(dt).toISOString();
+          const dep=x.h3ScheduledDepartures([{service_date:d.slice(0,10),
+            payload:[{line:'6055',tripId:'test-trip',direction:'Mainburg',
+              departureSecs:+d.slice(11,13)*3600+ +d.slice(14,16)*60}]}],60,'220523');
+          assert(dep.length===1&&!dep[0].realtime&&dep[0].providerId==='de-bus-h3',
+            'local H3 schedules must remain scheduled and stop-scoped');
+          console.log('UNIFIED_TRANSIT_V4_STATIC_CONTRACTS_PASS',Object.keys(x));
+          NODE
+      - name: Report scope and immutable legacy baseline
+        run: |
+          echo "### Unified Transit NEXT v4 — checks" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Syntax, quality score, geo bucketing, mode filtering, no fake buses, H3 schedules: tested." >> "$GITHUB_STEP_SUMMARY"
+          echo "- No user credentials or external API calls in these tests." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Does not verify actual signed-in device/API responses." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Existing original Play app, Fuel, Navigator and legacy transit-schedule are unchanged." >> "$GITHUB_STEP_SUMMARY"
