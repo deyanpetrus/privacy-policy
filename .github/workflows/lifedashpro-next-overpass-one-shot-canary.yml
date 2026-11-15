@@ -1,0 +1,41 @@
+name: LifeDashPro NEXT Overpass one-shot acceptance check
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/lifedashpro-next-overpass-one-shot-canary.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  once_only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Single tiny respectful POST; never retry a 406 or 429
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request,urllib.error
+          query='[out:json][timeout:5];node["highway"="bus_stop"](around:200,48.806,11.766);out center;'
+          request=urllib.request.Request('https://overpass-api.de/api/interpreter',
+            data=urllib.parse.urlencode({'data':query}).encode(),
+            headers={'User-Agent':'LifeDashPro-TransitDiagnostics/2.0 (+https://mkdigital.app/)',
+              'Referer':'https://mkdigital.app/','Accept':'application/json',
+              'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},
+            method='POST')
+          try:
+            with urllib.request.urlopen(request,timeout=18) as response:
+              status=response.status
+              body=response.read(100000)
+            try: count=len(json.loads(body).get('elements',[]))
+            except Exception: count='not-json'
+            result=f'OVERPASS_CANARY_STATUS={status} ELEMENTS={count}'
+          except urllib.error.HTTPError as e:
+            result=f'OVERPASS_CANARY_STATUS={e.code} RETRY=NO'
+          except Exception as e:
+            result='OVERPASS_CANARY_STATUS=CONNECTION_ERROR RETRY=NO'
+          print(result)
+          with open(__import__('os').environ['GITHUB_STEP_SUMMARY'],'a') as f:
+            f.write('One-shot tiny Overpass test; never auto-retry after refusal.\n\n'+result+'\n')
+          PY
