@@ -1,4 +1,4 @@
-name: LifeDashPro NEXT - Unified Transit v4 static & contract tests
+name: LifeDashPro NEXT - Unified Transit v4/v5 static & contract tests
 on:
   push:
     branches: [main]
@@ -33,10 +33,20 @@ jobs:
           const ts=require(process.env.RUNNER_TEMP+'/ldp-transit-ts/node_modules/typescript');
           const path='lifedashpro/transit/discovery/edge/transit-shared-cache-next/index.ts';
           const src=fs.readFileSync(path,'utf8');
-          for(const k of ['ldp-transit-unified-v4-quality-geo-20261115',
+          for(const k of [
             'transit_shared_cache_store_quality_v2','h3ScheduledDepartures',
             'transit-schedule-next-expanded','transit-de-bus-h3','QUALITY_OK']){
-            if(!src.includes(k))throw Error('Missing expected v4 contract '+k);
+            if(!src.includes(k))throw Error('Missing expected v4/v5 contract '+k);
+          }
+          const v4=src.includes('ldp-transit-unified-v4-quality-geo-20261115');
+          const v5=src.includes('ldp-transit-unified-v5-regional-20261115');
+          if(!v4&&!v5)throw Error('Wrong NEXT gateway cache schema version');
+          if(v5){
+            for(const required of ['transit-de-regional-bus','isGermanRegionalPilotArea',
+              'germanRegionalPilotBusStops','includeVerifiedGermanRegionalStops',
+              'feedSource==="de-regional-bus"']){
+              if(!src.includes(required))throw Error('Missing v5 regional provider '+required);
+            }
           }
           for(const bad of ['SUPABASE_SERVICE_ROLE_KEY"','SECURITY DEFINER','create table transit_area_cache']){
             if(src.includes(bad))throw Error('Potentially insecure new gateway dependency '+bad);
@@ -90,11 +100,11 @@ jobs:
               departureSecs:+d.slice(11,13)*3600+ +d.slice(14,16)*60}]}],60,'220523');
           assert(dep.length===1&&!dep[0].realtime&&dep[0].providerId==='de-bus-h3',
             'local H3 schedules must remain scheduled and stop-scoped');
-          console.log('UNIFIED_TRANSIT_V4_STATIC_CONTRACTS_PASS',Object.keys(x));
+          console.log('UNIFIED_TRANSIT_V4_V5_STATIC_CONTRACTS_PASS',Object.keys(x));
           NODE
       - name: Report scope and immutable legacy baseline
         run: |
-          echo "### Unified Transit NEXT v4 — checks" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Unified Transit NEXT v4/v5 — checks" >> "$GITHUB_STEP_SUMMARY"
           echo "- Syntax, quality score, geo bucketing, mode filtering, no fake buses, H3 schedules: tested." >> "$GITHUB_STEP_SUMMARY"
           echo "- No user credentials or external API calls in these tests." >> "$GITHUB_STEP_SUMMARY"
           echo "- Does not verify actual signed-in device/API responses." >> "$GITHUB_STEP_SUMMARY"
