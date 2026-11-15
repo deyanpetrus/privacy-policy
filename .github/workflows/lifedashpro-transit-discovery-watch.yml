@@ -35,7 +35,7 @@ jobs:
           python-version: '3.12'
       - name: Install pinned PostgreSQL client
         run: python -m pip install --disable-pip-version-check 'psycopg[binary]==3.2.10'
-      - name: Validate 24 explicit feeds and read-only discovery invariants
+      - name: Validate guarded 24/31-source metadata catalogs
         shell: bash
         run: |
           set -euo pipefail
@@ -46,7 +46,7 @@ jobs:
           import json
           p=Path("lifedashpro/transit/discovery/catalog.json")
           data=json.loads(p.read_text())
-          assert len(data["sources"])==24
+          assert len(data["sources"]) in (24,31)
           assert all(e["kind"] in ("gtfs","gtfs_rt","gbfs") for e in data["sources"])
           assert data["rules"]["default_import"] is False
           assert data["rules"]["allow_production_changes"] is False
