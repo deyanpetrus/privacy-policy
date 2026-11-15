@@ -37,7 +37,7 @@ async function requireUserAndLimit(req:Request) {
 }
 type Stop={sourceId:string;name:string|null;lat:number;lon:number;distanceM:number|null;mode:string[];lines:string[];platform:string|null};
 type SourcePage={stops:Stop[];totalAvailable?:number|null;nextCursor?:string|null;pageSize?:number;sourceNote?:string};
-type Audit={providerId:string;provider:string;status:'ok'|'empty'|'error'|'not_connected';count:number;shown:number;unnamed:number;durationMs:number;note?:string;stops:Stop[];totalAvailable?:number|null;nextCursor?:string|null;hasMore:boolean;pageSize?:number;modeCounts:Record<string,number>;withLines:number;withName:number;within1500m:number;within3000m:number;departuresCapability:'scheduled'|'live_if_available'|'station_only'|'unknown';resultKind:'nearby_stops'|'feed_catalog'};
+type Audit={providerId:string;provider:string;status:'ok'|'empty'|'error'|'not_connected';count:number;shown:number;unnamed:number;durationMs:number;note?:string;stops:Stop[];totalAvailable?:number|null;nextCursor?:string|null;hasMore:boolean;pageSize?:number;modeCounts:Record<string,number>;withLines:number;withName:number;within1500m:number;within3000m:number;departuresCapability:'scheduled'|'live_if_available'|'station_only'|'unknown';resultKind:'nearby_stops'|'feed_catalog'|'shared_cache'};
 function haversine(a:number,b:number,c:number,d:number){
  const k=Math.PI/180,s1=Math.sin((c-a)*k/2)**2,s2=Math.sin((d-b)*k/2)**2;
  return Math.round(12742000*Math.asin(Math.sqrt(Math.min(1,s1+Math.cos(a*k)*Math.cos(c*k)*s2))));
@@ -187,15 +187,22 @@ async function audit(id:string,label:string,fn:()=>Promise<SourcePage>):Promise<
    const result=await fn(),stops=result.stops;
    const total=result.totalAvailable;
    const next=result.nextCursor||null;
+   const modes=classify(stops);
+   const modeSummary='Bus '+modes.bus+', train '+modes.train+', suburban '+modes.suburban+
+      ', tram '+modes.tram+', metro '+modes.subway+', ferry '+modes.ferry+
+      ', unclassified '+modes.unknown+'.';
+   const totalSummary=Number.isFinite(total)?' Matched total '+total+' in the local DB.':'';
+   const pageSummary=next?' More results: load next page.':'';
+   const note=(result.sourceNote||'')+' '+modeSummary+totalSummary+pageSummary;
    return {providerId:id,provider:label,status:stops.length?'ok':'empty',
       count:stops.length,shown:stops.length,unnamed:stops.filter(x=>!x.name).length,
       durationMs:Date.now()-at,stops,totalAvailable:total,nextCursor:next,
-      hasMore:Boolean(next),pageSize:result.pageSize,modeCounts:classify(stops),
+      hasMore:Boolean(next),pageSize:result.pageSize,modeCounts:modes,
       withLines:stops.filter(x=>x.lines.length>0).length,
       withName:stops.filter(x=>!!x.name).length,
       within1500m:stops.filter(x=>(x.distanceM??Infinity)<=1500).length,
       within3000m:stops.filter(x=>(x.distanceM??Infinity)<=3000).length,
-      departuresCapability:capacity(id),resultKind:'nearby_stops',note:result.sourceNote};
+      departuresCapability:capacity(id),resultKind:'nearby_stops',note:note.slice(0,800)};
  }catch(e){
    return {providerId:id,provider:label,status:'error',count:0,shown:0,unnamed:0,
      durationMs:Date.now()-at,note:String((e as any)?.message||'Source unavailable').slice(0,170),
@@ -230,6 +237,13 @@ function candidate(sourceId:string,lat:number,lon:number,radius:number,offset:nu
  if(sourceId==='de-db-rest')return db(lat,lon,radius);
  if(sourceId==='osm')return osm(lat,lon,radius);
  throw new ErrorResponse(400,'Unknown provider');
+}
+
+function infoSource(name:string,id:string,count:number,note:string,kind:'feed_catalog'|'shared_cache',healthy:boolean):Audit{
+ return {providerId:id,provider:name,status:healthy?'ok':'error',count,shown:count,unnamed:0,
+   durationMs:0,note,stops:[],totalAvailable:count,nextCursor:null,hasMore:false,
+   modeCounts:classify([]),withLines:0,withName:0,within1500m:0,within3000m:0,
+   departuresCapability:'unknown',resultKind:kind};
 }
 function unconnected(name:string,id:string):Audit{
  return {providerId:id,provider:name,status:'not_connected',count:0,shown:0,
@@ -296,7 +310,23 @@ Deno.serve(async(req:Request)=>{
       metadata().catch(()=>({mobilityDatabase:{status:'error'},sharedCache:{status:'error'}}))
    ]);
    // Keep original providers[] contract for NEXT Android, with additive fields.
-   const providers=[...results,unconnected('MVV regional direct feed','mvv-direct'),
+   const catalog=(extra as any).mobilityDatabase||{},shared=(extra as any).sharedCache||{};
+   const kinds=catalog.feedCounts||{};
+   const feedRecords=Number(catalog.totalFeedListings||0);
+   const cacheRows=Array.isArray(shared.buckets)?shared.buckets:[];
+   const cacheRecords=cacheRows.reduce((acc:number,r:any)=>acc+Number(r.records||0),0);
+   const feedNote='Mobility Database CATALOG ONLY, not nearby API. Germany: '+
+     Number(kinds.gtfs||0)+' GTFS, '+Number(kinds.gtfs_rt||0)+' GTFS-RT, '+
+     Number(kinds.gbfs||0)+' GBFS feed listings. Feeds must be imported/connected to provide stops or departures.';
+   const cacheNote='Supabase shared-search cache, NOT stop count: '+
+     cacheRows.map((b:any)=>String(b.bucket)+' '+Number(b.records||0)+' records').join(', ')+
+     '. Search records can have different freshness/quality; not public stop data.';
+   const providers=[...results,
+     infoSource('Mobility Database (CATALOG feeds, not stops)','mobility-database-catalog',feedRecords,
+       feedNote,'feed_catalog',catalog.status==='catalog_available'),
+     infoSource('Supabase shared cache (SEARCHES, not stops)','supabase-shared-cache',cacheRecords,
+       cacheNote,'shared_cache',shared.status==='available'),
+     unconnected('MVV regional direct feed','mvv-direct'),
      unconnected('MVG direct feed','mvg-direct')];
    const complete={ok:true,action:'provider-audit',country:'DE',
      generatedAt:new Date().toISOString(),radiusM:radius,diagnosticOnly:true,
