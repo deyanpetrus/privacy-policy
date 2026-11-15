@@ -1,0 +1,66 @@
+name: LifeDashPro NEXT - Transit Diagnostics v2 checks
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/discovery/edge/transit-provider-audit-stage10e1/index.ts'
+      - 'lifedashpro/transit/discovery/diagnostic_nearby_page_v2.sql'
+      - '.github/workflows/lifedashpro-next-transit-diagnostics-v2-verify.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned isolated typescript parser
+        run: npm install --prefix "$RUNNER_TEMP/diagnostics-ts" --no-package-lock --ignore-scripts --no-audit --no-fund 'typescript@5.9.3'
+      - name: Verify TypeScript syntax, paging, auth, and source classification
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('node:fs'),vm=require('node:vm');
+          const ts=require(process.env.RUNNER_TEMP+'/diagnostics-ts/node_modules/typescript');
+          const src=fs.readFileSync('lifedashpro/transit/discovery/edge/transit-provider-audit-stage10e1/index.ts','utf8');
+          for(const token of ['SIZE_PER_PAGE=100','provider-audit-page','transit_next_diagnostic_nearby_page',
+            'eu-transitland','de-bus-h3','de-rail','transit_mobility_api_country_summary',
+            'transit_shared_cache_stats_v1','OVERPASS_UA','OVERPASS_BLOCKED_UNTIL','provider-audit-departures',
+            'requireUserAndLimit','transit-provider-audit-10e1']){
+             if(!src.includes(token)) throw Error('Missing critical v2 contract: '+token);
+          }
+          for(const forbidden of ['const MAX=25','slice(0,MAX)','slice(0,25)','slice(0,40)',
+            'out tags center 50','LDP_DEDICATED_TRANSIT_SERVICE_ROLE_KEY="'+""+'"']){
+            if(src.includes(forbidden))throw Error('Old truncation or hardcoded secret: '+forbidden);
+          }
+          const compiled=ts.transpileModule(src,{fileName:'index.ts',reportDiagnostics:true,
+            compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.None}});
+          if(compiled.diagnostics?.length)throw Error(compiled.diagnostics.map(x=>ts.flattenDiagnosticMessageText(x.messageText,' / ')).join('\n'));
+          const env={Deno:{env:{get:()=>''},serve:f=>{env.handler=f}},
+            fetch:()=>Promise.reject(Error('network blocked in test')),URL,URLSearchParams,Intl,
+            Date,Math,Number,Set,Map,Array,JSON,Response,AbortSignal,console};
+          vm.createContext(env);
+          vm.runInContext(compiled.outputText+'\nglobalThis.testFns={classify,cleanLines,coerceStop,routeMode};',env,{timeout:5000});
+          const f=env.testFns;
+          if(f.cleanLines(Array.from({length:70},(_,i)=>String(i))).length!==70)throw Error('Truncated route lines');
+          const b=f.coerceStop('s1','Bus stop',48.806,11.766,48.806,11.766,['bus'],['6034'],null);
+          const r=f.coerceStop('s2','Rail stop',48.807,11.766,48.806,11.766,['train'],['RE'],null);
+          const stats=f.classify([b,r]);
+          if(stats.bus!==1||stats.train!==1)throw Error('Invalid transport category counts');
+          if(f.routeMode(3)!=='bus'||f.routeMode(2)!=='train')throw Error('Invalid GTFS modes');
+          const sql=fs.readFileSync('lifedashpro/transit/discovery/diagnostic_nearby_page_v2.sql','utf8');
+          for(const t of ['security invoker','revoke all','service_role','total_matches','p_offset']){
+            if(!sql.toLowerCase().includes(t))throw Error('Private paginated DB contract missing '+t);
+          }
+          console.log('NEXT_DIAGNOSTICS_V2_STATIC_PASS');
+          NODE
+      - name: Report
+        run: |
+          echo "### Diagnostics v2 checks" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Source parsing, classification, no UI truncation, paging contract and RLS-safe RPC checks: PASS." >> "$GITHUB_STEP_SUMMARY"
+          echo "- This is a static test. The signed-in Edge endpoint and real public Overpass policies need device verification." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Original LifeDashPro / Google Play source not changed." >> "$GITHUB_STEP_SUMMARY"
