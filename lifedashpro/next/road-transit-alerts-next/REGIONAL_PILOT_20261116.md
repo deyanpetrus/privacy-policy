@@ -17,7 +17,7 @@ Main project: `djbxhyhqefylyqqlifan`
   - Server deployed and source inspected; **real provider calls with authenticated tester not yet verified**.
 - New service-role-only RLS tables:
   - `public.next_transport_notice_v1` (zero approved entries at deploy; date/expiry checks; no anon/auth grants).
-  - `public.next_transit_regional_cache_v1` (zero rows until first valid user call; 45/60 s TTL; needs periodic expiry pruning).
+  - `public.next_transit_regional_cache_v1` (zero rows until first valid user call; 45/60 s TTL; daily expired-row cleanup scheduled at 03:17 UTC via pg_cron job `lifedash-next-regional-data-cleanup` (job 11)).
 
 ## Protected baselines
 - Unchanged: `road-eu-v2-read`, `road-eu-v2-sync`, existing German Road Live UI/logic, TomTom usage, Fuel, Navigator, GTFS and all original `C:\lifedashpro`.
