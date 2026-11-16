@@ -1,0 +1,43 @@
+// LifeDashPro NEXT-only CH stationboard and Berlin VBB/BVG station departures.
+// Independent of protected Germany Road Live, TomTom, Fuel, Transit baseline.
+type Obj=Record<string,unknown>;
+const HEAD={'access-control-allow-origin':'*','access-control-allow-headers':'authorization,apikey,content-type,x-client-info','access-control-allow-methods':'POST,OPTIONS'};
+const respond=(x:unknown,status=200)=>Response.json(x,{status,headers:{...HEAD,'cache-control':'no-store'}});
+class Fault extends Error {constructor(public status:number,msg:string){super(msg)}}
+const err=(v:unknown)=>v instanceof Error?v.message:String(v);
+function publicKey(){const legacy=Deno.env.get('SUPABASE_ANON_KEY');if(legacy)return legacy;try{const o=JSON.parse(Deno.env.get('SUPABASE_PUBLISHABLE_KEYS')||'{}');return String(o.default||Object.values(o)[0]||'')}catch{return ''}}
+function secretKey(){const legacy=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');if(legacy)return legacy;try{const o=JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS')||'{}');return String(o.default||Object.values(o)[0]||'')}catch{return ''}}
+const base=()=>Deno.env.get('SUPABASE_URL')||'';
+const safe=(v:unknown,max=100)=>typeof v==='string'?v.trim().slice(0,max):'';
+function st(v:unknown){return typeof v==='string'&&v.length>4&&Number.isFinite(Date.parse(v))?v:null}
+function countDelay(planned:string|null,actual:string|null){if(!planned||!actual)return null;const ms=Date.parse(actual)-Date.parse(planned);return Number.isFinite(ms)?Math.round(ms/60000):null}
+const metric=(v:unknown)=>typeof v==='number'&&Number.isFinite(v)?v:null;
+function normalizeSwiss(data:Obj){const list=Array.isArray(data.stationboard)?data.stationboard:[];return list.slice(0,25).map((d:any)=>{const stop=d?.stop||{},pro=stop?.prognosis||{};const scheduled=st(stop.departure),forecast=st(pro.departure),delay=metric(stop.delay)??countDelay(scheduled,forecast);const hasRT=(forecast!==null)||(metric(stop.delay)!==null);return {line:safe(d.category&&d.number?(String(d.category)+String(d.number)):(d.category||d.name),60),destination:safe(d.to,120),scheduled_at:scheduled,expected_at:forecast||scheduled,delay_minutes:delay,platform:safe(pro.platform||stop.platform,30)||null,planned_platform:safe(stop.platform,30)||null,realtime:hasRT,status:hasRT?'LIVE':'SCHEDULED',source:'transport.opendata.ch',stop_name:safe(stop?.station?.name||data?.station&&((data.station as any)?.name),120)};}).filter((x:any)=>x.scheduled_at||x.expected_at)}
+function normalizeVbb(data:Obj,provider:string){const list=Array.isArray(data.departures)?data.departures:[];return list.slice(0,25).map((d:any)=>{const scheduled=st(d?.plannedWhen),forecast=st(d?.when),delaySec=metric(d?.delay);const delay=delaySec!==null?Math.round(delaySec/60):countDelay(scheduled,forecast);const cancelled=d?.cancelled===true;const hasRT=(delaySec!==null)||Boolean(forecast&&scheduled&&forecast!==scheduled);return {line:safe(d?.line?.name,60),destination:safe(d?.direction,120),scheduled_at:scheduled,expected_at:cancelled?null:(forecast||scheduled),delay_minutes:delay,platform:safe(d?.platform||d?.plannedPlatform,30)||null,planned_platform:safe(d?.plannedPlatform,30)||null,realtime:hasRT,status:cancelled?'CANCELLED':hasRT?'LIVE':'SCHEDULED',source:provider,stop_name:safe(d?.stop?.name,120)};}).filter((x:any)=>x.scheduled_at)}
+async function authenticated(req:Request){const match=(req.headers.get('authorization')||'').match(/^Bearer\s+([^\s]+)$/i),token=match?.[1]||'';if(!token||token.startsWith('sb_'))throw new Fault(401,'Authenticated user session required');const key=publicKey();if(!key||!base())throw new Fault(503,'Auth unavailable');const r=await fetch(base()+'/auth/v1/user',{headers:{apikey:key,authorization:'Bearer '+token,accept:'application/json'},signal:AbortSignal.timeout(6000)});if(!r.ok)throw new Fault(401,'User session invalid');const obj=await r.json().catch(()=>null);if(!obj?.id)throw new Fault(401,'User session invalid');return token}
+async function throttle(token:string){const key=publicKey();const r=await fetch(base()+'/rest/v1/rpc/consume_user_rate_limit',{method:'POST',headers:{apikey:key,authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify({p_bucket:'next-regional-live-pilot-daily',p_limit:50,p_window_seconds:86400}),signal:AbortSignal.timeout(6000)});if(!r.ok)throw new Fault(503,'Rate limit unavailable');const result=await r.json().catch(()=>null);const row=Array.isArray(result)?result[0]:result;if(!row||row.allowed!==true)throw new Fault(429,'Pilot daily limit reached')}
+async function cacheGet(cacheKey:string,secret:string){const r=await fetch(base()+'/rest/v1/next_transit_regional_cache_v1?cache_key=eq.'+encodeURIComponent(cacheKey)+'&select=payload,expires_at',{headers:{apikey:secret,authorization:'Bearer '+secret},signal:AbortSignal.timeout(3000)});if(!r.ok)return null;const rows=await r.json().catch(()=>[]);const item=rows?.[0];return item&&Date.parse(item.expires_at)>Date.now()?item.payload:null}
+async function cacheSet(cacheKey:string,country:string,source:string,payload:unknown,ttl:number,secret:string){const now=Date.now();await fetch(base()+'/rest/v1/next_transit_regional_cache_v1?on_conflict=cache_key',{method:'POST',headers:{apikey:secret,authorization:'Bearer '+secret,'content-type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({cache_key:cacheKey,country,source_id:source,payload,fetched_at:new Date(now).toISOString(),expires_at:new Date(now+ttl*1000).toISOString()}),signal:AbortSignal.timeout(3000)})}
+async function fetchJSON(url:string){const r=await fetch(url,{headers:{accept:'application/json', 'user-agent':'LifeDashProNEXT-Regional-Transit-Pilot/1.0'},signal:AbortSignal.timeout(9000)});if(r.status===429)throw new Fault(429,'Upstream rate limited');if(!r.ok)throw new Fault(503,'Provider unavailable ('+r.status+')');const size=Number(r.headers.get('content-length')||0);if(size>1800000)throw new Fault(502,'Provider response too large');return await r.json()}
+Deno.serve(async(req:Request)=>{
+ if(req.method==='OPTIONS')return new Response('ok',{headers:HEAD});
+ try{
+ if(req.method!=='POST')throw new Fault(405,'POST required');
+ const token=await authenticated(req);
+ const body=await req.json().catch(()=>null);if(!body||typeof body!=='object')throw new Fault(400,'JSON object required');
+ const country=safe(body.country,2).toUpperCase();let source='',url='',station='',ttl=45;
+ if(country==='CH'){const id=safe(body.station_id,16);const name=safe(body.station,80);if(!/^\d{6,12}$/.test(id)&&(!name||!/^[\p{L}\p{N}\s.,\-()]+$/u.test(name)))throw new Fault(400,'Swiss station or numeric station_id required');station=id||name;source='transport.opendata.ch';const u=new URL('https://transport.opendata.ch/v1/stationboard');if(id)u.searchParams.set('id',id);else u.searchParams.set('station',name);u.searchParams.set('limit','20');url=u.toString();ttl=60}
+ else if(country==='DE'){const region=safe(body.region,24).toLowerCase();if(region!=='berlin'&&region!=='brandenburg')throw new Fault(400,'This pilot covers Berlin/Brandenburg only');const id=safe(body.stop_id,22);if(!/^\d{5,20}$/.test(id))throw new Fault(400,'VBB/BVG numeric stop_id required');const preferred=safe(body.provider,3).toLowerCase()==='bvg'?'bvg':'vbb';station=id;source=preferred==='bvg'?'v6.bvg.transport.rest':'v6.vbb.transport.rest';url='https://'+source+'/stops/'+id+'/departures?duration=40&results=20&remarks=true';ttl=45}
+ else throw new Fault(400,'Pilot supported country: CH, DE (Berlin/Brandenburg)');
+ const secret=secretKey();if(!secret||!base())throw new Fault(503,'Protected regional cache unavailable');
+ const cacheKey=country+':'+source+':'+station.toLowerCase();
+ const cached=await cacheGet(cacheKey,secret);
+ if(cached)return respond({...cached,cache:'HIT'});
+ await throttle(token);
+ const data=await fetchJSON(url);
+ const departures=country==='CH'?normalizeSwiss(data):normalizeVbb(data,source);
+ const result={ok:true,pilot:true,country,source,station,departure_count:departures.length,departures,updated_at:new Date().toISOString(),cache_ttl_seconds:ttl,warning:'LIVE only for records with observed delay or provider prognosis; scheduled data remains SCHEDULED.'};
+ await cacheSet(cacheKey,country,source,result,ttl,secret).catch(()=>null);
+ return respond({...result,cache:'MISS'});
+ }catch(e){const status=e instanceof Fault?e.status:503;return respond({ok:false,error:e instanceof Fault?e.message:'Regional provider request failed'},status)}
+});export {};
