@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'lifedashpro/transit/dedicated_gtfs_refresh.py'
+      - 'lifedashpro/transit/dedicated_gtfs_snapshot.py'
       - 'lifedashpro/transit/test_dedicated_gtfs_refresh.py'
       - 'lifedashpro/transit/dedicated_gtfs_import.py'
       - '.github/workflows/lifedashpro-dedicated-rolling-refresh.yml'
@@ -12,6 +13,7 @@ on:
     branches: [main]
     paths:
       - 'lifedashpro/transit/dedicated_gtfs_refresh.py'
+      - 'lifedashpro/transit/dedicated_gtfs_snapshot.py'
       - 'lifedashpro/transit/test_dedicated_gtfs_refresh.py'
       - 'lifedashpro/transit/dedicated_gtfs_import.py'
       - '.github/workflows/lifedashpro-dedicated-rolling-refresh.yml'
@@ -101,6 +103,22 @@ jobs:
           python lifedashpro/transit/test_dedicated_gtfs_rpc.py
       - name: Validate atomic failure rollback and successful replacement in Docker
         run: python lifedashpro/transit/test_dedicated_gtfs_refresh.py
+      - name: Check live snapshot source without DB writes (push only)
+        if: ${{ github.event_name == 'push' }}
+        shell: bash
+        env:
+          LDP_DEDICATED_TRANSIT_DB_URL: ${{ secrets.LDP_DEDICATED_TRANSIT_DB_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$LDP_DEDICATED_TRANSIT_DB_URL" || { echo "::error::NEXT dedicated secret missing"; exit 1; }
+          python - <<'PY'
+          import os,sys
+          sys.path.insert(0,'lifedashpro/transit')
+          from dedicated_gtfs_snapshot import source_preflight
+          state=source_preflight(os.environ["LDP_DEDICATED_TRANSIT_DB_URL"])
+          assert state["tables"]==8 and state["stop_times"]>=500000
+          print("DEDICATED_GTFS_SNAPSHOT_SOURCE_PREFLIGHT_PASS",{"tables":state["tables"],"stop_times":state["stop_times"]})
+          PY
       - name: Confirm NEW project ref for manual writes
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'refresh' }}
         shell: bash
