@@ -30,7 +30,7 @@ TARGET = "gnqtngtuzbxohgwgvmpb"
 SECRET_NAME = "LDP_DEDICATED_TRANSIT_DB_URL"
 MAX_DB_BYTES = 390 * 1048576  # margin below the Supabase Free 500 MB DB limit
 MAX_PAYLOAD_BYTES = 42 * 1048576  # each feed, compact encoded JSON
-MAX_TOTAL_EVENTS = 280000
+MAX_TOTAL_EVENTS = 360000  # 2026-11-18 Sofia official feed grew past 280k; byte+DB caps unchanged
 MAX_ZIP_EXPANDED = 900 * 1048576
 SOURCES = {
     "sofia": {
