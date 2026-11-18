@@ -118,7 +118,7 @@ def calendar_services(z,dates):
     if not any(active.values()):raise RuntimeError("NO_ACTIVE_SERVICE_DATES")
     return active
 
-def build(feed,archive_path):
+def build(feed,archive_path,horizon_hours=24):
     config=SOURCES[feed]
     now=datetime.now(ZoneInfo(config["timezone"]))
     days=[now.date(),now.date()+timedelta(days=1)]
@@ -168,7 +168,7 @@ def build(feed,archive_path):
                 # Free-tier rolling horizon. Include today's late services and tomorrow's
                 # early services (including GTFS 24:xx times) without two full days.
                 occurrence=datetime(d.year,d.month,d.day,tzinfo=now.tzinfo)+timedelta(seconds=secs)
-                if not now-timedelta(minutes=5)<=occurrence<=now+timedelta(hours=24):continue
+                if not now-timedelta(minutes=5)<=occurrence<=now+timedelta(hours=horizon_hours):continue
                 events[(sid,d)].append({
                     "tripId":tid[:130],"line":r["line"],"direction":(st.get("stop_headsign") or trip["headsign"])[:110],
                     "mode":r["mode"],"time":f"{secs//3600:02d}:{secs//60%60:02d}",
@@ -194,7 +194,7 @@ def build(feed,archive_path):
         size+=len(serialized.encode("utf-8"))
         if size>MAX_PAYLOAD_BYTES:raise RuntimeError("JSON_PAYLOAD_OVER_APPROVED_CAP")
         rows.append((sid,d,serialized))
-    return active_stops,rows,{"feed":feed,"days":[str(x) for x in days],
+    return active_stops,rows,{"feed":feed,"days":[str(x) for x in days],"horizon_hours":horizon_hours,
         "stops":len(active_stops),"departures":total,"stop_day_rows":len(rows),
         "payload_mib":round(size/1048576,2)}
 
@@ -238,8 +238,8 @@ def write(feed,stop_rows,departure_rows,stats):
                 cur.execute("select pg_database_size(current_database())")
                 after=cur.fetchone()[0]
                 if after>MAX_DB_BYTES:raise RuntimeError("FREE_PROJECT_QUOTA_GUARD_ROLLBACK")
-                cur.execute("update transit_next."+kind+"_meta set active_slot=%s,loaded_at=now(),expires_at=now()+interval '35 hours',stops=%s,departures=%s where id=1",
-                            (inactive,len(stop_rows),stats["departures"]))
+                cur.execute("update transit_next."+kind+"_meta set active_slot=%s,loaded_at=now(),expires_at=now()+(%s * interval '1 hour'),stops=%s,departures=%s where id=1",
+                            (inactive,max(13,min(35,int(stats["horizon_hours"])-1)),len(stop_rows),stats["departures"]))
                 if cur.rowcount!=1:raise RuntimeError("META_FLIP_FAILED")
                 cur.execute("update transit_next.feed_registry set integration_state='enabled',last_checked_at=now(),note=concat_ws(' | ',note,'Free compact two-day GTFS slot cache; scheduled only; size gated') where feed_id=%s",
                             ("bg-sofia" if feed=="sofia" else "de-regional-rail",))
@@ -258,7 +258,18 @@ def main():
     with TemporaryDirectory(prefix="transit-next-") as tmp:
         p=Path(tmp)/"download.zip"
         downloaded=archive(SOURCES[args.feed]["url"],p,SOURCES[args.feed]["zip_max"])
-        stops,departures,stats=build(args.feed,p)
+        # Preserve the hard byte and DB quota guards: shrink the preview horizon,
+        # not the payload/storage limits. Two scheduled runs/day overlap at 16h.
+        options=(24,20,16) if args.feed=="sofia" else (24,)
+        for horizon in options:
+            try:
+                stops,departures,stats=build(args.feed,p,horizon_hours=horizon)
+                break
+            except RuntimeError as exc:
+                if str(exc) not in ("TOTAL_DEPARTURES_OVER_APPROVED_CAP","JSON_PAYLOAD_OVER_APPROVED_CAP") or horizon==options[-1]:
+                    raise
+                print(json.dumps({"status":"RETRY_SHORTER_HORIZON","source":args.feed,
+                                  "previous_hours":horizon,"reason":str(exc)}))
         stats["zip_mib"]=round(downloaded/1048576,2)
         print(json.dumps({"status":"SOURCE_VERIFIED","mode":args.mode,**stats}))
         if args.mode=="refresh":write(args.feed,stops,departures,stats)
