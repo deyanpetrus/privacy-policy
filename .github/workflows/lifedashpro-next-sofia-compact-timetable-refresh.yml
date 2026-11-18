@@ -1,0 +1,87 @@
+name: LifeDashPro NEXT Sofia GTFS compact timetable refresh
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/lifedashpro-next-sofia-compact-timetable-refresh.yml'
+      - 'lifedashpro/transit/next_compact_slot_refresh.py'
+  schedule:
+    - cron: '17 6,18 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Validate (read-only) or refresh Sofia cache
+        type: choice
+        required: true
+        default: plan
+        options: [plan, refresh]
+      confirm_project_ref:
+        description: Exact dedicated NEXT Supabase project ref, required for manual refresh
+        type: string
+        required: false
+        default: ''
+permissions:
+  contents: read
+concurrency:
+  group: lifedashpro-dedicated-transit-import
+  cancel-in-progress: false
+jobs:
+  sofia:
+    runs-on: ubuntu-latest
+    timeout-minutes: 85
+    env:
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install pinned Postgres driver
+        run: python -m pip install --disable-pip-version-check --no-cache-dir 'psycopg[binary]==3.2.10'
+      - name: Verify protected NEXT-only importer
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile lifedashpro/transit/next_compact_slot_refresh.py lifedashpro/transit/dedicated_gtfs_import.py
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('lifedashpro/transit/next_compact_slot_refresh.py').read_text()
+          for k in ['TARGET = "gnqtngtuzbxohgwgvmpb"','MAX_DB_BYTES = 390 * 1048576',
+                    'verify_target(url)','pg_try_advisory_xact_lock','with db.transaction()',
+                    'MAX_PAYLOAD_BYTES','REFRESH_TARGET_REF_MISMATCH']:
+              assert k in s,f"SAFE_STOP: missing {k}"
+          print('SOFIA_NEXT_ONLY_IMPORT_GUARDS_OK')
+          PY
+      - name: Manual target approval
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'refresh' }}
+        env:
+          CONFIRMED: ${{ inputs.confirm_project_ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$CONFIRMED" != 'gnqtngtuzbxohgwgvmpb' ]]; then
+            echo "::error::Wrong project ref. Sofia cache not modified."
+            exit 1
+          fi
+      - name: Validate official Sofia feed without writing
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'plan') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python lifedashpro/transit/next_compact_slot_refresh.py --feed sofia --mode plan
+          echo '## Sofia source validated; no Supabase writes' >> "$GITHUB_STEP_SUMMARY"
+      - name: Safely refresh dedicated Sofia A/B GTFS cache
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'refresh') }}
+        env:
+          LDP_DEDICATED_TRANSIT_DB_URL: ${{ secrets.LDP_DEDICATED_TRANSIT_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$LDP_DEDICATED_TRANSIT_DB_URL" || {
+            echo "::error::Dedicated NEXT database secret missing; no writes attempted."
+            exit 1
+          }
+          python lifedashpro/transit/next_compact_slot_refresh.py \
+            --feed sofia --mode refresh --confirm-project-ref gnqtngtuzbxohgwgvmpb
+          echo '## Sofia NEXT cache: validated atomic import or fresh-skip' >> "$GITHUB_STEP_SUMMARY"
+          echo 'SCHEDULED only. Old LifeDashPro, German Road LIVE unchanged.' >> "$GITHUB_STEP_SUMMARY"
