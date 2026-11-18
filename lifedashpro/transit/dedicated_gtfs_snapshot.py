@@ -20,6 +20,7 @@ from urllib.parse import urlsplit
 import psycopg
 
 from dedicated_gtfs_import import verify_target, SafePreflightError, sanitized_error_code
+from dedicated_gtfs_refresh import DEDICATED_RPC_SIGNATURES
 
 SOURCE_VAR="LDP_DEDICATED_TRANSIT_DB_URL"
 TARGET_REF="gnqtngtuzbxohgwgvmpb"
@@ -50,8 +51,18 @@ def source_preflight(url):
                  and pn.nspname='transit_data' and cn.nspname!='transit_data'),
                 pg_database_size(current_database()),current_setting('server_version_num')::integer""")
             db,role,rls,active,rows,until,rpcs,external_refs,db_bytes,version=cur.fetchone()
-            if (db,role)!=("postgres","postgres") or rls!=8 or active!=1 or rows<MIN_GTFS_ROWS or rpcs!=4 or external_refs:
+            if (db,role)!=("postgres","postgres") or rls!=8 or active!=1 or rows<MIN_GTFS_ROWS or rpcs!=len(DEDICATED_RPC_SIGNATURES) or external_refs:
                 raise SafePreflightError("SNAPSHOT_SOURCE_SECURITY_OR_CONTENT_INVALID")
+            # The original snapshot checked only 4 secured RPCs. Live NEXT has
+            # 6 approved core+extension RPCs. Compare exact contracts and
+            # permissions rather than weakening the source security gate.
+            cur.execute("""select p.proname || '(' || pg_catalog.pg_get_function_identity_arguments(p.oid) || ')'
+              from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+              where n.nspname='public' and p.proname like 'transit_gtfs_%'
+              order by p.proname,pg_catalog.pg_get_function_identity_arguments(p.oid)""")
+            observed=tuple(x[0] for x in cur.fetchall())
+            if observed!=tuple(sorted(DEDICATED_RPC_SIGNATURES)):
+                raise SafePreflightError("SNAPSHOT_CORE_RPC_CONTRACT_MISMATCH")
             if version//10000 !=17:
                 raise SafePreflightError("SNAPSHOT_PGDUMP17_SERVER_VERSION_MISMATCH")
             cur.execute("""select tablename from pg_tables where schemaname='transit_data'""")
