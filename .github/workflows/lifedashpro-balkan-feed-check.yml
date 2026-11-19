@@ -1,0 +1,72 @@
+name: LifeDashPro Balkan Feed Check (read-only)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/lifedashpro-balkan-feed-check.yml'
+      - 'lifedashpro/transit/balkan_feed_probe.py'
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lifedashpro-balkan-gtfs-check
+  cancel-in-progress: false
+
+jobs:
+  download-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout read-only sources
+        uses: actions/checkout@v4
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check script syntax
+        run: python -m py_compile lifedashpro/transit/balkan_feed_probe.py
+
+      - name: Download and validate Balkan feeds (NO Supabase access)
+        run: python lifedashpro/transit/balkan_feed_probe.py
+
+      - name: Fail if zero usable source GTFS downloads
+        run: |
+          python - <<'PY'
+          import json
+          feeds=json.load(open('out/report.json'))['feeds']
+          good=[x for x in feeds if x.get('state')=='gtfs_valid_date_range']
+          print('VALID_ACTIVE_SOURCE_FEEDS:',len(good))
+          if not good: raise SystemExit('No source GTFS feeds with current date range')
+          PY
+
+      - name: Write report to workflow summary
+        if: always()
+        run: |
+          if [ -f out/report.md ]; then cat out/report.md >> "$GITHUB_STEP_SUMMARY"; fi
+
+      - name: Upload feed diagnostics, no restricted feed bytes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lifedashpro-balkan-source-check
+          path: |
+            out/report.json
+            out/report.md
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Upload small CC BY 4.0 source ZIPs for manual evaluation only
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lifedashpro-balkan-ccby-test-zips
+          path: out/ccby/*.zip
+          retention-days: 3
+          if-no-files-found: ignore
