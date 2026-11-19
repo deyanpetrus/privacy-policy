@@ -1,0 +1,96 @@
+name: LifeDashPro NEW Balkan GTFS Additive Import
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/balkan_gtfs_import_v1.py'
+      - '.github/workflows/lifedashpro-balkan-gtfs-import.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'lifedashpro/transit/balkan_gtfs_import_v1.py'
+      - '.github/workflows/lifedashpro-balkan-gtfs-import.yml'
+  schedule:
+    - cron: '36 3 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Dry-run plan or controlled dedicated database import
+        type: choice
+        required: true
+        default: plan
+        options: [plan, import]
+      confirm_project_ref:
+        description: For import use exact dedicated Transit ref
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ldp-balkan-import-new-transit-only
+  cancel-in-progress: false
+
+jobs:
+  balkan-import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install pinned client, check source syntax
+        run: |
+          python -m pip install --disable-pip-version-check "psycopg[binary]==3.2.10"
+          python -m py_compile lifedashpro/transit/balkan_gtfs_import_v1.py
+      - name: Confirm correct project for all writes
+        if: ${{ github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.mode == 'import') }}
+        env:
+          DEDICATED_URL: ${{ secrets.LDP_DEDICATED_TRANSIT_DB_URL }}
+          PROJECT_CONFIRM: ${{ inputs.confirm_project_ref }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          test -n "$DEDICATED_URL" || { echo "::error::Dedicated DB secret absent"; exit 1; }
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            test "$PROJECT_CONFIRM" = "gnqtngtuzbxohgwgvmpb" || { echo "::error::Wrong Transit project ref"; exit 1; }
+          fi
+      - name: Download GTFS and import to additive private tables ONLY
+        env:
+          LDP_DEDICATED_TRANSIT_DB_URL: ${{ secrets.LDP_DEDICATED_TRANSIT_DB_URL }}
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_MODE: ${{ inputs.mode }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ] || { [ "$EVENT_NAME" = "workflow_dispatch" ] && [ "$DISPATCH_MODE" = "plan" ]; }; then
+            python lifedashpro/transit/balkan_gtfs_import_v1.py --confirm-project-ref gnqtngtuzbxohgwgvmpb --dry-run
+          else
+            python lifedashpro/transit/balkan_gtfs_import_v1.py --confirm-project-ref gnqtngtuzbxohgwgvmpb
+          fi
+      - name: Summarize candidate feeds
+        if: always()
+        run: |
+          if [ -f out/balkan-import-report.json ]; then
+            python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          o=json.load(open("out/balkan-import-report.json"))
+          print("# LifeDashPro Balkan GTFS import")
+          print("Dedicated project:",o.get("project"),"Writes:",o.get("writes"))
+          print("| Feed | Stops | Departures | Display enabled |")
+          print("|---|---:|---:|---|")
+          for f in o.get("successes",[]):
+              print("|",f['feed_id'],"|",f['stops'],"|",f['departures'],"|",f['published'],"|")
+          for f in o.get("failures",[]):
+              print("|",f["feed_id"],"| FAILED | — | Previous dataset preserved |")
+          PY
+          fi
+      - name: Save metadata diagnostics only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ldp-balkan-import-report
+          path: out/balkan-import-report.json
+          if-no-files-found: warn
+          retention-days: 7
