@@ -30,7 +30,7 @@ FEEDS=[
  ("ba:livnobus","BA","Li-Bus Livno","https://livnobus.com/gtfs/google-transit","Europe/Sarajevo","permission-verified-by-owner","Turistička agencija Li-Bus d.o.o.","bus",True),
  # MK staged deliberately as shadow, no duplicates of existing working JSP and MŽ.
  ("mk:rail","MK","MŽ Macedonia Rail","https://github.com/deryclem/gtfs-north-macedonia/raw/main/gtfs-north-macedonia.zip","Europe/Skopje","permission-verified-by-owner","MŽ North Macedonia / deryclem community GTFS","train",False),
- ("mk:jsp","MK","JSP Skopje","https://www.modeshift.app/api/v1/9814b106-2afe-47c8-919b-bdec6a5e521e/transport/gtfs/gtfs.zip","Europe/Skopje","permission-verified-by-owner","ЈСП Скопје / Modeshift GTFS","bus",False)
+ # Skopje JSP is already live in its existing protected cache; do not duplicate it here.
 ]
 def get(url):
     if urlsplit(url).scheme!="https":raise ValueError("Only HTTPS feeds allowed")
@@ -94,7 +94,7 @@ def plan_feed(feed):
     feed_id,cc,name,url,tz,licence,attribution,hint,publish=feed
     raw=get(url); rows=read_zip(raw)
     today=dt.datetime.now(ZoneInfo(tz)).date()
-    days=[today+dt.timedelta(days=i) for i in range(4)]
+    days=[today+dt.timedelta(days=i) for i in range(3)]
     services=service_dates(rows,days,today)
     stops={}
     for s in rows("stops.txt"):
@@ -149,6 +149,8 @@ def plan_feed(feed):
     if not maxdate:
         maxdate=max((row.get("date","") for row in rows("calendar_dates.txt") if re.fullmatch(r"\d{8}",row.get("date",""))),default="")
     valid_until=dt.datetime.strptime(maxdate,"%Y%m%d").date() if maxdate else days[-1]
+    # Prevent a 2099 calendar from making an abandoned cache appear current forever.
+    valid_until=min(valid_until,days[0]+dt.timedelta(days=8))
     if valid_until<days[0]:raise ValueError("GTFS expired")
     return {"feed":feed,"sha":hashlib.sha256(raw).hexdigest(),"stops":canonical,"departures":result,
             "events":total,"valid_until":valid_until,"valid_from":days[0],"publish":publish}
