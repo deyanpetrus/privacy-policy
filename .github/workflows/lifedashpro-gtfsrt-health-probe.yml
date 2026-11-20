@@ -1,0 +1,38 @@
+name: LifeDashPro GTFS.de Realtime Health Probe
+on:
+  pull_request:
+    branches: [main]
+    paths: [.github/workflows/lifedashpro-gtfsrt-health-probe.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install GTFS-RT parser
+        run: python -m pip install --disable-pip-version-check "gtfs-realtime-bindings==1.0.0"
+      - name: Probe size, age and GTFS-RT matches (metadata only)
+        shell: bash
+        run: |
+          python - <<'PY'
+          import urllib.request,time
+          from google.transit import gtfs_realtime_pb2
+          url="https://realtime.gtfs.de/realtime-free.pb"
+          req=urllib.request.Request(url,headers={"User-Agent":"LifeDashProNEXT/diagnostic (https://mkdigital.app/)","Accept":"application/x-protobuf"})
+          with urllib.request.urlopen(req,timeout=25) as resp:
+              raw=resp.read(20*1024*1024+1)
+              print("HTTP",resp.status,"LENGTH_BYTES",len(raw),"CONTENT_LENGTH",resp.headers.get("Content-Length"))
+          pb=gtfs_realtime_pb2.FeedMessage()
+          pb.ParseFromString(raw)
+          print("SOURCE_AGE_SECONDS",round(time.time()-pb.header.timestamp),"ENTITY_COUNT",len(pb.entity))
+          sample={"1060462","351321","1449133","1560304","717946","388930","1510978","1043038"}
+          matching={e.trip_update.trip.trip_id for e in pb.entity if e.HasField("trip_update") and e.trip_update.trip.trip_id in sample}
+          print("REGISTERED_REGENSBURG_MATCH_COUNT",len(matching))
+          print("HAS_BAVARIA_RT",len(matching)>0)
+          print("SAFE_12MB_LIMIT",len(raw)<12000000)
+          PY
