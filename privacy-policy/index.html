@@ -22,7 +22,7 @@
 <main>
   <div class="card">
     <h1>Privacy Policy</h1>
-    <p class="muted"><strong>Last updated:</strong> 14 November 2026</p>
+    <p class="muted"><strong>Last updated:</strong> 25 November 2026</p>
 
     <p>This Privacy Policy applies to mobile applications, websites, and digital services provided under the <strong>MONSI AI / monsiai</strong> brand, including <strong>LifeDashPro</strong>, <strong>BalkanVibes Radio</strong>, <strong>DriveWave Player</strong>, and other applications that link to this Privacy Policy. <strong>Petrushevski</strong> is the Google Play developer / publisher name for <strong>DriveWave Player</strong> (Android package <code>com.mkdigital.drivewaveplayer</code>). The MONSI AI / monsiai website branding and the Petrushevski developer name refer to the corresponding app and website operations described in this Policy ("we", "us", or "our").</p>
 
@@ -35,12 +35,21 @@
 
     <h2>LifeDashPro-specific summary</h2>
     <p><strong>LifeDashPro</strong> (Android package <code>com.lifedashpro.app</code>) is a personal dashboard that may include Notes, Tasks and Reminders, Finance, Documents and attachments, Vehicles, Family items, Travel/Journey planning, Route and Navigation tools, Radio, Maps, Nearby, Weather, Road and Traffic information, Transit, and Safety/World information.</p>
-    <p>LifeDashPro uses <strong>Supabase</strong> for account authentication and, where enabled, cloud database, storage, synchronization and server-side functions. Account-linked information may include email address, user identifier, profile settings, language, country/city selections, notes, tasks, reminders, finance records, invoice or document metadata, attachments selected by the user, vehicle records, family items, journeys, reservations, utility records and app preferences.</p>
+    <p>LifeDashPro uses <strong>Supabase</strong> for account authentication and, where enabled, cloud database, storage, synchronization and server-side functions. Account-linked information may include your name, email address, user identifier, profile settings, language, country/city selections, notes, tasks, reminders, calendar events, finance records, invoice or document metadata, attachments selected by the user, vehicle records, family items, journeys, reservations, utility records and app preferences. Sign-in may use an email and password or Google Sign-In.</p>
     <p>With permission, LifeDashPro may use approximate or precise location for weather, nearby places, road and safety information, route planning and navigation. The app may save and synchronize the latest selected or detected location coordinates, city/country, accuracy and update time in the user's account preferences so location-based features and reminders can continue consistently across sessions. LifeDashPro does not maintain a continuous historical trail of the user's movements as a general location-history feature. During an active navigation session, location may continue to be used while the app is backgrounded where the Android permission and platform rules allow it. Location permissions can be changed in Android settings.</p>
     <p>LifeDashPro may schedule Android notifications for Notes, Tasks, manual reminders, Journey items, Finance dates, vehicle/document dates and other user-configured due dates. Exact-alarm capability is used only where available and appropriate for user-requested reminders. Radio playback may continue in the background through Android media services.</p>
-    <p>Files, photos or documents are accessed only when the user selects or attaches them for an app feature. Depending on the feature, the selected file or its metadata may be stored locally and/or in authenticated user-scoped cloud storage.</p>
+    <h3>Camera, on-device AI and document scanning</h3>
+    <p>LifeDashPro offers optional camera-based object recognition during navigation and a document scanner. With camera permission, navigation camera frames are analyzed on the device using Google MediaPipe Tasks. The object-recognition feature does not itself record video or upload camera frames for remote AI analysis. You can stop using the feature or revoke camera permission in Android settings.</p>
+    <p>The document scanner uses Google ML Kit for scanning and optical character recognition (OCR). Scanned images, recognized text and PDF creation are processed on the device. Photos and documents may also be imported by user choice. When you choose to save a scan to Documents, attach it to a synced record, or add recognized text to a synced note, the resulting file, text and associated metadata may be stored in your authenticated LifeDashPro account through Supabase. A document may contain personal information you choose to scan; only scan information you are authorized to use.</p>
+    <p>Files, photos and documents are accessed when you capture, select, import or attach them for a feature. Depending on your actions and the feature, they may be kept locally and/or in account-scoped cloud storage.</p>
+    <h3>Calendar and family information</h3>
+    <p>When you use Calendar or Family, you can voluntarily enter calendar events, dates, tasks, names, family relationships, birthdays, cities, telephone numbers, notes and attachments. These records may be synchronized with your LifeDashPro account. Where a family-sharing feature is used, information may also be made available to the members you choose to share it with. Please enter information about other people only when you have appropriate authorization.</p>
+    <h3>Search requests</h3>
+    <p>When you search for addresses, cities, places, routes or transport information, your search terms and relevant location or request parameters may be transmitted to our backend and external search or data providers, such as Nominatim (OpenStreetMap) and Open-Meteo. This is used to return the requested results. Providers may retain technical request logs under their own policies; we do not represent every search request as ephemeral.</p>
+    <h3>SDK usage and diagnostic information</h3>
+    <p>Google MediaPipe Tasks and ML Kit may transmit technical metrics to Google, separate from the camera images and scanned document content. Depending on the SDK, these can include application identifiers, installation identifiers, device and operating-system information, feature usage and interactions, session information, general input characteristics, error codes, diagnostics, processing time and other performance statistics. Google uses these metrics to operate, diagnose, maintain and improve its SDKs. See the <a href="https://developers.google.com/edge/mediapipe/solutions/privacy">MediaPipe Tasks Privacy Notice</a>, <a href="https://developers.google.com/ml-kit/android-data-disclosure">ML Kit data disclosure information</a> and <a href="https://policies.google.com/privacy">Google Privacy Policy</a>. These technical metrics are distinct from advertising identifiers and the content processed on the device. SDK processing is subject to Google's applicable terms and privacy practices.</p>
     <p>LifeDashPro may maintain user-requested or automatic backup snapshots of supported account data to help restore records. Before a restore, LifeDashPro may create an additional safety snapshot. Backup data is protected by account-scoped backend controls and is deleted when the user chooses the in-app <strong>Delete my data</strong> or <strong>Delete account</strong> action, subject to the limited retention provisions below.</p>
-    <p>The current LifeDashPro release does not include a third-party advertising tracker or third-party crash-reporting SDK. If this changes, the policy and applicable Google Play declarations will be updated before or with the relevant release.</p>
+    <p>LifeDashPro does not use the MediaPipe or ML Kit metrics described above for advertising. Technical SDK usage and diagnostic processing can occur even when no advertising or dedicated crash-reporting service is used.</p>
 
     <h2>Balkan Vibes-specific summary</h2>
     <p><strong>Balkan Vibes</strong> (also referred to as <strong>BalkanVibes Radio</strong>) is a Balkan-focused internet radio app. Its current features include browsing stations by country, playing online radio streams, saving favorite stations, a simplified Car Mode interface, background audio playback, and support for available Bluetooth or other audio outputs.</p>
@@ -68,6 +77,7 @@
       <li>send local reminders and notifications that you enable;</li>
       <li>restore preferences and improve usability;</li>
       <li>prevent abuse, maintain security, and troubleshoot technical problems;</li>
+      <li>measure feature usage and SDK performance, diagnose errors, and maintain or improve the relevant SDKs;</li>
       <li>support purchases or subscriptions where offered.</li>
     </ul>
 
@@ -79,7 +89,9 @@
     <p>Our apps may retrieve information from third-party services. Depending on the app and selected feature, these may include:</p>
     <ul>
       <li><strong>Supabase</strong> – authentication, database, storage, server-side functions, and synchronization;</li>
-      <li><strong>OpenStreetMap / Overpass</strong> – map and nearby place data;</li>
+      <li><strong>OpenStreetMap / Overpass / Nominatim</strong> – maps, nearby places and geocoding;</li>
+      <li><strong>Open-Meteo</strong> – weather and location search;</li>
+      <li><strong>Google MediaPipe Tasks and ML Kit</strong> – on-device recognition, document scanning and OCR, with SDK technical metrics as described above;</li>
       <li><strong>Radio Browser</strong> – internet radio station listings and stream URLs;</li>
       <li><strong>NASA FIRMS</strong> – active fire information;</li>
       <li><strong>AISStream</strong> or other maritime providers – vessel position data;</li>
@@ -98,17 +110,17 @@
     <p>Before purchase, the app or store listing will disclose applicable pricing, billing frequency, whether a trial is offered, whether the subscription automatically renews, and how it can be managed or cancelled. Subscription management, cancellation, billing, refunds, and renewal are subject to Google Play's applicable terms and settings unless otherwise stated.</p>
 
     <h2>7. Advertising</h2>
-    <p>Some apps may be free of advertising, while others may display advertising in the future. If advertising or analytics services are introduced, this Privacy Policy will be updated as needed to identify the relevant processing and service providers. Where consent is legally required, appropriate consent controls will be presented.</p>
+    <p>Some apps may be free of advertising, while others may display advertising in the future. The technical SDK metrics used in LifeDashPro are described above and are not used by us for advertising. If advertising or additional analytics services are introduced, this Privacy Policy will be updated as needed. Where consent is legally required, it must be obtained before the relevant processing.</p>
 
     <h2>8. Data Storage and Security</h2>
-    <p>We use reasonable technical and organizational measures designed to protect information. Data transmitted to supported backend services is generally sent over encrypted network connections such as HTTPS/TLS.</p>
+    <p>We use reasonable technical and organizational measures designed to protect information. Data transmitted to supported backend services is generally sent over encrypted network connections such as HTTPS/TLS. Some external radio or media streams may use unencrypted HTTP. Avoid submitting confidential information to unencrypted third-party services.</p>
     <p>No internet transmission, cloud service, or electronic storage method can be guaranteed to be completely secure. We therefore do not promise absolute security or end-to-end encryption unless a specific app or feature explicitly states that it provides it.</p>
 
     <h2>9. Data Sharing</h2>
-    <p>We do not sell personal information to advertisers. We may share or transmit limited information to service providers only when necessary to operate a feature, process a purchase, provide requested data, maintain security, comply with law, or protect legal rights.</p>
+    <p>We do not sell personal information to advertisers. We may share or transmit limited information to service providers to operate a feature, process a purchase, provide requested data, maintain security, comply with law, or protect legal rights. External providers may also process search and technical request information and SDK usage, diagnostics and performance metrics as described above, including for their own service maintenance and improvement.</p>
 
     <h2>10. Data Retention</h2>
-    <p>Data is retained only for as long as reasonably necessary for the purposes described in this Policy, to provide the relevant service, or to comply with legal obligations. Locally stored data may remain on your device until you delete it, clear app data, or uninstall the app. Account-linked data may remain until you delete it through an available in-app function or request deletion. Backup snapshots, where offered, are retained according to the app's backup controls and may be deleted or expire as configured.</p>
+    <p>Data is retained only for as long as reasonably necessary for the purposes described in this Policy, to provide the relevant service, or to comply with legal obligations. Locally stored data may remain on your device until you delete it, clear app data, or uninstall the app. Account-linked data may remain until you delete it through an available in-app function or request deletion. Backup snapshots, where offered, are retained according to the app's backup controls and may be deleted or expire as configured. Third-party technical metrics and request logs are subject to the relevant provider's retention practices; deleting your LifeDashPro account does not necessarily delete records independently retained by an external provider.</p>
 
     <h2>11. Account and Data Deletion</h2>
     <p>LifeDashPro provides two separate controls in <strong>Settings → Privacy</strong>. <strong>Delete my data</strong> removes LifeDashPro user-created and synced app data, backup snapshots, and user-owned cloud attachments while keeping the authentication account and basic profile active. <strong>Delete account</strong> permanently removes the LifeDashPro authentication account together with associated account-linked app data, backup snapshots, and user-owned cloud attachments.</p>
@@ -122,7 +134,7 @@
     <p>Third-party service providers may process data in countries other than your country of residence. Where applicable, processing is subject to the provider's legal safeguards, contractual terms, and applicable data-protection law.</p>
 
     <h2>14. Your Choices and Rights</h2>
-    <p>Depending on your location and applicable law, you may have rights relating to access, correction, deletion, restriction, portability, or objection to processing of your personal information. You can also control permissions such as location and notifications through your device settings.</p>
+    <p>Depending on your location and applicable law, you may have rights relating to access, correction, deletion, restriction, portability, or objection to processing of your personal information. You can also control permissions such as camera, location and notifications through your device settings, choose whether to use optional scanning and camera features, and delete account-linked data using the controls described above. Restricting a permission does not necessarily disable every form of SDK technical telemetry.</p>
 
     <h2>15. External Links</h2>
     <p>Apps may contain links to websites or services operated by third parties. We are not responsible for the privacy practices or content of those third-party services.</p>
