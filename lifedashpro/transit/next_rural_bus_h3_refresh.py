@@ -30,6 +30,8 @@ CENTERS={
 }
 # Only a local spatial subset; no nationwide stop/trip rows in Supabase.
 RADIUS_KM=13
+# Additional city coverage, independent of the original rural bounding box.
+CITY_CENTERS={"Regensburg":(49.0134,12.1016,6),"Scharmassing":(48.95,12.15,5)}
 ZIP_CAP=330*1048576
 EXPANDED_CAP=7_500*1048576
 MAX_INITIAL_STOPS=6500
@@ -48,8 +50,10 @@ def distance(a,b,c,d):
     h=math.sin((c-a)*rad/2)**2+math.cos(a*rad)*math.cos(c*rad)*math.sin((d-b)*rad/2)**2
     return 12742.016*math.asin(math.sqrt(min(1,h)))
 def is_near(lat,lon):
-    if not (48.65<=lat<=49.12 and 11.48<=lon<=12.05):return False
-    return any(distance(lat,lon,c,d)<=RADIUS_KM for c,d in CENTERS.values())
+    if 48.65<=lat<=49.12 and 11.48<=lon<=12.05:
+        if any(distance(lat,lon,c,d)<=RADIUS_KM for c,d in CENTERS.values()):return True
+    if not (48.86<=lat<=49.08 and 12.00<=lon<=12.24):return False
+    return any(distance(lat,lon,c,d)<=radius for c,d,radius in CITY_CENTERS.values())
 def rows(z,name):
     with z.open(name) as raw:
         yield from csv.DictReader(io.TextIOWrapper(raw,encoding="utf-8-sig",newline=""))
@@ -111,7 +115,9 @@ def build(archive):
                 stops[sid]={"name":(row.get("stop_name") or sid)[:220],
                     "lat":lat,"lon":lon,"platform":(row.get("platform_code") or "")[:60] or None}
             if len(stops)>MAX_INITIAL_STOPS:fail("TOO_MANY_SPATIALLY_SELECTED_STOPS")
-        if not stops:fail("NO_STOPS_IN_KELHEIM_AREA")
+        if not stops:fail("NO_STOPS_IN_KELHEIM_OR_REGENSBURG_AREA")
+        city_seeds=sum(distance(49.0134,12.1016,s['lat'],s['lon'])<=6 for s in stops.values())
+        if city_seeds<40:fail("NO_CONFIRMED_REGENSBURG_STOP_SEEDS")
         print("SELECTED_LOCAL_STOP_SEEDS",len(stops),flush=True)
         routes={}
         for row in rows(z,"routes.txt"):
@@ -186,6 +192,9 @@ def build(archive):
         for city,(lat,lon) in CENTERS.items():
             coverage[city]=sum(distance(lat,lon,s[2],s[3])<=6 for s in result_stops)
         if coverage["Neustadt an der Donau"]<3:fail("NO_CONFIRMED_NEUSTADT_LOCAL_BUS_SERVICE")
+        for city,(lat,lon,radius) in CITY_CENTERS.items():
+            coverage[city]=sum(distance(lat,lon,s[2],s[3])<=radius for s in result_stops)
+        if coverage["Regensburg"]<40:fail("NO_CONFIRMED_REGENSBURG_LOCAL_BUS_SERVICE")
         stats={"feed":"official_gtfs_de_nv_free","stops":len(result_stops),
                "stop_day_rows":len(result_dep),"events":count,"date_start":str(dates[0]),
                "payload_mib":round(bytes_used/1048576,2),
@@ -212,8 +221,11 @@ def import_data(stops,departures,stats):
                 old_slot,loaded,expires=meta
                 if (loaded and expires and loaded>datetime.now(loaded.tzinfo)-timedelta(hours=12)
                     and expires>datetime.now(expires.tzinfo)+timedelta(hours=12)):
-                    print("BUS_H3_FRESH_SKIP",flush=True)
-                    return
+                    # A recently loaded old-coverage snapshot must not suppress the first city refresh.
+                    cur.execute("select count(*) from transit_next.bus_stops_"+old_slot+" where lat between 48.98 and 49.04 and lon between 12.06 and 12.17")
+                    if cur.fetchone()[0]>=40:
+                        print("BUS_H3_FRESH_SKIP",flush=True)
+                        return
                 inactive="b" if old_slot=="a" else "a"
                 s_table="transit_next.bus_stops_"+inactive
                 d_table="transit_next.bus_departures_"+inactive
@@ -232,7 +244,7 @@ def import_data(stops,departures,stats):
                         stops=%s,departures=%s where id=1""",(inactive,len(stops),stats["events"]))
                 if cur.rowcount!=1:fail("BUS_META_POINTER_FLIP_FAILED")
                 cur.execute("""update transit_next.feed_registry set integration_state='enabled',
-                    last_checked_at=now(),note='NEXT scheduled official GTFS.de bus subset; regional only; no realtime'
+                    last_checked_at=now(),note='Scheduled GTFS.de bus subset; original rural areas plus Regensburg and Scharmassing; no realtime'
                     where feed_id='de-rural-bus'""")
                 print("BUS_H3_READY_TO_COMMIT "+json.dumps({"slot":inactive,
                     "rows":len(stops),"departures":stats["events"],
