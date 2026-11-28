@@ -18,6 +18,11 @@ with psycopg.connect(uri,autocommit=True) as db:
         assert near[0][0]=="s0" and near[0][1]==0 and len(near)==2,near
         cur.execute("select transit_data.service_active(%s,%s,%s)",("de-national","w",today))
         assert cur.fetchone()[0] is True
+        # An underlying calendar may extend beyond the verified compact selection.
+        cur.execute("select selected_until from transit_data.feeds where feed_source='de-national'")
+        selected_until=cur.fetchone()[0]
+        cur.execute("select transit_data.service_active(%s,%s,%s)",("de-national","w",selected_until+timedelta(days=1)))
+        assert cur.fetchone()[0] is False, "expired compact service must not be published"
         cur.execute("select count(*),min(departure_time),min(display_seconds) from public.transit_gtfs_departures(%s,%s,%s,%s,%s,%s)",
                     ("de-national","s0",today,82800,180,50))
         n,gtfs_clock,seconds=cur.fetchone()
