@@ -12,6 +12,9 @@ create function transit_data.service_active(
 language sql stable security definer set search_path = ''
 as $fn$
   select case
+    when not exists (select 1 from transit_data.feeds f
+      where f.feed_source=p_feed_source and f.active
+        and p_service_date between f.selected_from and f.selected_until) then false
     when exists (
       select 1 from transit_data.calendar_dates cd
       where cd.feed_source=p_feed_source and cd.service_id=p_service_id
